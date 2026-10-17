@@ -1,56 +1,82 @@
-# Welcome to your Expo app 👋
+# BatiLink
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Plateforme belge pour les PME du bâtiment, en français et en néerlandais. Un entrepreneur envoie une demande de prix à plusieurs négoces en une fois, les négoces répondent depuis l'e-mail sans créer de compte, et l'entrepreneur compare les offres côte à côte.
 
-## Get started
+Une seule base de code produit l'app iOS, l'app Android et le site web.
 
-1. Install dependencies
+Cette version couvre la phase 2 de la feuille de route : les demandes de prix. Le réseau entre entrepreneurs (annonces, badge vérifié, messagerie) et le paiement en ligne viennent ensuite.
 
+## Ce qu'il y a dedans
+
+| Dossier | Rôle |
+| --- | --- |
+| `src/app/` | Écrans (Expo Router) : connexion par code e-mail, création de l'entreprise, accueil, nouvelle demande, comparateur d'offres, abonnement, réglages, page publique de réponse fournisseur (`/offre/[token]`). |
+| `src/i18n/` | Textes FR et NL. La langue suit l'appareil, se change dans Réglages et est mémorisée. |
+| `src/lib/` | Client Supabase, session, calcul des totaux (TVA 21 %), formats belges (dates, TVA, codes postaux). |
+| `supabase/migrations/` | Schéma Postgres, règles d'accès (RLS) et catégories de produits. |
+| `supabase/functions/` | Fonctions serveur : envoi de la demande et des e-mails, réponse fournisseur, choix de l'offre, relances après 24 h. |
+| `supabase/functions/_shared/plans.ts` | Règles des trois abonnements, utilisées à la fois par l'app et par le serveur. |
+
+## Abonnements
+
+| | Gratuit | Pro | Complet |
+| --- | --- | --- | --- |
+| Prix HTVA / mois | 0 € | 39 € | 89 € |
+| Demandes de prix | 1 d'essai par mois, 3 fournisseurs max | 1 d'essai par mois | Illimitées |
+| Réseau entrepreneurs | Consultation | Complet | Complet |
+
+## Mise en route
+
+1. Créer un projet sur [supabase.com](https://supabase.com), région **Frankfurt (eu-central-1)**.
+2. Installer les dépendances : `npm install`.
+3. Lier le projet et appliquer le schéma :
    ```bash
-   npm install
+   npx supabase login
+   npx supabase link --project-ref <ref>
+   npx supabase db push
    ```
-
-2. Start the app
-
+4. Configurer les secrets des fonctions puis les déployer :
    ```bash
-   npx expo start
+   npx supabase secrets set BREVO_API_KEY=... EMAIL_FROM=demandes@votre-domaine.be APP_URL=https://app.votre-domaine.be CRON_SECRET=$(openssl rand -hex 24)
+   npx supabase functions deploy
    ```
+   Sans `BREVO_API_KEY`, les e-mails sont écrits dans les journaux au lieu d'être envoyés.
+5. Programmer les relances toutes les heures (SQL editor de Supabase, extensions `pg_cron` et `pg_net` activées) :
+   ```sql
+   select cron.schedule('remind-suppliers', '0 * * * *', $$
+     select net.http_post(
+       url := 'https://<ref>.supabase.co/functions/v1/remind-suppliers',
+       headers := jsonb_build_object('x-cron-secret', '<CRON_SECRET>')
+     )
+   $$);
+   ```
+6. Copier `.env.example` en `.env` et le remplir, puis lancer l'app : `npm run web`, `npm run ios` ou `npm run android`.
+7. Dans Supabase → Authentication → Email templates, mettre `{{ .Token }}` dans le modèle « Magic link » pour que l'e-mail de connexion contienne le code à 6 chiffres.
 
-In the output, you'll find options to open the app in a
+### Ajouter les fournisseurs démarchés
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Les fournisseurs n'ont pas de compte. On les ajoute dans la base, avec les catégories et les débuts de codes postaux qu'ils couvrent (`14` couvre 1400 à 1499) :
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+```sql
+insert into companies (kind, name, email, language, city, vat_number)
+values ('supplier', 'Négoce Exemple', 'offres@exemple.be', 'fr', 'Wavre', 'BE0123456789')
+returning id;
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+insert into supplier_coverage (supplier_id, category_id, postal_prefix)
+select '<id>', id, '13' from categories where slug in ('gros-oeuvre', 'isolation');
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+## Vérifications
 
-### Other setup steps
+```bash
+npm run typecheck   # TypeScript de l'app
+npm run lint        # ESLint
+npm test            # tests unitaires (abonnements, totaux, formats, e-mails, liens)
+npx deno check supabase/functions/*/index.ts   # TypeScript des fonctions serveur
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Sécurité
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Chaque entreprise ne voit que ses propres demandes et offres (RLS Postgres).
+- Le lien envoyé au fournisseur contient un jeton aléatoire ; seule son empreinte SHA-256 est stockée, et l'app ne peut pas la lire. Le lien expire après 14 jours ; une relance envoie un nouveau lien.
+- Les limites d'abonnement sont vérifiées par le serveur, pas seulement par l'app.
