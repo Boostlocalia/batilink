@@ -30,3 +30,15 @@ verify_jwt = false
 # Suppliers use the assistant from their link (token checked in the function).
 [functions.assistant]
 verify_jwt = false
+
+# Suppliers open their order link without an account (token checked in the function).
+[functions.supplier-order]
+verify_jwt = false
+
+# Called by Stripe; every call is checked against its signature.
+[functions.stripe-webhook]
+verify_jwt = false
+
+# Cron job (shared secret) and the payment link in the supplier e-mail (token).
+[functions.bill-commissions]
+verify_jwt = false

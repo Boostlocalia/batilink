@@ -68,7 +68,9 @@ describe('commission', () => {
   it('is announced in the invitation and detailed in the award e-mail', () => {
     expect(invitationMail({ ...base, lang: 'fr' }).text).toMatch(/commission de 5\s?%/);
     expect(invitationMail({ ...base, lang: 'nl' }).text).toMatch(/commissie van 5\s?%/);
-    const mail = awardedMail('fr', 'a@b.be', 'Bati', null, 'Chape', { base: 1505, rate: 0.05, amount: 75.25 });
+    const mail = awardedMail('fr', 'a@b.be', 'Bati', 'Chape', { base: 1505, rate: 0.05, amount: 75.25 }, { number: 'BL-2026-000042', url: 'https://x/bon/t' });
     expect(mail.text).toContain('75,25');
+    expect(mail.text).toContain('BL-2026-000042');
+    expect(mail.html).toContain('https://x/bon/t');
   });
 });

@@ -126,28 +126,41 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
 
 export type CommissionLine = { base: number; rate: number; amount: number };
 
+/** Offer awarded: the supplier confirms the purchase order (and its deposit) from the link. */
 export function awardedMail(
   lang: Lang,
   to: string,
   contractor: string,
-  contractorEmail: string | null,
   title: string,
   commission: CommissionLine,
+  order: { number: string; url: string },
 ): Mail {
   if (lang === 'nl') {
     const p = [
-      `Goed nieuws: ${esc(contractor)} heeft uw offerte voor « ${esc(title)} » gekozen.`,
-      `Neem contact op om de levering te regelen${contractorEmail ? `: ${esc(contractorEmail)}` : ''}.`,
-      `Commissie ${APP_NAME}: ${pct(commission.rate, 'nl')} van ${eur(commission.base, 'nl')}, of ${eur(commission.amount, 'nl')} excl. btw, gefactureerd aan het einde van de maand.`,
+      `Goed nieuws: ${esc(contractor)} heeft uw offerte voor « ${esc(title)} » gekozen. Bestelbon: <b>${esc(order.number)}</b>.`,
+      'Bevestig de bestelling via de knop hieronder. U kunt er een voorschot vragen: de aannemer stuurt dan het betalingsbewijs, of betaalt online, voordat u de bestelling start.',
+      `Vermeld het nummer ${esc(order.number)} als bestelreferentie op uw (Peppol-)factuur.`,
+      `Commissie ${APP_NAME}: ${pct(commission.rate, 'nl')} van ${eur(commission.base, 'nl')}, of ${eur(commission.amount, 'nl')} excl. btw. Bij een online betaling wordt ze automatisch ingehouden, anders gefactureerd aan het einde van de maand.`,
     ];
-    return { to, subject: `Uw offerte is gekozen: ${title}`, html: layout(p), text: p.join('\n\n') };
+    return {
+      to,
+      subject: `Uw offerte is gekozen: ${title} (${order.number})`,
+      html: layout(p, { label: 'Bestelling bevestigen', url: order.url }),
+      text: `${p.join('\n\n').replace(/<\/?b>/g, '')}\n\n${order.url}`,
+    };
   }
   const p = [
-    `Bonne nouvelle : ${esc(contractor)} a retenu votre offre pour « ${esc(title)} ».`,
-    `Prenez contact pour organiser la livraison${contractorEmail ? ` : ${esc(contractorEmail)}` : ''}.`,
-    `Commission ${APP_NAME} : ${pct(commission.rate, 'fr')} de ${eur(commission.base, 'fr')}, soit ${eur(commission.amount, 'fr')} HTVA, facturée en fin de mois.`,
+    `Bonne nouvelle : ${esc(contractor)} a retenu votre offre pour « ${esc(title)} ». Bon de commande : <b>${esc(order.number)}</b>.`,
+    "Confirmez la commande avec le bouton ci-dessous. Vous pouvez y demander un acompte : l'entrepreneur vous envoie alors la preuve de paiement, ou paie en ligne, avant que vous lanciez la commande.",
+    `Indiquez le numéro ${esc(order.number)} comme référence de commande sur votre facture (Peppol).`,
+    `Commission ${APP_NAME} : ${pct(commission.rate, 'fr')} de ${eur(commission.base, 'fr')}, soit ${eur(commission.amount, 'fr')} HTVA. Retenue automatiquement si l'entrepreneur paie en ligne, sinon facturée en fin de mois.`,
   ];
-  return { to, subject: `Votre offre est retenue : ${title}`, html: layout(p), text: p.join('\n\n') };
+  return {
+    to,
+    subject: `Votre offre est retenue : ${title} (${order.number})`,
+    html: layout(p, { label: 'Confirmer la commande', url: order.url }),
+    text: `${p.join('\n\n').replace(/<\/?b>/g, '')}\n\n${order.url}`,
+  };
 }
 
 export function notSelectedMail(lang: Lang, to: string, contractor: string, title: string): Mail {
@@ -219,4 +232,194 @@ export function answerToSupplierMail(lang: Lang, to: string, contractor: string,
   const intro = `${esc(contractor)} répond à votre question sur « ${esc(title)} » :`;
   const hint = 'Une autre question ? Répondez à cet e-mail. Votre prix se remet par le lien de la demande initiale.';
   return { to, subject: `Réponse de ${contractor} : ${title}`, html: layout([intro, ...paragraphs(relayed), esc(hint)]), text: `${intro}\n\n${relayed}\n\n${hint}`, replyTo };
+}
+
+// Orders -----------------------------------------------------------------------
+
+type Localized = { subject: string; paragraphs: string[]; cta?: { label: string; url: string } };
+
+/** A short bilingual notice; paragraphs are plain text (escaped here). */
+function notice(lang: Lang, to: string, content: Record<Lang, Localized>): Mail {
+  const c = content[lang];
+  const html = layout(c.paragraphs.map(esc), c.cta);
+  const text = [...c.paragraphs, ...(c.cta ? [c.cta.url] : [])].join('\n\n');
+  return { to, subject: c.subject, html, text };
+}
+
+export type OrderMailData = {
+  lang: Lang;
+  to: string;
+  number: string;
+  title: string;
+  /** Name of the other party. */
+  other: string;
+  url: string;
+};
+
+/** To the contractor: the supplier confirmed, with or without a deposit to pay first. */
+export function orderConfirmedMail(d: OrderMailData, deposit: { amount: number; iban: string | null } | null): Mail {
+  const fr: Localized = deposit
+    ? {
+        subject: `Acompte demandé : ${d.title} (${d.number})`,
+        paragraphs: [
+          `${d.other} a confirmé la commande ${d.number} et demande un acompte de ${eur(deposit.amount, 'fr')} avant de la lancer.`,
+          deposit.iban
+            ? `Payez en ligne dans l'application, ou par virement au compte ${deposit.iban} avec la communication ${d.number}, puis déposez la preuve du virement (capture d'écran ou PDF). Nous la transmettons au fournisseur.`
+            : "Payez en ligne dans l'application, ou par virement, puis déposez la preuve du virement (capture d'écran ou PDF). Nous la transmettons au fournisseur.",
+        ],
+        cta: { label: "Payer ou envoyer la preuve", url: d.url },
+      }
+    : {
+        subject: `Commande confirmée : ${d.title} (${d.number})`,
+        paragraphs: [`${d.other} a confirmé la commande ${d.number} et la prépare.`],
+        cta: { label: 'Suivre la commande', url: d.url },
+      };
+  const nl: Localized = deposit
+    ? {
+        subject: `Voorschot gevraagd: ${d.title} (${d.number})`,
+        paragraphs: [
+          `${d.other} heeft bestelling ${d.number} bevestigd en vraagt een voorschot van ${eur(deposit.amount, 'nl')} voordat ze start.`,
+          deposit.iban
+            ? `Betaal online in de app, of via overschrijving naar ${deposit.iban} met mededeling ${d.number}, en laad daarna het betalingsbewijs op (schermafbeelding of pdf). Wij bezorgen het aan de leverancier.`
+            : 'Betaal online in de app, of via overschrijving, en laad daarna het betalingsbewijs op (schermafbeelding of pdf). Wij bezorgen het aan de leverancier.',
+        ],
+        cta: { label: 'Betalen of bewijs opladen', url: d.url },
+      }
+    : {
+        subject: `Bestelling bevestigd: ${d.title} (${d.number})`,
+        paragraphs: [`${d.other} heeft bestelling ${d.number} bevestigd en bereidt ze voor.`],
+        cta: { label: 'Bestelling volgen', url: d.url },
+      };
+  return notice(d.lang, d.to, { fr, nl });
+}
+
+/** To the supplier: the contractor sent proof of the deposit. */
+export function depositProofMail(d: OrderMailData, amount: number): Mail {
+  return notice(d.lang, d.to, {
+    fr: {
+      subject: `Preuve d'acompte reçue : ${d.number}`,
+      paragraphs: [
+        `${d.other} a envoyé la preuve de paiement de l'acompte de ${eur(amount, 'fr')} pour la commande ${d.number}.`,
+        'Vérifiez la preuve, puis confirmez la réception du paiement pour lancer la commande.',
+      ],
+      cta: { label: 'Voir la preuve', url: d.url },
+    },
+    nl: {
+      subject: `Bewijs van voorschot ontvangen: ${d.number}`,
+      paragraphs: [
+        `${d.other} heeft het betalingsbewijs van het voorschot van ${eur(amount, 'nl')} voor bestelling ${d.number} gestuurd.`,
+        'Controleer het bewijs en bevestig daarna de ontvangst van de betaling om de bestelling te starten.',
+      ],
+      cta: { label: 'Bewijs bekijken', url: d.url },
+    },
+  });
+}
+
+/** To the contractor: the supplier received the deposit (or rejected the proof). */
+export function depositAnsweredMail(d: OrderMailData, received: boolean, reason?: string): Mail {
+  return notice(d.lang, d.to, {
+    fr: received
+      ? {
+          subject: `Acompte reçu, commande lancée : ${d.number}`,
+          paragraphs: [`${d.other} a reçu votre acompte et lance la commande ${d.number}.`],
+          cta: { label: 'Suivre la commande', url: d.url },
+        }
+      : {
+          subject: `Acompte non reçu : ${d.number}`,
+          paragraphs: [
+            `${d.other} n'a pas encore reçu votre acompte pour la commande ${d.number}.`,
+            ...(reason ? [`Motif : ${reason}`] : []),
+            "Vérifiez le virement et renvoyez une preuve si besoin.",
+          ],
+          cta: { label: 'Voir la commande', url: d.url },
+        },
+    nl: received
+      ? {
+          subject: `Voorschot ontvangen, bestelling gestart: ${d.number}`,
+          paragraphs: [`${d.other} heeft uw voorschot ontvangen en start bestelling ${d.number}.`],
+          cta: { label: 'Bestelling volgen', url: d.url },
+        }
+      : {
+          subject: `Voorschot niet ontvangen: ${d.number}`,
+          paragraphs: [
+            `${d.other} heeft uw voorschot voor bestelling ${d.number} nog niet ontvangen.`,
+            ...(reason ? [`Reden: ${reason}`] : []),
+            'Controleer de overschrijving en stuur zo nodig een nieuw bewijs.',
+          ],
+          cta: { label: 'Bestelling bekijken', url: d.url },
+        },
+  });
+}
+
+/** To the contractor: the supplier cannot deliver. */
+export function orderDeclinedMail(d: OrderMailData, reason: string | null): Mail {
+  return notice(d.lang, d.to, {
+    fr: {
+      subject: `Commande annulée par le fournisseur : ${d.number}`,
+      paragraphs: [`${d.other} ne peut pas honorer la commande ${d.number}.`, ...(reason ? [`Motif : ${reason}`] : [])],
+      cta: { label: 'Voir la commande', url: d.url },
+    },
+    nl: {
+      subject: `Bestelling geannuleerd door de leverancier: ${d.number}`,
+      paragraphs: [`${d.other} kan bestelling ${d.number} niet uitvoeren.`, ...(reason ? [`Reden: ${reason}`] : [])],
+      cta: { label: 'Bestelling bekijken', url: d.url },
+    },
+  });
+}
+
+/** To the supplier: payment made online, or delivery confirmed. */
+export function orderNewsMail(d: OrderMailData, news: 'paid_online' | 'delivered', amount?: number): Mail {
+  if (news === 'paid_online') {
+    return notice(d.lang, d.to, {
+      fr: {
+        subject: `Paiement reçu en ligne : ${d.number}`,
+        paragraphs: [
+          `${d.other} a payé ${eur(amount ?? 0, 'fr')} en ligne pour la commande ${d.number}. Le montant arrive sur votre compte Stripe, commission ${APP_NAME} déduite.`,
+        ],
+        cta: { label: 'Voir la commande', url: d.url },
+      },
+      nl: {
+        subject: `Online betaling ontvangen: ${d.number}`,
+        paragraphs: [
+          `${d.other} heeft ${eur(amount ?? 0, 'nl')} online betaald voor bestelling ${d.number}. Het bedrag komt op uw Stripe-rekening, na aftrek van de commissie van ${APP_NAME}.`,
+        ],
+        cta: { label: 'Bestelling bekijken', url: d.url },
+      },
+    });
+  }
+  return notice(d.lang, d.to, {
+    fr: {
+      subject: `Livraison confirmée : ${d.number}`,
+      paragraphs: [
+        `${d.other} a confirmé la réception de la commande ${d.number}.`,
+        `Envoyez votre facture par Peppol avec la référence de commande ${d.number}.`,
+      ],
+    },
+    nl: {
+      subject: `Levering bevestigd: ${d.number}`,
+      paragraphs: [`${d.other} heeft de ontvangst van bestelling ${d.number} bevestigd.`, `Stuur uw factuur via Peppol met bestelreferentie ${d.number}.`],
+    },
+  });
+}
+
+/** To the supplier: the month's commission still due, payable online. */
+export function commissionBillMail(lang: Lang, to: string, bill: { number: string; month: string; exVat: number; incVat: number; orders: number }, url: string): Mail {
+  return notice(lang, to, {
+    fr: {
+      subject: `Commission ${APP_NAME} ${bill.month} : ${bill.number}`,
+      paragraphs: [
+        `Commission due pour ${bill.orders} commande(s) attribuée(s) via ${APP_NAME} et payée(s) hors de la plateforme : ${eur(bill.exVat, 'fr')} HTVA, soit ${eur(bill.incVat, 'fr')} TVAC.`,
+        'La facture correspondante vous parvient par Peppol avec la même référence. Payez en ligne de façon sécurisée (Bancontact, carte ou domiciliation).',
+      ],
+      cta: { label: 'Payer la commission', url },
+    },
+    nl: {
+      subject: `Commissie ${APP_NAME} ${bill.month}: ${bill.number}`,
+      paragraphs: [
+        `Verschuldigde commissie voor ${bill.orders} bestelling(en) gegund via ${APP_NAME} en buiten het platform betaald: ${eur(bill.exVat, 'nl')} excl. btw, of ${eur(bill.incVat, 'nl')} incl. btw.`,
+        'De bijbehorende factuur ontvangt u via Peppol met dezelfde referentie. Betaal veilig online (Bancontact, kaart of domiciliëring).',
+      ],
+      cta: { label: 'Commissie betalen', url },
+    },
+  });
 }

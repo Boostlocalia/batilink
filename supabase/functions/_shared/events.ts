@@ -11,7 +11,22 @@ type Event = {
     | 'message_relayed'
     | 'message_ignored'
     | 'inbound_rejected'
-    | 'agreement_checked';
+    | 'agreement_checked'
+    | 'order_confirmed'
+    | 'order_declined'
+    | 'order_cancelled'
+    | 'deposit_proof_sent'
+    | 'deposit_received'
+    | 'deposit_rejected'
+    | 'order_delivered'
+    | 'document_uploaded'
+    | 'invoice_checked'
+    | 'payment_started'
+    | 'payment_succeeded'
+    | 'payment_failed'
+    | 'supplier_payments_enabled'
+    | 'subscription_changed'
+    | 'commission_billed';
   company_id?: string | null;
   request_id?: string | null;
   quote_id?: string | null;

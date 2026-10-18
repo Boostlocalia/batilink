@@ -188,7 +188,7 @@ export default function SupplierQuoteScreen() {
 
   const header = (
     <View style={styles.header}>
-      <ThemedText type="subtitle" themeColor="brand">
+      <ThemedText type="subtitle" themeColor="signal">
         {APP_NAME}
       </ThemedText>
       <Segmented<Language>

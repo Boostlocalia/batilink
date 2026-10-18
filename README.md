@@ -6,9 +6,11 @@ Plateforme belge pour les PME du bâtiment, en français et en néerlandais.
 - **Questions des fournisseurs** : un négoce qui répond à l'e-mail de demande pose une question ; un agent IA la lit, la transmet à l'entrepreneur dans sa langue et renvoie la réponse. Aucune adresse n'est révélée avant l'attribution.
 - **Réseau** : les entrepreneurs sous-traitent du travail, les architectes publient leurs projets, les entrepreneurs vérifiés répondent.
 - **Vérification** : chaque entrepreneur et architecte est contrôlé (TVA, BCE, dettes sociales et fiscales 30bis) à l'inscription, chaque mois et juste avant chaque accord.
+- **Commandes et preuve d'achat** : une offre retenue devient un bon de commande numéroté (BL-2026-000042). Le fournisseur le confirme depuis son e-mail et peut demander un acompte ; l'entrepreneur paie en ligne ou dépose la preuve de son virement, que le fournisseur reçoit avant de lancer la commande. Réception confirmée, facture Peppol vérifiée automatiquement : chaque étape est horodatée et chaque fichier reçoit une empreinte SHA-256.
+- **Paiements sécurisés** : abonnements, acomptes, soldes et commissions sont payés sur les pages de Stripe (Bancontact, carte, domiciliation). Quand l'entrepreneur paie en ligne, la commission est retenue à la source ; sinon elle est réclamée au fournisseur chaque mois avec un lien de paiement.
 - **Assistant** : un assistant IA accueille chaque type d'utilisateur avec un guide et répond aux questions. Son nom et celui de l'app sont dans `supabase/functions/_shared/brand.ts`.
 
-Une seule base de code produit l'app iOS, l'app Android et le site web (téléphone, tablette, ordinateur). Le paiement en ligne des abonnements vient ensuite.
+Une seule base de code produit l'app iOS, l'app Android et le site web (téléphone, tablette, ordinateur).
 
 ## Ce qu'il y a dedans
 
@@ -37,6 +39,8 @@ Les architectes utilisent le réseau gratuitement.
 - `events` : journal de tout ce qui se passe (demandes envoyées, offres, attributions, messages relayés, vérifications), en ajout seul, indexé pour de gros volumes.
 - `price_observations` : les prix unitaires remis, par produit, catégorie et région, prêts pour des statistiques de marché.
 - `commission_statements` : le relevé mensuel des commissions à facturer par fournisseur.
+- `purchase_orders`, `order_documents`, `order_links` : les bons de commande, leurs pièces (preuves d'acompte, bons de livraison, factures) et les liens envoyés aux fournisseurs.
+- `payments`, `commission_bills` : chaque paiement Stripe et les relevés mensuels de commission.
 - `company_checks` : l'historique de chaque contrôle, avec la réponse brute du registre comme preuve.
 Ces tables sont réservées au back-office : l'app ne peut pas les lire.
 
@@ -49,6 +53,39 @@ Ces tables sont réservées au back-office : l'app ne peut pas les lire.
 | Dettes sociales (ONSS, INASTI) et fiscales (SPF Finances), art. 30bis | Service REST `billRetainment` de l'ONSS | L'entreprise qui exploite BatiLink doit désigner un gestionnaire d'accès, activer le canal REST dans Chaman avec un certificat, puis renseigner `BILLRETAINMENT_CLIENT_ID` et `BILLRETAINMENT_PRIVATE_KEY`. Valider d'abord en simulation (`BILLRETAINMENT_ENV` différent de `production`) : le format exact des réponses est à confirmer avec la spécification officielle. Contact : billretainment30bis@onss.fgov.be. |
 
 Tant qu'un registre n'est pas branché ou ne répond pas, l'entreprise reste « à compléter » : elle n'est jamais validée par défaut, et un accord est bloqué. Avant chaque accord, les deux entreprises sont recontrôlées en direct. Si le sous-traitant a des dettes, le donneur d'ordre doit confirmer qu'il fera les retenues légales avant que l'accord soit confirmé.
+
+## Commandes, preuve d'achat et paiements
+
+| Étape | Qui | Preuve conservée |
+| --- | --- | --- |
+| Offre remise | Fournisseur | Acceptation des conditions de commission, horodatée |
+| Offre retenue | Entrepreneur | Bon de commande numéroté, montants figés |
+| Commande confirmée, acompte éventuel | Fournisseur (lien e-mail) | Date de confirmation, montant de l'acompte, IBAN |
+| Acompte | Entrepreneur | Paiement Stripe, ou capture/PDF du virement (empreinte SHA-256) transmis au fournisseur, qui confirme la réception |
+| Réception | Entrepreneur | Date, bon de livraison en option |
+| Facture | Entrepreneur | Facture Peppol (UBL) comparée à la commande : TVA du fournisseur, TVA de l'entrepreneur, numéro de commande, montant. Une même facture ne peut servir qu'une fois. |
+| Paiement | Entrepreneur | Paiement Stripe sur le compte du fournisseur, commission retenue |
+
+La commission suit le montant facturé quand la facture correspond. Elle est due dès que la vente est prouvée (réception, facture conforme, ou 45 jours après la confirmation du fournisseur). Ce qui n'a pas été retenu en ligne est réclamé chaque mois par `bill-commissions`, avec un lien de paiement sécurisé. Faites valider les conditions générales des fournisseurs (commission, acompte, référence de commande sur la facture) par un avocat.
+
+**Facturation de BatiLink** : depuis 2026, les factures entre entreprises belges passent par Peppol. Les relevés `BL-COM-…` servent de référence ; la facture de commission elle-même doit partir de votre logiciel comptable relié à Peppol, avec le même numéro.
+
+### Brancher Stripe
+
+1. Créer le compte Stripe de l'entreprise qui exploite BatiLink (Belgique) et activer **Connect** (plateforme, comptes connectés créés par la plateforme).
+2. Créer deux produits mensuels (Pro 39 €, Complet 89 € HTVA) et noter leurs identifiants de prix.
+3. Activer le **portail client** (changement de plan, moyen de paiement, factures, résiliation) et, si souhaité, **Stripe Tax**.
+4. Créer deux points de terminaison webhook vers `https://<ref>.supabase.co/functions/v1/stripe-webhook` :
+   - compte de la plateforme : `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted` ;
+   - comptes connectés : `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `account.updated`.
+5. Renseigner les secrets :
+   ```bash
+   npx supabase secrets set STRIPE_SECRET_KEY=sk_live_... STRIPE_WEBHOOK_SECRET=whsec_... STRIPE_CONNECT_WEBHOOK_SECRET=whsec_... \
+     STRIPE_PRICE_PRO=price_... STRIPE_PRICE_FULL=price_... STRIPE_AUTOMATIC_TAX=on
+   ```
+   Commencer avec les clés de test (`sk_test_…`). Sans `STRIPE_SECRET_KEY`, les boutons de paiement en ligne restent masqués ou indiquent que le paiement n'est pas activé ; le virement avec preuve fonctionne toujours.
+
+Les fournisseurs activent le paiement en ligne depuis leur bon de commande : Stripe vérifie leur identité et leur compte bancaire, ils sont payés directement, supportent leurs propres frais Stripe et litiges.
 
 ## Agent IA
 
@@ -87,8 +124,14 @@ Tant qu'un registre n'est pas branché ou ne répond pas, l'entreprise reste « 
        headers := jsonb_build_object('x-cron-secret', '<CRON_SECRET>')
      )
    $$);
+   select cron.schedule('bill-commissions', '0 6 2 * *', $$
+     select net.http_post(
+       url := 'https://<ref>.supabase.co/functions/v1/bill-commissions',
+       headers := jsonb_build_object('x-cron-secret', '<CRON_SECRET>')
+     )
+   $$);
    ```
-   La seconde tâche recontrôle chaque nuit les entreprises dont la dernière vérification date de plus de 30 jours.
+   La deuxième tâche recontrôle chaque nuit les entreprises dont la dernière vérification date de plus de 30 jours. La troisième réclame le 2 de chaque mois la commission du mois précédent qui n'a pas été retenue en ligne.
 6. Copier `.env.example` en `.env` et le remplir, puis lancer l'app : `npm run web`, `npm run ios` ou `npm run android`.
 7. Dans Supabase → Authentication → Email templates, mettre `{{ .Token }}` dans le modèle « Magic link » pour que l'e-mail de connexion contienne le code à 6 chiffres.
 
@@ -121,3 +164,5 @@ cd supabase/functions && npx deno check --node-modules-dir=none */index.ts   # T
 - Les limites d'abonnement sont vérifiées par le serveur, pas seulement par l'app.
 - Une entreprise ne peut modifier que son nom, sa langue et son adresse : statut de vérification, commission et retenues sont écrits par le serveur. Les adresses e-mail des autres entreprises ne sont pas lisibles ; elles sont partagées une fois un accord confirmé.
 - Les messages reçus par e-mail sont traités comme du contenu à relayer, jamais comme des instructions pour l'IA.
+- Paiements : les données de carte et de compte sont saisies uniquement sur les pages de Stripe et ne passent jamais par BatiLink. Un paiement n'est marqué payé et un plan ne change que sur un webhook dont la signature Stripe est vérifiée. Les montants et la commission sont calculés par le serveur.
+- Documents : bucket privé, type de fichier vérifié sur son contenu (pas sur son nom), 10 Mo maximum, empreinte SHA-256 conservée ; le fournisseur les consulte par un lien signé valable 5 minutes. Chaque étape d'une commande n'est possible qu'au bon moment et par la bonne partie.

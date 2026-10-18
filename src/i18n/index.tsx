@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales } from 'expo-localization';
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { fr, type Dictionary } from './fr';
 import { nl } from './nl';
@@ -35,10 +35,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, []);
 
-  const setLanguage = (next: Language) => {
+  const setLanguage = useCallback((next: Language) => {
     setLanguageState(next);
     AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
-  };
+  }, []);
 
   return (
     <LanguageContext.Provider

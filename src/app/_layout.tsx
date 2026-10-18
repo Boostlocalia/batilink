@@ -24,6 +24,7 @@ function RootNavigator() {
         <Stack.Screen name="demande/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
         <Stack.Screen name="annonce/nouvelle" options={{ headerShown: true, headerBackTitle: '', title: '', presentation: 'modal' }} />
         <Stack.Screen name="annonce/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
+        <Stack.Screen name="commande/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
       </Stack.Protected>
       <Stack.Protected guard={!!session && !company} redirectTo="/connexion">
         <Stack.Screen name="entreprise" />
@@ -33,6 +34,7 @@ function RootNavigator() {
       </Stack.Protected>
       {/* Suppliers answer from the e-mail link, signed in or not. */}
       <Stack.Screen name="offre/[token]" />
+      <Stack.Screen name="bon/[token]" />
     </Stack>
   );
 }

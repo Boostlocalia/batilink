@@ -1,4 +1,4 @@
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
@@ -9,6 +9,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
+import type { OrderStatus } from '@/lib/orders';
 import { compareOffers, type Offer, type RequestItem } from '@/lib/quotes';
 import { supabase } from '@/lib/supabase';
 
@@ -28,9 +29,10 @@ export default function CompareScreen() {
   const [failed, setFailed] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [order, setOrder] = useState<{ id: string; number: string; status: OrderStatus } | null>(null);
 
   const load = useCallback(async () => {
-    const [req, its, qs, msgs] = await Promise.all([
+    const [req, its, qs, msgs, po] = await Promise.all([
       supabase.from('price_requests').select('id, title, status, postal_code, city').eq('id', id).single(),
       supabase.from('request_items').select('id, label, quantity, unit').eq('request_id', id).order('position'),
       supabase
@@ -44,7 +46,9 @@ export default function CompareScreen() {
         .eq('request_id', id)
         .not('relayed_at', 'is', null)
         .order('created_at'),
+      supabase.from('purchase_orders').select('id, number, status').eq('request_id', id).maybeSingle(),
     ]);
+    setOrder((po.data as { id: string; number: string; status: OrderStatus } | null) ?? null);
     if (req.error || its.error || qs.error || msgs.error) return setFailed(true);
     setMessages(msgs.data as QuoteMessage[]);
     setFailed(false);
@@ -73,10 +77,13 @@ export default function CompareScreen() {
 
   const award = async (quoteId: string) => {
     setBusy(true);
-    const { error } = await supabase.functions.invoke('award-quote', { body: { quote_id: quoteId } });
+    const { data, error } = await supabase.functions.invoke('award-quote', { body: { quote_id: quoteId } });
     setBusy(false);
     setConfirming(null);
     if (error) return setFailed(true);
+    // The award creates the purchase order: follow it from there.
+    const orderId = (data as { order_id?: string } | null)?.order_id;
+    if (orderId) return router.push(`/commande/${orderId}`);
     load();
   };
 
@@ -115,6 +122,20 @@ export default function CompareScreen() {
               {request.postal_code} {request.city ?? ''} · {t.compare.lead(priced.length, offers.length)}
             </ThemedText>
           </View>
+
+          {order ? (
+            <Card style={{ borderColor: theme.signal }}>
+              <View style={styles.orderRow}>
+                <View style={{ flex: 1, minWidth: 200, gap: 2 }}>
+                  <ThemedText type="subtitle">{t.orders.title(order.number)}</ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {t.orders.status[order.status]}
+                  </ThemedText>
+                </View>
+                <Button label={t.orders.follow} variant="signal" onPress={() => router.push(`/commande/${order.id}`)} />
+              </View>
+            </Card>
+          ) : null}
 
           {priced.length === 0 ? (
             <Card>
@@ -297,6 +318,7 @@ function Line({ label, strong, border, children }: { label: string; strong?: boo
 }
 
 const styles = StyleSheet.create({
+  orderRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, flexWrap: 'wrap' },
   row: { flexDirection: 'row', alignItems: 'stretch' },
   label: { width: LABEL_WIDTH, paddingVertical: Spacing.two, paddingRight: Spacing.two, justifyContent: 'center' },
   cell: { width: OFFER_WIDTH, paddingVertical: Spacing.two, paddingHorizontal: Spacing.two, justifyContent: 'center' },
