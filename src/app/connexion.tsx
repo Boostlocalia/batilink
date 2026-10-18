@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Field, Screen, Segmented } from '@/components/ui';
@@ -21,7 +21,11 @@ export default function SignInScreen() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) return setError(t.auth.invalidEmail);
     setBusy(true);
     setError(null);
-    const { error: e } = await supabase.auth.signInWithOtp({ email: address });
+    const { error: e } = await supabase.auth.signInWithOtp({
+      email: address,
+      // Supabase's default e-mail carries a sign-in link; it brings the user back to the app.
+      options: Platform.OS === 'web' ? { emailRedirectTo: new URL('.', window.location.href).href } : undefined,
+    });
     setBusy(false);
     if (e) return setError(t.common.error);
     setEmail(address);

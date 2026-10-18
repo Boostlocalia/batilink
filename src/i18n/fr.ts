@@ -25,7 +25,7 @@ export const fr = {
     sendCode: 'Recevoir mon code',
     code: 'Code reçu par e-mail',
     verify: 'Me connecter',
-    codeSent: (email: string) => `Code envoyé à ${email}.`,
+    codeSent: (email: string) => `E-mail envoyé à ${email}. Cliquez sur le lien qu’il contient, ou entrez le code s’il y en a un.`,
     wrongCode: 'Ce code est incorrect ou a expiré. Demandez-en un nouveau.',
     invalidEmail: 'Entrez une adresse e-mail valide.',
   },

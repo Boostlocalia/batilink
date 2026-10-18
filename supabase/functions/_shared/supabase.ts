@@ -31,5 +31,5 @@ export async function callerCompanyId(req: Request, admin: SupabaseClient): Prom
 }
 
 export function appUrl(): string {
-  return (Deno.env.get('APP_URL') ?? 'http://localhost:8081').replace(/\/$/, '');
+  return (Deno.env.get('APP_URL') ?? 'https://boostlocalia.github.io/batilink').replace(/\/$/, '');
 }

@@ -27,7 +27,7 @@ export const nl: Dictionary = {
     sendCode: 'Code ontvangen',
     code: 'Code uit de e-mail',
     verify: 'Aanmelden',
-    codeSent: (email: string) => `Code verstuurd naar ${email}.`,
+    codeSent: (email: string) => `E-mail verstuurd naar ${email}. Klik op de link erin, of vul de code in als die erbij staat.`,
     wrongCode: 'Deze code is onjuist of verlopen. Vraag een nieuwe aan.',
     invalidEmail: 'Vul een geldig e-mailadres in.',
   },
