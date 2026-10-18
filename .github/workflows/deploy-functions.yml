@@ -22,3 +22,5 @@ jobs:
         with:
           version: latest
       - run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF" --use-api
+      # Address of the web app, used in the links of the e-mails. Change it when the app moves.
+      - run: supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" APP_URL=https://boostlocalia.github.io/batilink
