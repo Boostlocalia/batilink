@@ -104,6 +104,12 @@ Stripe sert à encaisser les abonnements et les commissions ; les commandes se p
 - **Questions des fournisseurs** : chaque e-mail d'invitation a une adresse de réponse propre à l'offre (`s-<clé>@reply.votre-domaine.be`). Configurer la réception (« Inbound parsing » de Brevo) sur le sous-domaine `reply` pour appeler `https://<ref>.supabase.co/functions/v1/inbound-email?secret=<INBOUND_EMAIL_SECRET>`. L'expéditeur est contrôlé (même adresse, ou même domaine d'entreprise), l'historique cité est retiré, puis Claude réécrit le message pour l'autre partie dans sa langue sans coordonnées. Sans clé Claude, le message est transmis tel quel.
 - **Assistant** : répond à partir de `assistant-prompt.ts`, à mettre à jour quand l'app change.
 
+## Mettre en ligne pour tester
+
+- **Site web** (ordinateur et téléphone) : sur [vercel.com](https://vercel.com), se connecter avec GitHub, « Add New → Project », importer `Boostlocalia/batilink`. Ajouter les variables `EXPO_PUBLIC_SUPABASE_URL` et `EXPO_PUBLIC_SUPABASE_ANON_KEY`, puis déployer. `vercel.json` donne la commande de build et renvoie toutes les adresses vers l'app. Pour publier la branche `signup-conversion`, la choisir comme branche de production (Settings → Git) ou ouvrir l'adresse d'aperçu que Vercel crée pour elle.
+- **Fonctions serveur** : ajouter le secret `SUPABASE_ACCESS_TOKEN` au dépôt GitHub (Settings → Secrets and variables → Actions), puis lancer « Deploy Supabase functions » dans l'onglet Actions. Elles se redéploient ensuite à chaque modification.
+- **Connexion par code** : Supabase → Authentication → Emails, modèle « Magic link » avec `{{ .Token }}`. Sans fournisseur d'e-mails branché, Supabase n'envoie qu'aux membres de l'organisation, quelques e-mails par heure : suffisant pour tester soi-même, pas pour des testeurs externes (brancher Brevo en SMTP dans Authentication → Emails → SMTP).
+
 ## Mise en route
 
 1. Le projet Supabase existe : **batilink**, réf. `bkmzstdviytslegbxsax`, région Frankfurt (eu-central-1), URL `https://bkmzstdviytslegbxsax.supabase.co`. Tout le schéma de `supabase/migrations/` y est installé.
