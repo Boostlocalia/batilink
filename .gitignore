@@ -46,3 +46,4 @@ example
 # Supabase local
 supabase/.temp/
 supabase/.branches/
+deno.lock

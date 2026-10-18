@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { VerificationCard } from '@/components/verification-card';
 import { Button, Card, Screen, Segmented } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useI18n, type Language } from '@/i18n';
@@ -48,6 +49,7 @@ export default function SettingsScreen() {
           </View>
         </Card>
       ) : null}
+      <VerificationCard />
       <Button label={t.settings.signOut} variant="ghost" onPress={() => supabase.auth.signOut()} />
     </Screen>
   );

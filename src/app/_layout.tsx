@@ -1,8 +1,8 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 
+import { Colors } from '@/constants/theme';
 import { LanguageProvider } from '@/i18n';
 import { SessionProvider, useSession } from '@/lib/session';
 
@@ -22,6 +22,8 @@ function RootNavigator() {
       <Stack.Protected guard={!!session && !!company} redirectTo="/connexion">
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="demande/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
+        <Stack.Screen name="annonce/nouvelle" options={{ headerShown: true, headerBackTitle: '', title: '', presentation: 'modal' }} />
+        <Stack.Screen name="annonce/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
       </Stack.Protected>
       <Stack.Protected guard={!!session && !company} redirectTo="/connexion">
         <Stack.Screen name="entreprise" />
@@ -35,10 +37,22 @@ function RootNavigator() {
   );
 }
 
+// The app is dark only: headers and backgrounds follow the palette.
+const navigationTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: Colors.dark.signal,
+    background: Colors.dark.background,
+    card: Colors.dark.backgroundElement,
+    text: Colors.dark.text,
+    border: Colors.dark.line,
+  },
+};
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={navigationTheme}>
       <LanguageProvider>
         <SessionProvider>
           <RootNavigator />

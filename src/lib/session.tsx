@@ -1,7 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
-import type { Plan } from '@/lib/plans';
+import { PLANS, type Plan } from '@/lib/plans';
 import { supabase } from '@/lib/supabase';
 
 export type Company = {
@@ -11,6 +11,9 @@ export type Company = {
   postal_code: string | null;
   city: string | null;
   verified_at: string | null;
+  kind: 'contractor' | 'architect' | 'supplier';
+  verification_status: 'pending' | 'verified' | 'needs_review' | 'rejected';
+  last_checked_at: string | null;
 };
 
 type SessionContextValue = {
@@ -19,6 +22,8 @@ type SessionContextValue = {
   session: Session | null;
   company: Company | null;
   plan: Plan;
+  /** Whether the company may post and answer in the network (architects always, contractors on Pro/Complet). */
+  canUseNetwork: boolean;
   refresh: () => Promise<void>;
 };
 
@@ -44,7 +49,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const [{ data: c }, { data: sub }] = await Promise.all([
       supabase
         .from('companies')
-        .select('id, name, vat_number, postal_code, city, verified_at')
+        .select('id, name, vat_number, postal_code, city, verified_at, kind, verification_status, last_checked_at')
         .eq('id', profile.company_id)
         .single(),
       supabase.from('subscriptions').select('plan, status').eq('company_id', profile.company_id).maybeSingle(),
@@ -66,10 +71,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => listener.subscription.unsubscribe();
   }, [loadCompany]);
 
+  const canUseNetwork =
+    !!company &&
+    company.verification_status !== 'rejected' &&
+    (company.kind === 'architect' || (company.kind === 'contractor' && PLANS[plan].network === 'full'));
+
   const refresh = useCallback(() => loadCompany(session), [loadCompany, session]);
 
   return (
-    <SessionContext.Provider value={{ ready, session, company, plan, refresh }}>{children}</SessionContext.Provider>
+    <SessionContext.Provider value={{ ready, session, company, plan, canUseNetwork, refresh }}>{children}</SessionContext.Provider>
   );
 }
 

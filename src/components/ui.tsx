@@ -94,6 +94,22 @@ export function Chip({ label, tone = 'neutral' }: { label: string; tone?: 'neutr
   );
 }
 
+/** A pill that can be selected, for picking categories or trades. */
+export function Option({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={[styles.option, { borderColor: selected ? theme.brand : theme.line, backgroundColor: selected ? theme.brand : 'transparent' }]}>
+      <ThemedText type="small" themeColor={selected ? 'onBrand' : 'text'}>
+        {label}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
 type FieldProps = TextInputProps & { label: string; error?: string | null; hint?: string };
 
 export function Field({ label, error, hint, style, ...input }: FieldProps) {
@@ -165,6 +181,7 @@ export function Loading() {
 }
 
 const styles = StyleSheet.create({
+  option: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   flex: { flex: 1 },
   scroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: Spacing.three, paddingTop: Spacing.four },
   column: { width: '100%', maxWidth: MaxContentWidth, gap: Spacing.four },

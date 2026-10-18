@@ -18,3 +18,15 @@ verify_jwt = false
 # Called by the cron job with its own shared secret.
 [functions.remind-suppliers]
 verify_jwt = false
+
+# Called by the mail provider with its own shared secret.
+[functions.inbound-email]
+verify_jwt = false
+
+# Signed-in users (JWT checked in the function) and the cron job (shared secret).
+[functions.verify-company]
+verify_jwt = false
+
+# Suppliers use the assistant from their link (token checked in the function).
+[functions.assistant]
+verify_jwt = false

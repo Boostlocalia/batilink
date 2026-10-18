@@ -3,6 +3,8 @@
 // Only the stored hash of a reply link is known, so a reminder carries a fresh link.
 
 import { invitationMail, sendMail, type Lang } from '../_shared/email.ts';
+import { logEvent } from '../_shared/events.ts';
+import { relayAddress } from '../_shared/relay-address.ts';
 import { adminClient, appUrl, json } from '../_shared/supabase.ts';
 import { hashToken, newToken, tokenExpiry } from '../_shared/tokens.ts';
 
@@ -24,7 +26,7 @@ Deno.serve(async (req) => {
   const { data: due } = await admin
     .from('quotes')
     .select(
-      'id, supplier:companies(email, language), request:price_requests!inner(id, title, postal_code, city, needed_by, reply_by, fulfilment, status, company:companies(name, verified_at))',
+      'id, reply_key, supplier:companies(email, language, commission_rate), request:price_requests!inner(id, title, postal_code, city, needed_by, reply_by, fulfilment, status, company:companies(name, verified_at))',
     )
     .eq('status', 'invited')
     .is('reminded_at', null)
@@ -33,7 +35,7 @@ Deno.serve(async (req) => {
 
   let reminded = 0;
   for (const q of due ?? []) {
-    const supplier = q.supplier as unknown as { email: string | null; language: Lang } | null;
+    const supplier = q.supplier as unknown as { email: string | null; language: Lang; commission_rate: number } | null;
     const request = q.request as unknown as {
       id: string;
       title: string;
@@ -70,6 +72,8 @@ Deno.serve(async (req) => {
           replyBy: request.reply_by,
           delivery: request.fulfilment === 'delivery',
           url: `${appUrl()}/offre/${token}`,
+          commissionRate: Number(supplier.commission_rate),
+          replyTo: relayAddress('supplier', q.reply_key, Deno.env.get('RELAY_EMAIL_DOMAIN') ?? undefined),
         },
         true,
       ),
@@ -78,5 +82,7 @@ Deno.serve(async (req) => {
       .catch(console.error);
   }
 
+  if (closed?.length) await logEvent(admin, { kind: 'requests_closed', data: { count: closed.length } });
+  if (reminded) await logEvent(admin, { kind: 'supplier_reminded', data: { count: reminded } });
   return json({ closed: closed?.length ?? 0, reminded });
 });

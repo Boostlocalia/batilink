@@ -1,50 +1,34 @@
 /**
- * BatiLink colours: slate-blue ink (the trade's blueprint blue) with site yellow
- * used sparingly for the main action. Defined for light and dark mode.
+ * BatiLink colours ("Volt"): a near-black base with electric lime for the main
+ * call to action (`signal`) and white as the second accent (`brand`: selected
+ * pills, user chat bubbles). The app is dark only, so both schemes share one palette.
  */
 
 import '@/global.css';
 
 import { Platform } from 'react-native';
 
-export const Colors = {
-  light: {
-    text: '#16202b',
-    textSecondary: '#56616d',
-    background: '#eef0f2',
-    backgroundElement: '#ffffff',
-    backgroundSelected: '#e3e7eb',
-    line: '#d9dde2',
-    brand: '#1d3a5f',
-    onBrand: '#ffffff',
-    signal: '#f2b705',
-    onSignal: '#2a2100',
-    good: '#1f7a4d',
-    goodBackground: '#e3f3ea',
-    warn: '#9a6200',
-    warnBackground: '#fdf1d6',
-    danger: '#b3261e',
-  },
-  dark: {
-    text: '#e8edf2',
-    textSecondary: '#9aa7b4',
-    background: '#0f151c',
-    backgroundElement: '#17202a',
-    backgroundSelected: '#222d38',
-    line: '#2c3946',
-    brand: '#7fa8d9',
-    onBrand: '#0f151c',
-    signal: '#f2b705',
-    onSignal: '#2a2100',
-    good: '#5cc38f',
-    goodBackground: '#173326',
-    warn: '#f0b14a',
-    warnBackground: '#3a2c12',
-    danger: '#f2b8b5',
-  },
+const palette = {
+  text: '#f4f4f6',
+  textSecondary: '#9b9ba6',
+  background: '#09090b',
+  backgroundElement: '#131316',
+  backgroundSelected: '#1e1e23',
+  line: '#2a2a31',
+  brand: '#f4f4f6',
+  onBrand: '#09090b',
+  signal: '#d4ff3a',
+  onSignal: '#09090b',
+  good: '#3dffa2',
+  goodBackground: '#0d2a1d',
+  warn: '#ffc53d',
+  warnBackground: '#2d2410',
+  danger: '#ff6b78',
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+export const Colors = { light: palette, dark: palette } as const;
+
+export type ThemeColor = keyof typeof palette;
 
 export const Fonts = Platform.select({
   ios: {
@@ -71,7 +55,7 @@ export const Spacing = {
   six: 64,
 } as const;
 
-export const Radius = 10;
+export const Radius = 14;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 960;

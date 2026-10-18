@@ -2,6 +2,7 @@ import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { Questions, type Conversation, type QuoteMessage } from '@/components/questions';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Screen } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
@@ -23,12 +24,13 @@ export default function CompareScreen() {
   const [request, setRequest] = useState<Request | null>(null);
   const [items, setItems] = useState<RequestItem[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [messages, setMessages] = useState<QuoteMessage[]>([]);
   const [failed, setFailed] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const [req, its, qs] = await Promise.all([
+    const [req, its, qs, msgs] = await Promise.all([
       supabase.from('price_requests').select('id, title, status, postal_code, city').eq('id', id).single(),
       supabase.from('request_items').select('id, label, quantity, unit').eq('request_id', id).order('position'),
       supabase
@@ -36,8 +38,15 @@ export default function CompareScreen() {
         .select('id, status, delivery_fee, lead_time_days, valid_until, comment, reminded_at, supplier:companies(name), quote_items(item_id, unit_price)')
         .eq('request_id', id)
         .order('created_at'),
+      supabase
+        .from('quote_messages')
+        .select('id, quote_id, author, body, relayed_body, item_labels, created_at')
+        .eq('request_id', id)
+        .not('relayed_at', 'is', null)
+        .order('created_at'),
     ]);
-    if (req.error || its.error || qs.error) return setFailed(true);
+    if (req.error || its.error || qs.error || msgs.error) return setFailed(true);
+    setMessages(msgs.data as QuoteMessage[]);
     setFailed(false);
     setRequest(req.data as Request);
     setItems((its.data ?? []).map((i) => ({ ...i, quantity: Number(i.quantity) })));
@@ -72,6 +81,9 @@ export default function CompareScreen() {
   };
 
   const { priced, totals, cheapestId, fastestId, lowestUnitPrice } = compareOffers(items, offers);
+  const conversations: Conversation[] = offers
+    .map((o) => ({ quoteId: o.id, supplierName: o.supplierName, messages: messages.filter((m) => m.quote_id === o.id) }))
+    .filter((c) => c.messages.length > 0);
   const waiting = offers.filter((o) => o.status === 'invited' || o.status === 'declined');
   const eur = (n: number) => formatEuro(n, locale);
   const cell = (highlight: boolean) => [styles.cell, highlight && { backgroundColor: theme.goodBackground }];
@@ -247,6 +259,12 @@ export default function CompareScreen() {
                 ))}
             </Card>
           ) : null}
+
+          <Questions
+            conversations={conversations}
+            canAnswer={request.status === 'sent' || request.status === 'awarded'}
+            onSent={load}
+          />
 
           {waiting.length ? (
             <Card>

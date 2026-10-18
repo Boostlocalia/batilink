@@ -1,4 +1,4 @@
-import { Link, router, useFocusEffect } from 'expo-router';
+import { Link, Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -24,6 +24,13 @@ type RequestRow = {
 const STATUS_TONE = { draft: 'neutral', sent: 'warn', closed: 'neutral', awarded: 'good' } as const;
 
 export default function HomeScreen() {
+  // Architects have no price requests: their home is the network.
+  const { company } = useSession();
+  if (company?.kind === 'architect') return <Redirect href="/reseau" />;
+  return <ContractorHome />;
+}
+
+function ContractorHome() {
   const { t, locale } = useI18n();
   const { company } = useSession();
   const theme = useTheme();

@@ -2,6 +2,8 @@
 // e-mail with a personal reply link per supplier.
 
 import { invitationMail, sendMail, type Lang } from '../_shared/email.ts';
+import { logEvent } from '../_shared/events.ts';
+import { relayAddress } from '../_shared/relay-address.ts';
 import { canSendPriceRequest, monthStart, type Plan } from '../_shared/plans.ts';
 import { adminClient, appUrl, callerCompanyId, corsHeaders, json } from '../_shared/supabase.ts';
 import { hashToken, newToken, tokenExpiry } from '../_shared/tokens.ts';
@@ -63,19 +65,23 @@ Deno.serve(async (req) => {
   const [{ data: items }, { data: contractor }, { data: suppliers }] = await Promise.all([
     admin.from('request_items').select('label, quantity, unit').eq('request_id', request.id).order('position'),
     admin.from('companies').select('name, verified_at').eq('id', companyId).single(),
-    admin.from('companies').select('id, email, language').in('id', uniqueSuppliers),
+    admin.from('companies').select('id, email, language, commission_rate').in('id', uniqueSuppliers),
   ]);
 
   const failed: string[] = [];
   for (const supplier of suppliers ?? []) {
     const token = newToken();
-    const { error } = await admin.from('quotes').insert({
-      request_id: request.id,
-      supplier_id: supplier.id,
-      token_hash: await hashToken(token),
-      token_expires_at: tokenExpiry(),
-    });
-    if (error || !supplier.email) {
+    const { data: quote, error } = await admin
+      .from('quotes')
+      .insert({
+        request_id: request.id,
+        supplier_id: supplier.id,
+        token_hash: await hashToken(token),
+        token_expires_at: tokenExpiry(),
+      })
+      .select('reply_key')
+      .single();
+    if (error || !quote || !supplier.email) {
       failed.push(supplier.id);
       continue;
     }
@@ -94,6 +100,8 @@ Deno.serve(async (req) => {
           replyBy: request.reply_by,
           delivery: request.fulfilment === 'delivery',
           url: `${appUrl()}/offre/${token}`,
+          commissionRate: Number(supplier.commission_rate),
+          replyTo: relayAddress('supplier', quote.reply_key, Deno.env.get('RELAY_EMAIL_DOMAIN') ?? undefined),
         }),
       );
     } catch (e) {
@@ -102,5 +110,11 @@ Deno.serve(async (req) => {
     }
   }
 
+  await logEvent(admin, {
+    kind: 'request_sent',
+    company_id: companyId,
+    request_id: request.id,
+    data: { plan, suppliers: uniqueSuppliers.length, failed: failed.length, category_id: request.category_id, postal_code: request.postal_code },
+  });
   return json({ sent: (suppliers?.length ?? 0) - failed.length, failed });
 });

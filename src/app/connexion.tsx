@@ -6,6 +6,7 @@ import { Button, Card, Field, Screen, Segmented } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useI18n, type Language } from '@/i18n';
 import { supabase } from '@/lib/supabase';
+import { APP_NAME } from '@/constants/brand';
 
 export default function SignInScreen() {
   const { t, language, setLanguage } = useI18n();
@@ -48,7 +49,7 @@ export default function SignInScreen() {
           ]}
         />
         <ThemedText type="title" themeColor="brand">
-          BatiLink
+          {APP_NAME}
         </ThemedText>
         <ThemedText type="subtitle">{t.auth.title}</ThemedText>
         <ThemedText themeColor="textSecondary">{t.auth.lead}</ThemedText>
