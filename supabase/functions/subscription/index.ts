@@ -1,5 +1,5 @@
 // Plans, paid on Stripe's pages (card, Bancontact via card wallet, SEPA direct debit).
-// POST { plan: 'pro' | 'full' }  returns a Stripe Checkout page to subscribe.
+// POST { plan: 'pro' | 'full', interval?: 'month' | 'year' }  returns a Stripe Checkout page to subscribe.
 // POST { action: 'portal' }      returns the Stripe page to change plan, update the
 //                                 payment method, download invoices or cancel.
 // The plan itself changes only when Stripe confirms it (stripe-webhook).
@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     await admin.from('companies').update({ stripe_customer_id: customer }).eq('id', company.id);
   }
 
-  const body = (await req.json().catch(() => ({}))) as { plan?: string; action?: string };
+  const body = (await req.json().catch(() => ({}))) as { plan?: string; action?: string; interval?: string };
   const subscribed = Boolean(sub?.provider_subscription_id) && sub?.status !== 'canceled';
 
   // Changing or cancelling an existing plan happens on Stripe's customer portal.
@@ -48,7 +48,12 @@ Deno.serve(async (req) => {
     return json({ url: portal.url });
   }
 
-  const price = body.plan === 'pro' ? Deno.env.get('STRIPE_PRICE_PRO') : body.plan === 'full' ? Deno.env.get('STRIPE_PRICE_FULL') : undefined;
+  const yearly = body.interval === 'year';
+  const prices: Record<string, string | undefined> = {
+    pro: Deno.env.get(yearly ? 'STRIPE_PRICE_PRO_YEAR' : 'STRIPE_PRICE_PRO'),
+    full: Deno.env.get(yearly ? 'STRIPE_PRICE_FULL_YEAR' : 'STRIPE_PRICE_FULL'),
+  };
+  const price = body.plan ? prices[body.plan] : undefined;
   if (!price) return json({ error: 'invalid_plan' }, 400);
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',

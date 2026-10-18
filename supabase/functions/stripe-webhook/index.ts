@@ -20,11 +20,14 @@ async function verify(stripe: Stripe, req: Request): Promise<Stripe.Event | null
   }
 }
 
+type PriceInfo = { plan: 'pro' | 'full'; interval: 'month' | 'year' };
 const PLAN_BY_PRICE = () =>
   ({
-    [Deno.env.get('STRIPE_PRICE_PRO') ?? '-']: 'pro',
-    [Deno.env.get('STRIPE_PRICE_FULL') ?? '-']: 'full',
-  }) as Record<string, 'pro' | 'full'>;
+    [Deno.env.get('STRIPE_PRICE_PRO') ?? '-']: { plan: 'pro', interval: 'month' },
+    [Deno.env.get('STRIPE_PRICE_FULL') ?? '-']: { plan: 'full', interval: 'month' },
+    [Deno.env.get('STRIPE_PRICE_PRO_YEAR') ?? '-y']: { plan: 'pro', interval: 'year' },
+    [Deno.env.get('STRIPE_PRICE_FULL_YEAR') ?? '-y']: { plan: 'full', interval: 'year' },
+  }) as Record<string, PriceInfo>;
 
 /** A commission bill was paid. */
 async function paymentSucceeded(admin: Admin, session: Stripe.Checkout.Session) {
@@ -58,13 +61,16 @@ async function subscriptionChanged(admin: Admin, sub: Stripe.Subscription) {
   const companyId = sub.metadata?.company_id;
   if (!companyId) return;
   const price = sub.items.data[0]?.price.id ?? '';
-  const plan = PLAN_BY_PRICE()[price];
+  const info = PLAN_BY_PRICE()[price];
+  const plan = info?.plan;
   const active = ['active', 'trialing'].includes(sub.status);
   const periodEnd = sub.items.data[0]?.current_period_end;
   await admin
     .from('subscriptions')
     .update({
       plan: active && plan ? plan : 'free',
+      // A paid plan replaces the free trial.
+      ...(active && plan ? { trial_ends_at: null, billing_interval: info.interval } : {}),
       status: sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due' : active ? 'active' : 'canceled',
       provider_customer_id: typeof sub.customer === 'string' ? sub.customer : sub.customer.id,
       provider_subscription_id: sub.id,

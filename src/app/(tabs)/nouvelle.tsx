@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { UpgradeCard, type UpgradeReason } from '@/components/upgrade-card';
 import { Button, Card, Chip, Field, Screen, Segmented } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -39,6 +40,7 @@ export default function NewRequestScreen() {
   const [items, setItems] = useState<ItemDraft[]>([emptyItem()]);
   const [note, setNote] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [limit, setLimit] = useState<UpgradeReason | null>(null);
 
   const [draftId, setDraftId] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[] | null>(null);
@@ -155,6 +157,7 @@ export default function NewRequestScreen() {
   };
 
   const errorText = (reason: string, limit?: number) => {
+    if (reason === 'monthly_limit' || reason === 'too_many_suppliers') setLimit(reason);
     if (reason === 'monthly_limit') return t.request.errors.monthly_limit(limit ?? 1);
     if (reason === 'too_many_suppliers') return t.request.errors.too_many_suppliers(limit ?? 3);
     if (reason === 'no_supplier') return t.request.errors.no_supplier;
@@ -169,6 +172,7 @@ export default function NewRequestScreen() {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
       else if (next.size < PLANS[plan].suppliersPerRequest) next.add(id);
+      else setLimit('too_many_suppliers');
       return next;
     });
 
@@ -308,6 +312,7 @@ export default function NewRequestScreen() {
             })
           )}
           {errors.form ? <ThemedText themeColor="danger">{errors.form}</ThemedText> : null}
+          {limit ? <UpgradeCard reason={limit} /> : null}
           <Button label={t.request.send(picked.size)} variant="signal" onPress={send} busy={busy} disabled={picked.size === 0} />
           <Button label={t.request.findSuppliers} variant="ghost" small onPress={findSuppliers} />
         </Card>

@@ -19,17 +19,20 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!!session && !!company} redirectTo="/connexion">
+      <Stack.Protected guard={!!session && !!company} redirectTo={session ? '/entreprise' : '/bienvenue'}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="demande/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
         <Stack.Screen name="annonce/nouvelle" options={{ headerShown: true, headerBackTitle: '', title: '', presentation: 'modal' }} />
         <Stack.Screen name="annonce/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
         <Stack.Screen name="commande/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
+        <Stack.Screen name="fournisseurs" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
+        <Stack.Screen name="zones" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
       </Stack.Protected>
       <Stack.Protected guard={!!session && !company} redirectTo="/connexion">
         <Stack.Screen name="entreprise" />
       </Stack.Protected>
       <Stack.Protected guard={!session} redirectTo="/">
+        <Stack.Screen name="bienvenue" />
         <Stack.Screen name="connexion" />
       </Stack.Protected>
       {/* Suppliers answer from the e-mail link, signed in or not. */}

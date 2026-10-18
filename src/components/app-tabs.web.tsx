@@ -11,7 +11,8 @@ import { APP_NAME } from '@/constants/brand';
 
 export default function AppTabs() {
   const { t } = useI18n();
-  const contractor = useSession().company?.kind !== 'architect';
+  const kind = useSession().company?.kind;
+  const contractor = kind === 'contractor';
   return (
     <Tabs>
       <TabList asChild>
@@ -19,9 +20,11 @@ export default function AppTabs() {
           <TabTrigger name="index" href="/" asChild>
             <TabButton>{t.tabs.home}</TabButton>
           </TabTrigger>
-          <TabTrigger name="reseau" href="/reseau" asChild>
-            <TabButton>{t.tabs.network}</TabButton>
-          </TabTrigger>
+          {kind !== 'supplier' ? (
+            <TabTrigger name="reseau" href="/reseau" asChild>
+              <TabButton>{t.tabs.network}</TabButton>
+            </TabTrigger>
+          ) : null}
           {contractor ? (
             <TabTrigger name="nouvelle" href="/nouvelle" asChild>
               <TabButton>{t.tabs.newRequest}</TabButton>

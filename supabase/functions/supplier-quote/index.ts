@@ -13,15 +13,18 @@ import { hashToken } from '../_shared/tokens.ts';
 
 type Admin = ReturnType<typeof adminClient>;
 
+const QUOTE_COLUMNS = 'id, request_id, supplier_id, status, token_expires_at, delivery_fee, lead_time_days, valid_until, comment, commission_accepted_at';
+
+/** The e-mailed link, or a short link the supplier opened from its space. */
 async function findQuote(admin: Admin, token: string | null) {
   if (!token || token.length < 20) return null;
-  const { data } = await admin
-    .from('quotes')
-    .select('id, request_id, supplier_id, status, token_expires_at, delivery_fee, lead_time_days, valid_until, comment, commission_accepted_at')
-    .eq('token_hash', await hashToken(token))
-    .maybeSingle();
-  if (!data || new Date(data.token_expires_at) < new Date()) return null;
-  return data;
+  const hash = await hashToken(token);
+  const { data } = await admin.from('quotes').select(QUOTE_COLUMNS).eq('token_hash', hash).maybeSingle();
+  if (data) return new Date(data.token_expires_at) < new Date() ? null : data;
+  const { data: link } = await admin.from('quote_links').select('quote_id, expires_at').eq('token_hash', hash).maybeSingle();
+  if (!link || new Date(link.expires_at) < new Date()) return null;
+  const { data: quote } = await admin.from('quotes').select(QUOTE_COLUMNS).eq('id', link.quote_id).maybeSingle();
+  return quote;
 }
 
 Deno.serve(async (req) => {

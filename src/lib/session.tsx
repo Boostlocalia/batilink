@@ -22,6 +22,8 @@ type SessionContextValue = {
   session: Session | null;
   company: Company | null;
   plan: Plan;
+  /** End of the free Pro trial, when the plan comes from it. */
+  trialEndsAt: string | null;
   /** Whether the company may post and answer in the network (architects always, contractors on Pro/Complet). */
   canUseNetwork: boolean;
   refresh: () => Promise<void>;
@@ -34,6 +36,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [plan, setPlan] = useState<Plan>('free');
+  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
 
   const loadCompany = useCallback(async (s: Session | null) => {
     if (!s) {
@@ -52,10 +55,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         .select('id, name, vat_number, postal_code, city, verified_at, kind, verification_status, last_checked_at')
         .eq('id', profile.company_id)
         .single(),
-      supabase.from('subscriptions').select('plan, status').eq('company_id', profile.company_id).maybeSingle(),
+      supabase.from('subscriptions').select('plan, status, trial_ends_at').eq('company_id', profile.company_id).maybeSingle(),
     ]);
     setCompany(c ?? null);
     setPlan(sub?.status === 'active' ? (sub.plan as Plan) : 'free');
+    setTrialEndsAt(sub?.trial_ends_at ?? null);
   }, []);
 
   useEffect(() => {
@@ -79,7 +83,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(() => loadCompany(session), [loadCompany, session]);
 
   return (
-    <SessionContext.Provider value={{ ready, session, company, plan, canUseNetwork, refresh }}>{children}</SessionContext.Provider>
+    <SessionContext.Provider value={{ ready, session, company, plan, trialEndsAt, canUseNetwork, refresh }}>{children}</SessionContext.Provider>
   );
 }
 

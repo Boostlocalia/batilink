@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
   const { data: due } = await admin
     .from('quotes')
     .select(
-      'id, reply_key, supplier:companies(email, language, commission_rate), request:price_requests!inner(id, title, postal_code, city, needed_by, reply_by, fulfilment, status, company:companies(name, verified_at))',
+      'id, reply_key, supplier:companies(email, quote_email, language, commission_rate), request:price_requests!inner(id, title, postal_code, city, needed_by, reply_by, fulfilment, status, company:companies(name, verified_at))',
     )
     .eq('status', 'invited')
     .is('reminded_at', null)
@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
 
   let reminded = 0;
   for (const q of due ?? []) {
-    const supplier = q.supplier as unknown as { email: string | null; language: Lang; commission_rate: number } | null;
+    const supplier = q.supplier as unknown as { email: string | null; quote_email: string | null; language: Lang; commission_rate: number } | null;
     const request = q.request as unknown as {
       id: string;
       title: string;
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
       invitationMail(
         {
           lang: supplier.language,
-          to: supplier.email,
+          to: supplier.quote_email ?? supplier.email,
           contractor: request.company?.name ?? '',
           contractorVerified: Boolean(request.company?.verified_at),
           title: request.title,

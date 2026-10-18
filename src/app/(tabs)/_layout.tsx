@@ -9,7 +9,8 @@ export default function TabLayout() {
   return (
     <View style={{ flex: 1 }}>
       <AppTabs />
-      <Assistant audience={company?.kind === 'architect' ? 'architect' : 'contractor'} />
+      {/* Bati speaks to contractors and architects; suppliers have their own space. */}
+      {company?.kind !== 'supplier' ? <Assistant audience={company?.kind === 'architect' ? 'architect' : 'contractor'} /> : null}
     </View>
   );
 }

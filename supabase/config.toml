@@ -42,3 +42,7 @@ verify_jwt = false
 # Cron job (shared secret) and the payment link in the supplier e-mail (token).
 [functions.bill-commissions]
 verify_jwt = false
+
+# Daily cron job, authenticated by x-cron-secret.
+[functions.lifecycle]
+verify_jwt = false

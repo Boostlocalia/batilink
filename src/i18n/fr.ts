@@ -1,3 +1,5 @@
+import { growthFr } from './growth.fr';
+import { signupFr } from './signup.fr';
 import { APP_NAME } from '@/constants/brand';
 export const fr = {
   common: {
@@ -463,6 +465,8 @@ export const fr = {
       `J'accepte que ${APP_NAME} facture une commission de ${rate} HTVA sur le montant de mon offre si elle est retenue. Répondre reste gratuit.`,
     commissionRequired: 'Acceptez les conditions de commission pour envoyer votre offre.',
   },
+  signup: signupFr,
+  growth: growthFr,
 };
 
 export type Dictionary = typeof fr;

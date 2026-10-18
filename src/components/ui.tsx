@@ -110,6 +110,36 @@ export function Option({ label, selected, onPress }: { label: string; selected: 
   );
 }
 
+/** A box to tick, for consents and yes/no answers. */
+export function Check({ label, checked, onChange, error }: { label: string; checked: boolean; onChange: (checked: boolean) => void; error?: string | null }) {
+  const theme = useTheme();
+  return (
+    <View style={styles.field}>
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked }}
+        onPress={() => onChange(!checked)}
+        style={styles.check}>
+        <View style={[styles.checkBox, { borderColor: error ? theme.danger : checked ? theme.signal : theme.line, backgroundColor: checked ? theme.signal : 'transparent' }]}>
+          {checked ? (
+            <ThemedText type="smallBold" themeColor="onSignal" style={styles.checkMark}>
+              ✓
+            </ThemedText>
+          ) : null}
+        </View>
+        <ThemedText type="small" style={styles.flex}>
+          {label}
+        </ThemedText>
+      </Pressable>
+      {error ? (
+        <ThemedText type="small" themeColor="danger">
+          {error}
+        </ThemedText>
+      ) : null}
+    </View>
+  );
+}
+
 type FieldProps = TextInputProps & { label: string; error?: string | null; hint?: string };
 
 export function Field({ label, error, hint, style, ...input }: FieldProps) {
@@ -201,6 +231,9 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 12, lineHeight: 18 },
   field: { gap: Spacing.one, flexGrow: 1, minWidth: 180 },
   input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
+  check: { flexDirection: 'row', gap: Spacing.two, alignItems: 'flex-start' },
+  checkBox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  checkMark: { fontSize: 14, lineHeight: 18 },
   segmented: { flexDirection: 'row', borderRadius: 999, padding: 3, gap: 2, alignSelf: 'flex-start' },
   segment: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },

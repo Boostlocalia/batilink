@@ -16,11 +16,11 @@ Une seule base de code produit l'app iOS, l'app Android et le site web (téléph
 
 | Dossier | Rôle |
 | --- | --- |
-| `src/app/` | Écrans (Expo Router) : connexion par code e-mail, création de l'entreprise (entrepreneur ou architecte), accueil, nouvelle demande, comparateur d'offres avec questions des fournisseurs, réseau (annonces, projets, accords), abonnement, réglages avec statut de vérification, page publique de réponse fournisseur (`/offre/[token]`). |
+| `src/app/` | Écrans (Expo Router) : page d'accueil publique (`/bienvenue`), connexion par code e-mail, inscription en 4 étapes adaptée au profil (entrepreneur, fournisseur, architecte), espace fournisseur, fournisseurs favoris (`/fournisseurs`), catégories et provinces d'un fournisseur (`/zones`), accueil, nouvelle demande, comparateur d'offres avec questions des fournisseurs, réseau (annonces, projets, accords), abonnement, réglages avec statut de vérification, page publique de réponse fournisseur (`/offre/[token]`). |
 | `src/i18n/` | Textes FR et NL. La langue suit l'appareil, se change dans Réglages et est mémorisée. |
 | `src/lib/` | Client Supabase, session, calcul des totaux (TVA 21 %), formats belges (dates, TVA, codes postaux). |
 | `supabase/migrations/` | Schéma Postgres, règles d'accès (RLS), catégories de produits et métiers. |
-| `supabase/functions/` | Fonctions serveur : envoi de la demande, réponse fournisseur, choix de l'offre et commission, relances, réception des e-mails (`inbound-email`), réponses dans l'app (`quote-message`), vérification (`verify-company`), accords (`accept-agreement`), assistant (`assistant`). |
+| `supabase/functions/` | Fonctions serveur : envoi de la demande, réponse fournisseur, choix de l'offre et commission, relances, réception des e-mails (`inbound-email`), réponses dans l'app (`quote-message`), vérification (`verify-company`), accords (`accept-agreement`), assistant (`assistant`), accueil après inscription (`welcome`), espace fournisseur (`supplier-space`), invitation d'un fournisseur habituel (`invite-supplier`), essais, e-mails d'activation et parrainage (`lifecycle`). |
 | `supabase/functions/_shared/` | Règles partagées par l'app et le serveur : abonnements, commission, vérification, noms (`brand.ts`), connaissances de l'assistant (`assistant-prompt.ts`). |
 | `scripts/import-kbo.mjs` | Chargement mensuel des données ouvertes de la BCE. |
 
@@ -29,10 +29,20 @@ Une seule base de code produit l'app iOS, l'app Android et le site web (téléph
 | | Gratuit | Pro | Complet |
 | --- | --- | --- | --- |
 | Prix HTVA / mois | 0 € | 39 € | 89 € |
+| Prix HTVA / an (2 mois offerts) | 0 € | 390 € | 890 € |
 | Demandes de prix | 1 d'essai par mois, 3 fournisseurs max | 1 d'essai par mois | Illimitées |
 | Réseau entrepreneurs | Consultation | Publier, répondre, accords | Publier, répondre, accords |
 
-Les architectes utilisent le réseau gratuitement.
+Les architectes utilisent le réseau gratuitement. Les fournisseurs s'inscrivent gratuitement et ne paient qu'une commission sur les ventes.
+
+## Inscription et conversion
+
+- **Inscription par profil** : profil, entreprise (TVA avec nom trouvé à la BCE, adresse, contact, taille), activité (métiers, types de chantiers et achats mensuels pour un entrepreneur ; type, catégories, provinces, livraison, enlèvement, minimum de commande et adresse des demandes pour un fournisseur ; numéro d'architecte, projets pour un architecte), puis origine, code de parrainage et conditions. Un fournisseur accepte la commission à l'inscription. La province est déduite du code postal.
+- **Essai** : chaque nouvel entrepreneur a 14 jours de Pro (30 avec un code de parrainage), sans carte. `lifecycle` prévient 3 jours avant la fin puis repasse l'entreprise en Gratuit.
+- **Parrainage** : chaque entreprise a un lien `/bienvenue?ref=CODE`. Quand l'entreprise parrainée est vérifiée, le parrain reçoit un mois de Pro (gratuit ou en essai), 39 € HTVA de crédit Stripe (abonné) ou 39 € HTVA déduits de son relevé de commission (fournisseur).
+- **Fournisseurs favoris** : un entrepreneur invite ses fournisseurs habituels par e-mail ; ils reçoivent ses demandes en priorité, même hors zone, et rejoignent BatiLink avec le lien d'invitation.
+- **E-mails** : bienvenue, activation (entre 2 et 14 jours si rien n'a été fait), fin d'essai, relance mensuelle des entrepreneurs inactifs, récompense de parrainage. Chaque e-mail part une seule fois (`lifecycle_messages`).
+- **Pilotage** : les vues `funnel_weekly` (inscriptions, entreprises vérifiées, actives et payantes, par semaine et par profil) et `revenue_monthly` (abonnements et commissions par mois) sont réservées au back-office.
 
 ## Données et volume
 
@@ -75,13 +85,14 @@ La commission suit le montant facturé quand la facture correspond. Elle est due
 Stripe sert à encaisser les abonnements et les commissions ; les commandes se paient en direct entre entrepreneur et fournisseur.
 
 1. Créer le compte Stripe de l'entreprise qui exploite BatiLink (Belgique).
-2. Créer deux produits mensuels (Pro 39 €, Complet 89 € HTVA) et noter leurs identifiants de prix.
+2. Créer deux produits (Pro, Complet), chacun avec un prix mensuel (39 €, 89 € HTVA) et un prix annuel (390 €, 890 € HTVA), et noter les quatre identifiants de prix.
 3. Activer le **portail client** (changement de plan, moyen de paiement, factures, résiliation) et, si souhaité, **Stripe Tax**.
 4. Créer un point de terminaison webhook vers `https://<ref>.supabase.co/functions/v1/stripe-webhook` avec les événements `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`.
 5. Renseigner les secrets :
    ```bash
    npx supabase secrets set STRIPE_SECRET_KEY=sk_live_... STRIPE_WEBHOOK_SECRET=whsec_... \
-     STRIPE_PRICE_PRO=price_... STRIPE_PRICE_FULL=price_... STRIPE_AUTOMATIC_TAX=on
+     STRIPE_PRICE_PRO=price_... STRIPE_PRICE_FULL=price_... \
+     STRIPE_PRICE_PRO_YEAR=price_... STRIPE_PRICE_FULL_YEAR=price_... STRIPE_AUTOMATIC_TAX=on
    ```
    Commencer avec les clés de test (`sk_test_…`). Sans `STRIPE_SECRET_KEY`, le choix d'un plan indique que le paiement n'est pas encore activé et le lien du relevé de commission ne s'ouvre pas.
 
@@ -122,6 +133,12 @@ Stripe sert à encaisser les abonnements et les commissions ; les commandes se p
        headers := jsonb_build_object('x-cron-secret', '<CRON_SECRET>')
      )
    $$);
+   select cron.schedule('lifecycle', '0 8 * * *', $$
+     select net.http_post(
+       url := 'https://<ref>.supabase.co/functions/v1/lifecycle',
+       headers := jsonb_build_object('x-cron-secret', '<CRON_SECRET>')
+     )
+   $$);
    select cron.schedule('bill-commissions', '0 6 2 * *', $$
      select net.http_post(
        url := 'https://<ref>.supabase.co/functions/v1/bill-commissions',
@@ -129,13 +146,13 @@ Stripe sert à encaisser les abonnements et les commissions ; les commandes se p
      )
    $$);
    ```
-   La deuxième tâche recontrôle chaque nuit les entreprises dont la dernière vérification date de plus de 30 jours. La troisième envoie le 2 de chaque mois les relevés de commission du mois précédent.
+   La deuxième tâche recontrôle chaque nuit les entreprises dont la dernière vérification date de plus de 30 jours. La troisième gère chaque matin les essais, les e-mails d'activation et les parrainages. La quatrième envoie le 2 de chaque mois les relevés de commission du mois précédent.
 6. Copier `.env.example` en `.env` et le remplir, puis lancer l'app : `npm run web`, `npm run ios` ou `npm run android`.
 7. Dans Supabase → Authentication → Email templates, mettre `{{ .Token }}` dans le modèle « Magic link » pour que l'e-mail de connexion contienne le code à 6 chiffres.
 
 ### Ajouter les fournisseurs démarchés
 
-Les fournisseurs n'ont pas de compte. On les ajoute dans la base, avec les catégories et les débuts de codes postaux qu'ils couvrent (`14` couvre 1400 à 1499) :
+Les fournisseurs peuvent s'inscrire eux-mêmes (profil « Fournisseur ») ou être invités par un entrepreneur. Ceux qu'on démarche sans compte s'ajoutent dans la base, avec les catégories et les débuts de codes postaux qu'ils couvrent (`14` couvre 1400 à 1499) :
 
 ```sql
 insert into companies (kind, name, email, language, city, vat_number)

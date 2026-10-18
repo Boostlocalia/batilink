@@ -42,15 +42,19 @@ Deno.serve(async (req) => {
   const check = canSendPriceRequest(plan, sentThisMonth ?? 0, uniqueSuppliers.length);
   if (!check.ok) return json({ error: check.reason, limit: check.limit, plan }, 403);
 
-  // Only suppliers that really cover this category and postal code.
-  const { data: coverage } = await admin
-    .from('supplier_coverage')
-    .select('supplier_id, postal_prefix')
-    .eq('category_id', request.category_id)
-    .in('supplier_id', uniqueSuppliers);
-  const allowed = new Set(
-    (coverage ?? []).filter((c) => request.postal_code.startsWith(c.postal_prefix)).map((c) => c.supplier_id),
-  );
+  // Only suppliers that really cover this category and postal code, or the contractor's favourites.
+  const [{ data: coverage }, { data: favourites }] = await Promise.all([
+    admin
+      .from('supplier_coverage')
+      .select('supplier_id, postal_prefix')
+      .eq('category_id', request.category_id)
+      .in('supplier_id', uniqueSuppliers),
+    admin.from('preferred_suppliers').select('supplier_id').eq('contractor_id', companyId).in('supplier_id', uniqueSuppliers),
+  ]);
+  const allowed = new Set([
+    ...(coverage ?? []).filter((c) => request.postal_code.startsWith(c.postal_prefix)).map((c) => c.supplier_id),
+    ...(favourites ?? []).map((f) => f.supplier_id),
+  ]);
   if (allowed.size !== uniqueSuppliers.length) return json({ error: 'supplier_not_covering' }, 400);
 
   // Flip to `sent` first so a double tap cannot send twice.
@@ -65,7 +69,7 @@ Deno.serve(async (req) => {
   const [{ data: items }, { data: contractor }, { data: suppliers }] = await Promise.all([
     admin.from('request_items').select('label, quantity, unit').eq('request_id', request.id).order('position'),
     admin.from('companies').select('name, verified_at').eq('id', companyId).single(),
-    admin.from('companies').select('id, email, language, commission_rate').in('id', uniqueSuppliers),
+    admin.from('companies').select('id, email, quote_email, language, commission_rate').in('id', uniqueSuppliers),
   ]);
 
   const failed: string[] = [];
@@ -81,7 +85,7 @@ Deno.serve(async (req) => {
       })
       .select('reply_key')
       .single();
-    if (error || !quote || !supplier.email) {
+    if (error || !quote || !(supplier.quote_email ?? supplier.email)) {
       failed.push(supplier.id);
       continue;
     }
@@ -89,7 +93,7 @@ Deno.serve(async (req) => {
       await sendMail(
         invitationMail({
           lang: supplier.language as Lang,
-          to: supplier.email,
+          to: supplier.quote_email ?? supplier.email,
           contractor: contractor?.name ?? '',
           contractorVerified: Boolean(contractor?.verified_at),
           title: request.title,

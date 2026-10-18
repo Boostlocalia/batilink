@@ -107,8 +107,25 @@ Deno.serve(async (req) => {
 
   let billed = 0;
   for (const [supplierId, rows] of bySupplier) {
-    const amounts = orderAmounts(rows.reduce((s, c) => s + Number(c.amount_ex_vat), 0));
-    if (amounts.exVat < 1) continue;
+    const gross = rows.reduce((s, c) => s + Number(c.amount_ex_vat), 0);
+    // Referral credits come off the bill (each credit is used whole).
+    const { data: credits } = await admin
+      .from('referral_rewards')
+      .select('id, amount_ex_vat')
+      .eq('referrer_id', supplierId)
+      .eq('kind', 'commission_credit')
+      .is('used_at', null);
+    const credit = Math.min(gross, (credits ?? []).reduce((s, r) => s + Number(r.amount_ex_vat ?? 0), 0));
+    const creditIds = (credits ?? []).map((r) => r.id);
+    const amounts = orderAmounts(Math.round((gross - credit) * 100) / 100);
+    if (amounts.exVat < 1) {
+      if (credit > 0 && gross >= 1) {
+        // Fully covered by credits: nothing to pay this month.
+        await admin.from('commissions').update({ status: 'paid', paid_at: now.toISOString(), invoiced_at: now.toISOString() }).in('id', rows.map((c) => c.id));
+        await admin.from('referral_rewards').update({ used_at: now.toISOString() }).in('id', creditIds);
+      }
+      continue;
+    }
     const token = newToken();
     const { data: bill, error } = await admin
       .from('commission_bills')
@@ -118,13 +135,14 @@ Deno.serve(async (req) => {
     if (error || !bill) continue; // Already billed for that month.
     const number = bill.number as string;
     await admin.from('commissions').update({ status: 'invoiced', invoiced_at: now.toISOString(), bill_id: bill.id, invoice_number: number }).in('id', rows.map((c) => c.id));
+    if (creditIds.length) await admin.from('referral_rewards').update({ used_at: now.toISOString(), used_bill_id: bill.id }).in('id', creditIds);
     const { data: supplier } = await admin.from('companies').select('email, language').eq('id', supplierId).single();
     if (supplier?.email) {
       await sendMail(
         commissionBillMail(
           supplier.language as Lang,
           supplier.email,
-          { number, month: month.slice(0, 7), exVat: amounts.exVat, incVat: amounts.incVat, lines: rows.map(lineOf) },
+          { number, month: month.slice(0, 7), exVat: amounts.exVat, incVat: amounts.incVat, lines: rows.map(lineOf), creditExVat: credit },
           `${functionsUrl()}/bill-commissions?pay=${token}`,
         ),
       ).catch(console.error);

@@ -2,6 +2,8 @@ import { Link, Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { StartChecklist } from '@/components/start-checklist';
+import { SupplierHome } from '@/components/supplier-home';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Screen } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
@@ -9,6 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { formatDate } from '@/lib/format';
 import { useSession } from '@/lib/session';
+import { useTrial } from '@/lib/trial';
 import { supabase } from '@/lib/supabase';
 
 type RequestRow = {
@@ -27,6 +30,7 @@ export default function HomeScreen() {
   // Architects have no price requests: their home is the network.
   const { company } = useSession();
   if (company?.kind === 'architect') return <Redirect href="/reseau" />;
+  if (company?.kind === 'supplier') return <SupplierHome />;
   return <ContractorHome />;
 }
 
@@ -36,6 +40,7 @@ function ContractorHome() {
   const theme = useTheme();
   const [requests, setRequests] = useState<RequestRow[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const trial = useTrial();
 
   const load = useCallback(async () => {
     setFailed(false);
@@ -68,6 +73,16 @@ function ContractorHome() {
         </View>
         <Button label={t.home.newRequest} variant="signal" onPress={() => router.navigate('/nouvelle')} />
       </View>
+
+      {trial.onTrial && trial.daysLeft !== null && trial.daysLeft <= 7 ? (
+        <Pressable onPress={() => router.navigate('/abonnement')}>
+          <Card style={{ borderColor: theme.signal }}>
+            <ThemedText type="smallBold">{t.growth.plans.trialLeft(trial.daysLeft)}</ThemedText>
+          </Card>
+        </Pressable>
+      ) : null}
+
+      <StartChecklist />
 
       <Card>
         <ThemedText type="subtitle">{t.home.myRequests}</ThemedText>
@@ -108,6 +123,10 @@ function ContractorHome() {
           })
         )}
       </Card>
+
+      <View style={{ alignSelf: 'flex-start' }}>
+        <Button label={t.growth.favourites.open} variant="ghost" onPress={() => router.push('/fournisseurs')} />
+      </View>
     </Screen>
   );
 }

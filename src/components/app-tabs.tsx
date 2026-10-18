@@ -7,7 +7,8 @@ export default function AppTabs() {
   const colors = Colors.dark;
   const { t } = useI18n();
   // Architects work in the network only; price requests and plans are for contractors.
-  const contractor = useSession().company?.kind !== 'architect';
+  const kind = useSession().company?.kind;
+  const contractor = kind === 'contractor';
 
   return (
     <NativeTabs
@@ -18,7 +19,7 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Label>{t.tabs.home}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="house" md="home" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="reseau">
+      <NativeTabs.Trigger name="reseau" hidden={kind === 'supplier'}>
         <NativeTabs.Trigger.Label>{t.tabs.network}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="person.2" md="groups" />
       </NativeTabs.Trigger>

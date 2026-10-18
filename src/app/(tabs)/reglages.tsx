@@ -1,7 +1,9 @@
 import { View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { ReferralCard } from '@/components/referral-card';
 import { VerificationCard } from '@/components/verification-card';
+import { router } from 'expo-router';
 import { Button, Card, Screen, Segmented } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useI18n, type Language } from '@/i18n';
@@ -50,6 +52,16 @@ export default function SettingsScreen() {
         </Card>
       ) : null}
       <VerificationCard />
+      <ReferralCard />
+      {company?.kind === 'contractor' ? (
+        <View style={{ alignSelf: 'flex-start' }}>
+          <Button label={t.growth.favourites.open} variant="ghost" onPress={() => router.push('/fournisseurs')} />
+        </View>
+      ) : company?.kind === 'supplier' ? (
+        <View style={{ alignSelf: 'flex-start' }}>
+          <Button label={t.growth.supplierSpace.zones} variant="ghost" onPress={() => router.push('/zones')} />
+        </View>
+      ) : null}
       <Button label={t.settings.signOut} variant="ghost" onPress={() => supabase.auth.signOut()} />
     </Screen>
   );

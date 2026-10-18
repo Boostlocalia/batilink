@@ -236,10 +236,10 @@ export function answerToSupplierMail(lang: Lang, to: string, contractor: string,
 
 // Orders -----------------------------------------------------------------------
 
-type Localized = { subject: string; paragraphs: string[]; cta?: { label: string; url: string } };
+export type Localized = { subject: string; paragraphs: string[]; cta?: { label: string; url: string } };
 
 /** A short bilingual notice; paragraphs are plain text (escaped here). */
-function notice(lang: Lang, to: string, content: Record<Lang, Localized>): Mail {
+export function notice(lang: Lang, to: string, content: Record<Lang, Localized>): Mail {
   const c = content[lang];
   const html = layout(c.paragraphs.map(esc), c.cta);
   const text = [...c.paragraphs, ...(c.cta ? [c.cta.url] : [])].join('\n\n');
@@ -404,7 +404,7 @@ export type BillLine = { number: string; title: string; contractor: string; base
 export function commissionBillMail(
   lang: Lang,
   to: string,
-  bill: { number: string; month: string; exVat: number; incVat: number; lines: BillLine[] },
+  bill: { number: string; month: string; exVat: number; incVat: number; lines: BillLine[]; creditExVat?: number },
   url: string,
 ): Mail {
   const rows = bill.lines.map(
@@ -414,6 +414,9 @@ export function commissionBillMail(
     lang === 'nl'
       ? `Commissie voor ${bill.lines.length} bestelling(en) gegund via ${APP_NAME} in ${bill.month}: ${eur(bill.exVat, 'nl')} excl. btw, of ${eur(bill.incVat, 'nl')} incl. btw.`
       : `Commission sur ${bill.lines.length} commande(s) passée(s) via ${APP_NAME} en ${bill.month} : ${eur(bill.exVat, 'fr')} HTVA, soit ${eur(bill.incVat, 'fr')} TVAC.`;
+  if (bill.creditExVat) {
+    rows.push(lang === 'nl' ? `Peterschapskrediet: −${eur(bill.creditExVat, 'nl')}` : `Crédit de parrainage : −${eur(bill.creditExVat, 'fr')}`);
+  }
   const outro =
     lang === 'nl'
       ? 'De factuur ontvangt u via Peppol met dezelfde referentie. U kunt veilig online betalen (Bancontact, kaart of overschrijving).'

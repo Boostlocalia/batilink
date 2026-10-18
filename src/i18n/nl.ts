@@ -1,3 +1,5 @@
+import { growthNl } from './growth.nl';
+import { signupNl } from './signup.nl';
 import { APP_NAME } from '@/constants/brand';
 import type { Dictionary } from './fr';
 
@@ -464,4 +466,6 @@ export const nl: Dictionary = {
       `Ik ga ermee akkoord dat ${APP_NAME} een commissie van ${rate} excl. btw factureert op het bedrag van mijn offerte als ze gekozen wordt. Antwoorden blijft gratis.`,
     commissionRequired: 'Aanvaard de commissievoorwaarden om uw offerte te versturen.',
   },
+  signup: signupNl,
+  growth: growthNl,
 };

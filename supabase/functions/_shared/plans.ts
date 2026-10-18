@@ -6,6 +6,8 @@ export type Plan = 'free' | 'pro' | 'full';
 export type PlanLimits = {
   /** Monthly price in euros, excluding VAT. */
   priceExVat: number;
+  /** Yearly price in euros, excluding VAT: two months free. */
+  priceYearExVat: number;
   /** Company searches per month in the contractor network. */
   searchesPerMonth: number;
   /** Price requests that can be sent per calendar month. */
@@ -22,6 +24,7 @@ export type PlanLimits = {
 export const PLANS: Record<Plan, PlanLimits> = {
   free: {
     priceExVat: 0,
+    priceYearExVat: 0,
     searchesPerMonth: 10,
     priceRequestsPerMonth: 1,
     suppliersPerRequest: 3,
@@ -32,6 +35,7 @@ export const PLANS: Record<Plan, PlanLimits> = {
   },
   pro: {
     priceExVat: 39,
+    priceYearExVat: 390,
     searchesPerMonth: Infinity,
     priceRequestsPerMonth: 1,
     suppliersPerRequest: Infinity,
@@ -42,6 +46,7 @@ export const PLANS: Record<Plan, PlanLimits> = {
   },
   full: {
     priceExVat: 89,
+    priceYearExVat: 890,
     searchesPerMonth: Infinity,
     priceRequestsPerMonth: Infinity,
     suppliersPerRequest: Infinity,
