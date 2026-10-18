@@ -106,7 +106,7 @@ Stripe sert à encaisser les abonnements et les commissions ; les commandes se p
 
 ## Mettre en ligne pour tester
 
-- **Site web** (ordinateur et téléphone) : sur [vercel.com](https://vercel.com), se connecter avec GitHub, « Add New → Project », importer `Boostlocalia/batilink`. Ajouter les variables `EXPO_PUBLIC_SUPABASE_URL` et `EXPO_PUBLIC_SUPABASE_ANON_KEY`, puis déployer. `vercel.json` donne la commande de build et renvoie toutes les adresses vers l'app. Pour publier la branche `signup-conversion`, la choisir comme branche de production (Settings → Git) ou ouvrir l'adresse d'aperçu que Vercel crée pour elle.
+- **Site web** : publié sur GitHub Pages, [boostlocalia.github.io/batilink](https://boostlocalia.github.io/batilink). Chaque push sur `signup-conversion` le reconstruit (`.github/workflows/deploy-web.yml`) dans la branche `gh-pages`. Réglage unique : GitHub → Settings → Pages → « Deploy from a branch », branche `gh-pages`, dossier `/ (root)`. `vercel.json` permet aussi un hébergement Vercel.
 - **Fonctions serveur** : ajouter le secret `SUPABASE_ACCESS_TOKEN` au dépôt GitHub (Settings → Secrets and variables → Actions), puis lancer « Deploy Supabase functions » dans l'onglet Actions. Elles se redéploient ensuite à chaque modification.
 - **Connexion par code** : Supabase → Authentication → Emails, modèle « Magic link » avec `{{ .Token }}`. Sans fournisseur d'e-mails branché, Supabase n'envoie qu'aux membres de l'organisation, quelques e-mails par heure : suffisant pour tester soi-même, pas pour des testeurs externes (brancher Brevo en SMTP dans Authentication → Emails → SMTP).
 
