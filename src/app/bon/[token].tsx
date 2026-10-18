@@ -9,7 +9,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n, type Language } from '@/i18n';
 import { formatDate, formatEuro, parseAmount } from '@/lib/format';
-import { formatIban, normalizeIban, openPaymentPage, type OrderStatus } from '@/lib/orders';
+import { formatIban, normalizeIban, type OrderStatus } from '@/lib/orders';
 import { anonHeaders, functionsUrl } from '@/lib/supabase';
 
 type Payload = {
@@ -24,16 +24,14 @@ type Payload = {
     supplier_iban: string | null;
     deposit_rejected_reason: string | null;
     deposit_received_at: string | null;
-    deposit_method: 'transfer' | 'online' | null;
     delivered_at: string | null;
-    amount_paid_online: number;
+    payment_reported_at: string | null;
   };
   request: { postal_code: string; city: string | null; needed_by: string | null; fulfilment: 'delivery' | 'pickup'; note: string | null } | null;
   items: { id: string; label: string; quantity: number; unit: string; unit_price: number }[];
-  supplier: { name: string; language: Language; online_payments: boolean; payments_started: boolean } | null;
+  supplier: { name: string; language: Language } | null;
   contractor: { name: string; email: string | null } | null;
-  documents: { id: string; kind: 'deposit_proof' | 'delivery_note'; file_name: string; created_at: string; url: string | null }[];
-  online_payments_available: boolean;
+  documents: { id: string; kind: 'deposit_proof' | 'delivery_note' | 'payment_proof'; file_name: string; created_at: string; url: string | null }[];
 };
 
 const TONE = {
@@ -93,14 +91,13 @@ export default function SupplierOrderScreen() {
       body: JSON.stringify({ token, ...body }),
     }).catch(() => null);
     setBusy(null);
-    const json = res ? ((await res.json().catch(() => ({}))) as { url?: string; error?: string }) : {};
+    const json = res ? ((await res.json().catch(() => ({}))) as { error?: string }) : {};
     if (!res?.ok) {
       setError(json.error === 'invalid_iban' ? t.supplierOrder.invalidIban : json.error === 'invalid_deposit' ? t.supplierOrder.invalidDeposit : t.common.error);
       return;
     }
     setMode(null);
     setReason('');
-    if (json.url) return openPaymentPage(json.url);
     load();
   };
 
@@ -138,6 +135,7 @@ export default function SupplierOrderScreen() {
   const unitLabel = (u: string) => t.units[u as keyof typeof t.units] ?? u;
   const proofs = data.documents.filter((d) => d.kind === 'deposit_proof');
   const lastProof = proofs[proofs.length - 1];
+  const paymentProofs = data.documents.filter((d) => d.kind === 'payment_proof');
 
   const confirm = () => {
     const amount = withDeposit ? parseAmount(deposit) : 0;
@@ -206,11 +204,6 @@ export default function SupplierOrderScreen() {
           <ThemedText type="smallBold">{t.orders.total}</ThemedText>
           <ThemedText type="smallBold">{eur(order.total_inc_vat)}</ThemedText>
         </View>
-        {Number(order.amount_paid_online) > 0 ? (
-          <ThemedText type="small" themeColor="good">
-            {t.supplierOrder.paidOnline(eur(order.amount_paid_online))}
-          </ThemedText>
-        ) : null}
       </Card>
 
       {order.status === 'awaiting_supplier' ? (
@@ -302,25 +295,20 @@ export default function SupplierOrderScreen() {
         </Card>
       ) : null}
 
-      {data.online_payments_available && order.status !== 'cancelled' ? (
+      {paymentProofs.length ? (
         <Card>
-          <ThemedText type="subtitle">{t.supplierOrder.paymentsTitle}</ThemedText>
-          {data.supplier?.online_payments ? (
-            <ThemedText themeColor="good">{t.supplierOrder.connected}</ThemedText>
-          ) : (
-            <>
-              <ThemedText type="small" themeColor="textSecondary">
-                {t.supplierOrder.paymentsLead}
+          <ThemedText type="subtitle">{t.supplierOrder.paymentProofTitle}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {t.supplierOrder.paymentProofLead}
+          </ThemedText>
+          {paymentProofs.map((d) => (
+            <View key={d.id} style={styles.wrap}>
+              <ThemedText type="small" style={{ flex: 1 }}>
+                {d.file_name} · {formatDate(d.created_at.slice(0, 10), locale)}
               </ThemedText>
-              <View style={{ alignSelf: 'flex-start' }}>
-                <Button
-                  label={data.supplier?.payments_started ? t.supplierOrder.continueConnect : t.supplierOrder.connect}
-                  busy={busy === 'connect'}
-                  onPress={() => post('connect', { action: 'connect' })}
-                />
-              </View>
-            </>
-          )}
+              {d.url ? <Button label={t.supplierOrder.openProof} variant="ghost" small onPress={() => Linking.openURL(d.url!)} /> : null}
+            </View>
+          ))}
         </Card>
       ) : null}
     </Screen>

@@ -9,9 +9,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
 import {
-  balanceDueIncVat,
   formatIban,
-  openPaymentPage,
   ORDER_DOCUMENT_COLUMNS,
   pickAndUpload,
   type DocumentKind,
@@ -34,12 +32,11 @@ type Order = {
   supplier_iban: string | null;
   deposit_proof_sent_at: string | null;
   deposit_received_at: string | null;
-  deposit_method: 'transfer' | 'online' | null;
   deposit_rejected_reason: string | null;
   delivered_at: string | null;
-  amount_paid_online: number;
+  payment_reported_at: string | null;
   cancel_reason: string | null;
-  supplier: { name: string; online_payments: boolean } | null;
+  supplier: { name: string } | null;
 };
 
 const STATUS_TONE = {
@@ -54,23 +51,21 @@ const STATUS_TONE = {
 const CHECK_TONE = { matched: 'good', mismatch: 'neutral', manual_review: 'warn' } as const;
 
 export default function OrderScreen() {
-  const { id, paiement } = useLocalSearchParams<{ id: string; paiement?: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { t, locale } = useI18n();
   const theme = useTheme();
   const [order, setOrder] = useState<Order | null>(null);
   const [docs, setDocs] = useState<OrderDocument[]>([]);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ text: string; tone: 'good' | 'danger' } | null>(
-    paiement === 'ok' ? { text: t.orders.paymentOk, tone: 'good' } : paiement === 'annule' ? { text: t.orders.paymentCancelled, tone: 'danger' } : null,
-  );
+  const [notice, setNotice] = useState<{ text: string; tone: 'good' | 'danger' } | null>(null);
 
   const load = useCallback(async () => {
     const [o, d] = await Promise.all([
       supabase
         .from('purchase_orders')
         .select(
-          'id, number, title, status, total_ex_vat, vat, total_inc_vat, created_at, supplier_confirmed_at, deposit_inc_vat, supplier_iban, deposit_proof_sent_at, deposit_received_at, deposit_method, deposit_rejected_reason, delivered_at, amount_paid_online, cancel_reason, supplier:companies!purchase_orders_supplier_id_fkey(name, online_payments)',
+          'id, number, title, status, total_ex_vat, vat, total_inc_vat, created_at, supplier_confirmed_at, deposit_inc_vat, supplier_iban, deposit_proof_sent_at, deposit_received_at, deposit_rejected_reason, delivered_at, payment_reported_at, cancel_reason, supplier:companies!purchase_orders_supplier_id_fkey(name)',
         )
         .eq('id', id)
         .single(),
@@ -94,10 +89,9 @@ export default function OrderScreen() {
   const act = async (key: string, body: object) => {
     setBusy(key);
     setNotice(null);
-    const { data, error } = await supabase.functions.invoke('order-action', { body: { order_id: id, ...body } });
+    const { error } = await supabase.functions.invoke('order-action', { body: { order_id: id, ...body } });
     setBusy(null);
     if (error) return setNotice({ text: t.common.error, tone: 'danger' });
-    if ((data as { url?: string })?.url) await openPaymentPage((data as { url: string }).url);
     load();
   };
 
@@ -108,7 +102,7 @@ export default function OrderScreen() {
     setBusy(null);
     if (!result) return;
     if (!result.ok) return setNotice({ text: t.orders.uploadErrors[result.error] ?? t.common.error, tone: 'danger' });
-    if (kind === 'deposit_proof') setNotice({ text: t.orders.proofSent, tone: 'good' });
+    if (kind === 'deposit_proof' || kind === 'payment_proof') setNotice({ text: t.orders.proofSent, tone: 'good' });
     load();
   };
 
@@ -129,9 +123,6 @@ export default function OrderScreen() {
     );
 
   const invoice = [...docs].reverse().find((d) => d.kind === 'invoice');
-  const offlineDeposit = order.deposit_method === 'transfer' ? Number(order.deposit_inc_vat) : 0;
-  const balance = balanceDueIncVat(Number(order.total_inc_vat), Number(order.amount_paid_online), offlineDeposit);
-  const online = Boolean(order.supplier?.online_payments);
   const waitingDeposit = order.status === 'awaiting_deposit' || order.status === 'deposit_proof_sent';
   const started = order.status === 'in_progress' || order.status === 'delivered';
 
@@ -140,6 +131,7 @@ export default function OrderScreen() {
     [t.orders.steps.confirmed, order.supplier_confirmed_at],
     ...(Number(order.deposit_inc_vat) > 0 ? ([[t.orders.steps.deposit, order.deposit_received_at]] as [string, string | null][]) : []),
     [t.orders.steps.delivered, order.delivered_at],
+    [t.orders.steps.paid, order.payment_reported_at],
     [t.orders.steps.invoice, invoice?.check_status === 'matched' ? invoice.created_at : null],
   ];
 
@@ -207,21 +199,6 @@ export default function OrderScreen() {
               {t.orders.proofRejected(order.deposit_rejected_reason)}
             </ThemedText>
           ) : null}
-          {online ? (
-            <View style={{ gap: Spacing.one }}>
-              <View style={{ alignSelf: 'flex-start' }}>
-                <Button
-                  label={t.orders.payOnline(eur(order.deposit_inc_vat))}
-                  variant="signal"
-                  busy={busy === 'deposit'}
-                  onPress={() => act('deposit', { action: 'pay', kind: 'deposit' })}
-                />
-              </View>
-              <ThemedText type="small" themeColor="textSecondary">
-                {t.orders.payOnlineHint}
-              </ThemedText>
-            </View>
-          ) : null}
           {order.supplier_iban ? <ThemedText type="smallBold">{t.orders.transferTo(formatIban(order.supplier_iban), order.number)}</ThemedText> : null}
           <ThemedText type="small" themeColor="textSecondary">
             {t.orders.proofLead}
@@ -234,7 +211,7 @@ export default function OrderScreen() {
           <View style={{ alignSelf: 'flex-start' }}>
             <Button
               label={order.status === 'deposit_proof_sent' ? t.orders.sendAnotherProof : t.orders.sendProof}
-              variant={online ? 'ghost' : 'signal'}
+              variant="signal"
               busy={busy === 'deposit_proof'}
               onPress={() => upload('deposit_proof')}
             />
@@ -242,9 +219,9 @@ export default function OrderScreen() {
         </Card>
       ) : null}
 
-      {order.deposit_received_at && order.deposit_method ? (
+      {order.deposit_received_at ? (
         <ThemedText type="small" themeColor="good">
-          {t.orders.depositOk(order.deposit_method)}
+          {t.orders.depositOk}
         </ThemedText>
       ) : null}
 
@@ -310,27 +287,24 @@ export default function OrderScreen() {
             <ThemedText type="smallBold">{t.orders.total}</ThemedText>
             <ThemedText type="smallBold">{eur(order.total_inc_vat)}</ThemedText>
           </View>
-          {Number(order.amount_paid_online) > 0 ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            {t.orders.payDirect}
+          </ThemedText>
+          {order.payment_reported_at ? (
             <ThemedText type="small" themeColor="good">
-              {t.orders.paidOnline(eur(order.amount_paid_online))}
+              {t.orders.paymentReported(date(order.payment_reported_at))}
             </ThemedText>
           ) : null}
-          {started && balance > 0 ? (
-            online ? (
-              <View style={{ gap: Spacing.one }}>
-                <ThemedText type="smallBold">{t.orders.balanceDue(eur(balance))}</ThemedText>
-                <View style={{ alignSelf: 'flex-start' }}>
-                  <Button label={t.orders.payBalance(eur(balance))} busy={busy === 'balance'} onPress={() => act('balance', { action: 'pay', kind: 'balance' })} />
-                </View>
-                <ThemedText type="small" themeColor="textSecondary">
-                  {t.orders.payOnlineHint}
-                </ThemedText>
-              </View>
-            ) : (
-              <ThemedText type="small" themeColor="textSecondary">
-                {t.orders.notConnected}
-              </ThemedText>
-            )
+          {started ? (
+            <View style={{ alignSelf: 'flex-start' }}>
+              <Button
+                label={order.payment_reported_at ? t.orders.sendAnotherProof : t.orders.sendPaymentProof}
+                variant={order.payment_reported_at ? 'ghost' : 'primary'}
+                small
+                busy={busy === 'payment_proof'}
+                onPress={() => upload('payment_proof')}
+              />
+            </View>
           ) : null}
         </Card>
       ) : null}

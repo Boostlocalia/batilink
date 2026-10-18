@@ -1,20 +1,21 @@
-// Monthly job (x-cron-secret): bills each supplier the commission still due on
-// orders that were not paid through BatiLink, and e-mails a secure payment link.
-// A commission is billed once the sale is proven: delivery confirmed by the
-// contractor, a matching invoice, or 45 days after the supplier confirmed.
+// Monthly job (x-cron-secret): bills each supplier the commission on the sales
+// made through BatiLink, and e-mails the statement with a secure payment link.
+// Contractors pay suppliers directly; a commission is billed once the sale is
+// proven (delivery confirmed by the contractor, a matching invoice, proof of
+// payment, or 45 days after the supplier confirmed). Unproven ones wait for the
+// next month.
 //
 // GET ?pay=<token> is the link in that e-mail: it opens a fresh Stripe payment
 // page for the bill (Stripe pages expire, the e-mail link does not).
 
-import { commissionBillMail, sendMail, type Lang } from '../_shared/email.ts';
+import { commissionBillMail, sendMail, type BillLine, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
-import { BELGIAN_VAT, toCents } from '../_shared/orders.ts';
+import { orderAmounts, toCents } from '../_shared/orders.ts';
 import { stripeClient } from '../_shared/stripe.ts';
 import { adminClient, appUrl, json } from '../_shared/supabase.ts';
 import { hashToken, newToken } from '../_shared/tokens.ts';
 
 type Admin = ReturnType<typeof adminClient>;
-const round2 = (n: number) => Math.round(n * 100) / 100;
 const functionsUrl = () => `${Deno.env.get('SUPABASE_URL')}/functions/v1`;
 
 async function payLink(admin: Admin, token: string | null): Promise<Response> {
@@ -62,22 +63,35 @@ Deno.serve(async (req) => {
 
   const { data: due } = await admin
     .from('commissions')
-    .select('id, supplier_id, amount_ex_vat, collected_inc_vat, order:purchase_orders(id, status, delivered_at, supplier_confirmed_at, documents:order_documents(kind, check_status))')
+    .select(
+      'id, supplier_id, base_ex_vat, amount_ex_vat, order:purchase_orders(number, title, status, delivered_at, payment_reported_at, supplier_confirmed_at, contractor:companies!purchase_orders_contractor_id_fkey(name), documents:order_documents(kind, check_status))',
+    )
     .eq('status', 'pending')
     .is('bill_id', null)
     .lt('awarded_at', monthStart.toISOString())
     .limit(5000);
 
   type Row = NonNullable<typeof due>[number];
+  type OrderProof = {
+    number: string;
+    title: string;
+    status: string;
+    delivered_at: string | null;
+    payment_reported_at: string | null;
+    supplier_confirmed_at: string | null;
+    contractor: { name: string } | null;
+    documents: { kind: string; check_status: string | null }[];
+  };
+  const orderOf = (c: Row) => c.order as unknown as OrderProof | null;
   const proven = (c: Row) => {
-    const o = c.order as unknown as {
-      status: string;
-      delivered_at: string | null;
-      supplier_confirmed_at: string | null;
-      documents: { kind: string; check_status: string | null }[];
-    } | null;
+    const o = orderOf(c);
     if (!o || o.status === 'cancelled' || o.status === 'awaiting_supplier') return false;
-    return Boolean(o.delivered_at) || o.documents.some((d) => d.kind === 'invoice' && d.check_status === 'matched') || (o.supplier_confirmed_at !== null && o.supplier_confirmed_at < proofCutoff);
+    return (
+      Boolean(o.delivered_at) ||
+      Boolean(o.payment_reported_at) ||
+      o.documents.some((d) => d.kind === 'invoice' && d.check_status === 'matched') ||
+      (o.supplier_confirmed_at !== null && o.supplier_confirmed_at < proofCutoff)
+    );
   };
 
   const bySupplier = new Map<string, Row[]>();
@@ -86,16 +100,19 @@ Deno.serve(async (req) => {
     bySupplier.set(c.supplier_id, [...(bySupplier.get(c.supplier_id) ?? []), c]);
   }
 
+  const lineOf = (c: Row): BillLine => {
+    const o = orderOf(c);
+    return { number: o?.number ?? '–', title: o?.title ?? '', contractor: o?.contractor?.name ?? '', baseExVat: Number(c.base_ex_vat), commissionExVat: Number(c.amount_ex_vat) };
+  };
+
   let billed = 0;
   for (const [supplierId, rows] of bySupplier) {
-    // What is left after commission already taken on online payments.
-    const exVat = round2(rows.reduce((s, c) => s + Math.max(0, Number(c.amount_ex_vat) - Number(c.collected_inc_vat) / (1 + BELGIAN_VAT)), 0));
-    if (exVat < 1) continue;
-    const vat = round2(exVat * BELGIAN_VAT);
+    const amounts = orderAmounts(rows.reduce((s, c) => s + Number(c.amount_ex_vat), 0));
+    if (amounts.exVat < 1) continue;
     const token = newToken();
     const { data: bill, error } = await admin
       .from('commission_bills')
-      .insert({ supplier_id: supplierId, month, amount_ex_vat: exVat, vat, amount_inc_vat: round2(exVat + vat), pay_token_hash: await hashToken(token) })
+      .insert({ supplier_id: supplierId, month, amount_ex_vat: amounts.exVat, vat: amounts.vat, amount_inc_vat: amounts.incVat, pay_token_hash: await hashToken(token) })
       .select('id, number')
       .single();
     if (error || !bill) continue; // Already billed for that month.
@@ -104,10 +121,15 @@ Deno.serve(async (req) => {
     const { data: supplier } = await admin.from('companies').select('email, language').eq('id', supplierId).single();
     if (supplier?.email) {
       await sendMail(
-        commissionBillMail(supplier.language as Lang, supplier.email, { number, month: month.slice(0, 7), exVat, incVat: round2(exVat + vat), orders: rows.length }, `${functionsUrl()}/bill-commissions?pay=${token}`),
+        commissionBillMail(
+          supplier.language as Lang,
+          supplier.email,
+          { number, month: month.slice(0, 7), exVat: amounts.exVat, incVat: amounts.incVat, lines: rows.map(lineOf) },
+          `${functionsUrl()}/bill-commissions?pay=${token}`,
+        ),
       ).catch(console.error);
     }
-    await logEvent(admin, { kind: 'commission_billed', company_id: supplierId, data: { number, ex_vat: exVat, orders: rows.length } });
+    await logEvent(admin, { kind: 'commission_billed', company_id: supplierId, data: { number, ex_vat: amounts.exVat, orders: rows.length } });
     billed++;
   }
   return json({ billed });

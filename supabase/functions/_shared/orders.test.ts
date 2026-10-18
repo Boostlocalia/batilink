@@ -1,14 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  applicationFeeCents,
-  balanceDueIncVat,
-  canDo,
-  commissionIncVat,
-  normalizeIban,
-  orderAmounts,
-  statusAfterConfirm,
-} from './orders';
+import { canDo, normalizeIban, orderAmounts, statusAfterConfirm } from './orders';
 import { checkInvoice, normalizeVat, parseUbl } from './ubl';
 
 describe('order amounts', () => {
@@ -17,20 +9,7 @@ describe('order amounts', () => {
   });
 
   it('bills the commission with VAT', () => {
-    expect(commissionIncVat(50)).toBe(60.5);
-  });
-
-  it('takes only the outstanding commission from an online payment', () => {
-    expect(applicationFeeCents(30_000, 60.5, 0)).toBe(6050);
-    expect(applicationFeeCents(30_000, 60.5, 20)).toBe(4050);
-    expect(applicationFeeCents(30_000, 60.5, 60.5)).toBe(0);
-    // Never more than the payment itself.
-    expect(applicationFeeCents(1000, 60.5, 0)).toBe(1000);
-  });
-
-  it('computes the balance after the deposit', () => {
-    expect(balanceDueIncVat(1210, 0, 300)).toBe(910);
-    expect(balanceDueIncVat(1210, 1210, 0)).toBe(0);
+    expect(orderAmounts(75.25)).toEqual({ exVat: 75.25, vat: 15.8, incVat: 91.05 });
   });
 });
 
@@ -47,6 +26,8 @@ describe('order steps', () => {
     expect(canDo('deposit_received', 'deposit_proof_sent')).toBe(true);
     expect(canDo('delivered', 'awaiting_deposit')).toBe(false);
     expect(canDo('contractor_cancel', 'in_progress')).toBe(false);
+    expect(canDo('payment_proof', 'delivered')).toBe(true);
+    expect(canDo('payment_proof', 'awaiting_supplier')).toBe(false);
   });
 });
 

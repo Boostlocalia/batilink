@@ -56,7 +56,7 @@ export type StoredDocument = { id: string; storage_path: string; sha256: string;
 /** Validates and stores a file for an order. Returns null when the file is refused. */
 export async function storeDocument(
   admin: SupabaseClient,
-  input: { orderId: string; kind: 'deposit_proof' | 'delivery_note' | 'invoice'; file: File; userId: string | null; extra?: Record<string, unknown> },
+  input: { orderId: string; kind: 'deposit_proof' | 'delivery_note' | 'invoice' | 'payment_proof'; file: File; userId: string | null; extra?: Record<string, unknown> },
 ): Promise<{ doc: StoredDocument } | { error: 'too_large' | 'file_type' | 'storage' | 'duplicate' }> {
   if (input.file.size === 0 || input.file.size > MAX_DOCUMENT_BYTES) return { error: 'too_large' };
   const bytes = new Uint8Array(await input.file.arrayBuffer());

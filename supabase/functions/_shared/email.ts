@@ -138,9 +138,9 @@ export function awardedMail(
   if (lang === 'nl') {
     const p = [
       `Goed nieuws: ${esc(contractor)} heeft uw offerte voor « ${esc(title)} » gekozen. Bestelbon: <b>${esc(order.number)}</b>.`,
-      'Bevestig de bestelling via de knop hieronder. U kunt er een voorschot vragen: de aannemer stuurt dan het betalingsbewijs, of betaalt online, voordat u de bestelling start.',
+      'Bevestig de bestelling via de knop hieronder. U kunt er een voorschot vragen: de aannemer betaalt u rechtstreeks en stuurt het betalingsbewijs voordat u de bestelling start.',
       `Vermeld het nummer ${esc(order.number)} als bestelreferentie op uw (Peppol-)factuur.`,
-      `Commissie ${APP_NAME}: ${pct(commission.rate, 'nl')} van ${eur(commission.base, 'nl')}, of ${eur(commission.amount, 'nl')} excl. btw. Bij een online betaling wordt ze automatisch ingehouden, anders gefactureerd aan het einde van de maand.`,
+      `Commissie ${APP_NAME}: ${pct(commission.rate, 'nl')} van het gefactureerde bedrag excl. btw (offerte: ${eur(commission.base, 'nl')}, of ${eur(commission.amount, 'nl')}), gefactureerd aan het einde van de maand.`,
     ];
     return {
       to,
@@ -151,9 +151,9 @@ export function awardedMail(
   }
   const p = [
     `Bonne nouvelle : ${esc(contractor)} a retenu votre offre pour « ${esc(title)} ». Bon de commande : <b>${esc(order.number)}</b>.`,
-    "Confirmez la commande avec le bouton ci-dessous. Vous pouvez y demander un acompte : l'entrepreneur vous envoie alors la preuve de paiement, ou paie en ligne, avant que vous lanciez la commande.",
+    "Confirmez la commande avec le bouton ci-dessous. Vous pouvez y demander un acompte : l'entrepreneur vous le paie directement et envoie la preuve de paiement avant que vous lanciez la commande.",
     `Indiquez le numéro ${esc(order.number)} comme référence de commande sur votre facture (Peppol).`,
-    `Commission ${APP_NAME} : ${pct(commission.rate, 'fr')} de ${eur(commission.base, 'fr')}, soit ${eur(commission.amount, 'fr')} HTVA. Retenue automatiquement si l'entrepreneur paie en ligne, sinon facturée en fin de mois.`,
+    `Commission ${APP_NAME} : ${pct(commission.rate, 'fr')} du montant facturé HTVA (offre : ${eur(commission.base, 'fr')}, soit ${eur(commission.amount, 'fr')}), facturée en fin de mois.`,
   ];
   return {
     to,
@@ -264,10 +264,10 @@ export function orderConfirmedMail(d: OrderMailData, deposit: { amount: number; 
         paragraphs: [
           `${d.other} a confirmé la commande ${d.number} et demande un acompte de ${eur(deposit.amount, 'fr')} avant de la lancer.`,
           deposit.iban
-            ? `Payez en ligne dans l'application, ou par virement au compte ${deposit.iban} avec la communication ${d.number}, puis déposez la preuve du virement (capture d'écran ou PDF). Nous la transmettons au fournisseur.`
-            : "Payez en ligne dans l'application, ou par virement, puis déposez la preuve du virement (capture d'écran ou PDF). Nous la transmettons au fournisseur.",
+            ? `Payez-le directement au fournisseur, par virement au compte ${deposit.iban} avec la communication ${d.number}, puis déposez la preuve du virement (capture d'écran ou PDF) dans l'application. Nous la transmettons au fournisseur.`
+            : "Payez-le directement au fournisseur, puis déposez la preuve du virement (capture d'écran ou PDF) dans l'application. Nous la transmettons au fournisseur.",
         ],
-        cta: { label: "Payer ou envoyer la preuve", url: d.url },
+        cta: { label: 'Envoyer la preuve', url: d.url },
       }
     : {
         subject: `Commande confirmée : ${d.title} (${d.number})`,
@@ -280,10 +280,10 @@ export function orderConfirmedMail(d: OrderMailData, deposit: { amount: number; 
         paragraphs: [
           `${d.other} heeft bestelling ${d.number} bevestigd en vraagt een voorschot van ${eur(deposit.amount, 'nl')} voordat ze start.`,
           deposit.iban
-            ? `Betaal online in de app, of via overschrijving naar ${deposit.iban} met mededeling ${d.number}, en laad daarna het betalingsbewijs op (schermafbeelding of pdf). Wij bezorgen het aan de leverancier.`
-            : 'Betaal online in de app, of via overschrijving, en laad daarna het betalingsbewijs op (schermafbeelding of pdf). Wij bezorgen het aan de leverancier.',
+            ? `Betaal het rechtstreeks aan de leverancier, via overschrijving naar ${deposit.iban} met mededeling ${d.number}, en laad daarna het betalingsbewijs op in de app (schermafbeelding of pdf). Wij bezorgen het aan de leverancier.`
+            : 'Betaal het rechtstreeks aan de leverancier en laad daarna het betalingsbewijs op in de app (schermafbeelding of pdf). Wij bezorgen het aan de leverancier.',
         ],
-        cta: { label: 'Betalen of bewijs opladen', url: d.url },
+        cta: { label: 'Bewijs opladen', url: d.url },
       }
     : {
         subject: `Bestelling bevestigd: ${d.title} (${d.number})`,
@@ -367,23 +367,19 @@ export function orderDeclinedMail(d: OrderMailData, reason: string | null): Mail
   });
 }
 
-/** To the supplier: payment made online, or delivery confirmed. */
-export function orderNewsMail(d: OrderMailData, news: 'paid_online' | 'delivered', amount?: number): Mail {
-  if (news === 'paid_online') {
+/** To the supplier: the contractor confirmed delivery, or reported paying (with proof). */
+export function orderNewsMail(d: OrderMailData, news: 'payment_reported' | 'delivered'): Mail {
+  if (news === 'payment_reported') {
     return notice(d.lang, d.to, {
       fr: {
-        subject: `Paiement reçu en ligne : ${d.number}`,
-        paragraphs: [
-          `${d.other} a payé ${eur(amount ?? 0, 'fr')} en ligne pour la commande ${d.number}. Le montant arrive sur votre compte Stripe, commission ${APP_NAME} déduite.`,
-        ],
-        cta: { label: 'Voir la commande', url: d.url },
+        subject: `Paiement annoncé : ${d.number}`,
+        paragraphs: [`${d.other} indique avoir payé la commande ${d.number} et a joint une preuve de paiement.`],
+        cta: { label: 'Voir la preuve', url: d.url },
       },
       nl: {
-        subject: `Online betaling ontvangen: ${d.number}`,
-        paragraphs: [
-          `${d.other} heeft ${eur(amount ?? 0, 'nl')} online betaald voor bestelling ${d.number}. Het bedrag komt op uw Stripe-rekening, na aftrek van de commissie van ${APP_NAME}.`,
-        ],
-        cta: { label: 'Bestelling bekijken', url: d.url },
+        subject: `Betaling gemeld: ${d.number}`,
+        paragraphs: [`${d.other} meldt bestelling ${d.number} betaald te hebben en heeft een betalingsbewijs toegevoegd.`],
+        cta: { label: 'Bewijs bekijken', url: d.url },
       },
     });
   }
@@ -402,24 +398,34 @@ export function orderNewsMail(d: OrderMailData, news: 'paid_online' | 'delivered
   });
 }
 
-/** To the supplier: the month's commission still due, payable online. */
-export function commissionBillMail(lang: Lang, to: string, bill: { number: string; month: string; exVat: number; incVat: number; orders: number }, url: string): Mail {
-  return notice(lang, to, {
-    fr: {
-      subject: `Commission ${APP_NAME} ${bill.month} : ${bill.number}`,
-      paragraphs: [
-        `Commission due pour ${bill.orders} commande(s) attribuée(s) via ${APP_NAME} et payée(s) hors de la plateforme : ${eur(bill.exVat, 'fr')} HTVA, soit ${eur(bill.incVat, 'fr')} TVAC.`,
-        'La facture correspondante vous parvient par Peppol avec la même référence. Payez en ligne de façon sécurisée (Bancontact, carte ou domiciliation).',
-      ],
-      cta: { label: 'Payer la commission', url },
-    },
-    nl: {
-      subject: `Commissie ${APP_NAME} ${bill.month}: ${bill.number}`,
-      paragraphs: [
-        `Verschuldigde commissie voor ${bill.orders} bestelling(en) gegund via ${APP_NAME} en buiten het platform betaald: ${eur(bill.exVat, 'nl')} excl. btw, of ${eur(bill.incVat, 'nl')} incl. btw.`,
-        'De bijbehorende factuur ontvangt u via Peppol met dezelfde referentie. Betaal veilig online (Bancontact, kaart of domiciliëring).',
-      ],
-      cta: { label: 'Commissie betalen', url },
-    },
-  });
+export type BillLine = { number: string; title: string; contractor: string; baseExVat: number; commissionExVat: number };
+
+/** To the supplier: the month's commission, with every order it covers, payable online. */
+export function commissionBillMail(
+  lang: Lang,
+  to: string,
+  bill: { number: string; month: string; exVat: number; incVat: number; lines: BillLine[] },
+  url: string,
+): Mail {
+  const rows = bill.lines.map(
+    (l) => `${l.number} · ${l.contractor} · ${l.title} · ${eur(l.baseExVat, lang)} → ${eur(l.commissionExVat, lang)}`,
+  );
+  const intro =
+    lang === 'nl'
+      ? `Commissie voor ${bill.lines.length} bestelling(en) gegund via ${APP_NAME} in ${bill.month}: ${eur(bill.exVat, 'nl')} excl. btw, of ${eur(bill.incVat, 'nl')} incl. btw.`
+      : `Commission sur ${bill.lines.length} commande(s) passée(s) via ${APP_NAME} en ${bill.month} : ${eur(bill.exVat, 'fr')} HTVA, soit ${eur(bill.incVat, 'fr')} TVAC.`;
+  const outro =
+    lang === 'nl'
+      ? 'De factuur ontvangt u via Peppol met dezelfde referentie. U kunt veilig online betalen (Bancontact, kaart of overschrijving).'
+      : 'La facture vous parvient par Peppol avec la même référence. Vous pouvez payer en ligne de façon sécurisée (Bancontact, carte ou virement).';
+  const html = layout(
+    [esc(intro), `<ul style="margin:0;padding-left:18px">${rows.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>`, esc(outro)],
+    { label: lang === 'nl' ? 'Commissie betalen' : 'Payer la commission', url },
+  );
+  return {
+    to,
+    subject: lang === 'nl' ? `Commissie ${APP_NAME} ${bill.month}: ${bill.number}` : `Commission ${APP_NAME} ${bill.month} : ${bill.number}`,
+    html,
+    text: [intro, ...rows.map((r) => `- ${r}`), outro, url].join('\n\n'),
+  };
 }

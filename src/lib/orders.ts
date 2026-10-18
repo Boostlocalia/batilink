@@ -7,7 +7,7 @@ import { functionsUrl, supabase } from '@/lib/supabase';
 // Same order rules as the edge functions enforce.
 export * from '../../supabase/functions/_shared/orders';
 
-export type DocumentKind = 'deposit_proof' | 'delivery_note' | 'invoice';
+export type DocumentKind = 'deposit_proof' | 'delivery_note' | 'invoice' | 'payment_proof';
 
 export type OrderDocument = {
   id: string;
@@ -53,7 +53,7 @@ export async function pickAndUpload(
   return res.ok ? { ok: true, check: body.check } : { ok: false, error: body.error ?? 'error' };
 }
 
-/** Opens a Stripe page: the same tab on the web, an in-app browser on phones. */
+/** Opens a Stripe payment page (plans): the same tab on the web, an in-app browser on phones. */
 export async function openPaymentPage(url: string): Promise<void> {
   if (Platform.OS === 'web') {
     window.location.assign(url);

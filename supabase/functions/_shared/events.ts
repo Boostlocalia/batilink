@@ -21,10 +21,9 @@ type Event = {
     | 'order_delivered'
     | 'document_uploaded'
     | 'invoice_checked'
-    | 'payment_started'
+    | 'payment_reported'
     | 'payment_succeeded'
     | 'payment_failed'
-    | 'supplier_payments_enabled'
     | 'subscription_changed'
     | 'commission_billed';
   company_id?: string | null;

@@ -1,12 +1,13 @@
--- Purchase orders, proof of purchase and payments.
+-- Purchase orders, proof of purchase, commission bills and plan payments.
 --
--- An awarded offer becomes a numbered purchase order. Every step that proves the
--- sale went through BatiLink is recorded: the supplier's acceptance of the
--- commission terms (on the offer), the supplier's confirmation of the order, the
--- deposit proof and its receipt, the delivery, the supplier's invoice (checked
--- against the order) and every payment made online. Payments run on Stripe:
--- card details never reach BatiLink, and the commission is taken at source when
--- the contractor pays online.
+-- The contractor pays the supplier directly. An awarded offer becomes a numbered
+-- purchase order, and every step that proves the sale went through BatiLink is
+-- recorded: the supplier's acceptance of the commission terms (on the offer), the
+-- supplier's confirmation of the order, the deposit proof and its receipt, the
+-- delivery, the supplier's invoice (checked against the order) and the proof of
+-- payment. At the end of the month the commission on proven sales is billed to
+-- each supplier. Plans and commission bills are paid on Stripe's pages: card and
+-- bank details never reach BatiLink.
 
 -- Orders -----------------------------------------------------------------------
 
@@ -41,11 +42,10 @@ create table public.purchase_orders (
   supplier_iban text check (supplier_iban ~ '^[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}$'),
   deposit_proof_sent_at timestamptz,
   deposit_received_at timestamptz,
-  -- How the deposit was paid: by bank transfer (with proof) or online.
-  deposit_method text check (deposit_method in ('transfer', 'online')),
   deposit_rejected_reason text,
   delivered_at timestamptz,
-  amount_paid_online numeric(14, 2) not null default 0 check (amount_paid_online >= 0),
+  -- The contractor declared paying the supplier, with proof.
+  payment_reported_at timestamptz,
   cancelled_at timestamptz,
   cancel_reason text,
   created_at timestamptz not null default now(),
@@ -69,7 +69,7 @@ create index order_links_order_idx on public.order_links (order_id);
 -- Documents attached to an order: deposit proofs, delivery notes, invoices.
 -- Files live in the private `order-documents` bucket, read only through the
 -- functions (signed links valid a few minutes).
-create type public.order_document_kind as enum ('deposit_proof', 'delivery_note', 'invoice');
+create type public.order_document_kind as enum ('deposit_proof', 'delivery_note', 'invoice', 'payment_proof');
 create type public.invoice_check as enum ('matched', 'mismatch', 'manual_review');
 
 create table public.order_documents (
@@ -101,37 +101,28 @@ create unique index order_documents_invoice_once on public.order_documents (supp
 
 -- Payments ----------------------------------------------------------------------
 
-create type public.payment_purpose as enum ('order_deposit', 'order_balance', 'commission', 'subscription');
+-- Payments made to BatiLink itself: commission bills (plans are tracked in `subscriptions`).
+create type public.payment_purpose as enum ('commission', 'subscription');
 create type public.payment_status as enum ('open', 'paid', 'failed', 'expired');
 
 create table public.payments (
   id uuid primary key default gen_random_uuid(),
   purpose public.payment_purpose not null,
-  -- Who pays: the contractor for orders and plans, the supplier for commissions.
   company_id uuid not null references public.companies on delete restrict,
-  order_id uuid references public.purchase_orders on delete restrict,
   commission_bill_id uuid,
   amount_cents bigint not null check (amount_cents > 0),
-  -- Part of an order payment kept by BatiLink as commission (VAT included).
-  application_fee_cents bigint not null default 0 check (application_fee_cents >= 0),
-  -- Connected account of the supplier for order payments, null for BatiLink's own.
-  stripe_account text,
   stripe_checkout_session_id text not null unique,
   stripe_payment_intent_id text,
   status public.payment_status not null default 'open',
   created_at timestamptz not null default now(),
   paid_at timestamptz
 );
-create index payments_order_idx on public.payments (order_id);
 create index payments_company_idx on public.payments (company_id, created_at desc);
 
 -- Commissions -------------------------------------------------------------------
 
 alter table public.commissions
   add column order_id uuid unique references public.purchase_orders on delete restrict,
-  -- Commission already collected, VAT included (taken at source on online payments
-  -- or paid on a monthly bill).
-  add column collected_inc_vat numeric(14, 2) not null default 0 check (collected_inc_vat >= 0),
   -- 'offer' until a matching supplier invoice replaces the base with the invoiced amount.
   add column base_source text not null default 'offer' check (base_source in ('offer', 'invoice')),
   add column bill_id uuid;
@@ -159,13 +150,9 @@ alter table public.payments add constraint payments_bill_fk foreign key (commiss
 
 -- Payment accounts ---------------------------------------------------------------
 
--- Stripe identifiers are written by the server only. `online_payments` tells the
--- app whether a supplier can be paid online.
+-- Written by the server only (not granted to the app).
 alter table public.companies
-  add column stripe_account_id text unique,
-  add column online_payments boolean not null default false,
   add column stripe_customer_id text unique;
-grant select (online_payments) on public.companies to authenticated;
 
 alter table public.subscriptions
   add column provider_subscription_id text unique;
@@ -185,7 +172,7 @@ create policy "contractors read own orders" on public.purchase_orders
 revoke all on public.purchase_orders from authenticated, anon;
 grant select (id, number, quote_id, request_id, contractor_id, supplier_id, title, total_ex_vat, vat, total_inc_vat,
               status, terms_accepted_at, supplier_confirmed_at, deposit_inc_vat, supplier_iban, deposit_proof_sent_at,
-              deposit_received_at, deposit_method, deposit_rejected_reason, delivered_at, amount_paid_online, cancelled_at, cancel_reason,
+              deposit_received_at, deposit_rejected_reason, delivered_at, payment_reported_at, cancelled_at, cancel_reason,
               created_at, updated_at)
   on public.purchase_orders to authenticated;
 
@@ -200,7 +187,7 @@ grant select (id, order_id, kind, file_name, content_type, size_bytes, sha256, i
 create policy "companies read own payments" on public.payments
   for select to authenticated using (company_id = public.my_company_id());
 revoke all on public.payments from authenticated, anon;
-grant select (id, purpose, order_id, amount_cents, status, created_at, paid_at) on public.payments to authenticated;
+grant select (id, purpose, amount_cents, status, created_at, paid_at) on public.payments to authenticated;
 
 -- Back office only.
 revoke all on public.commission_bills from authenticated, anon;

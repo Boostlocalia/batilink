@@ -14,28 +14,10 @@ export type OrderStatus =
 const round2 = (n: number) => Math.round(n * 100) / 100;
 export const toCents = (euros: number) => Math.round(euros * 100);
 
+/** Excluding VAT, VAT at 21 %, and including VAT (orders and commission bills). */
 export function orderAmounts(totalExVat: number) {
   const vat = round2(totalExVat * BELGIAN_VAT);
   return { exVat: round2(totalExVat), vat, incVat: round2(totalExVat + vat) };
-}
-
-/** Commission due by the supplier, VAT included (BatiLink invoices its commission with Belgian VAT). */
-export function commissionIncVat(commissionExVat: number): number {
-  return round2(commissionExVat * (1 + BELGIAN_VAT));
-}
-
-/**
- * Part of an online payment BatiLink keeps as commission: whatever is still due,
- * never more than the payment itself.
- */
-export function applicationFeeCents(paymentCents: number, commissionDueIncVat: number, alreadyCollectedIncVat: number): number {
-  const outstanding = Math.max(0, toCents(commissionDueIncVat) - toCents(alreadyCollectedIncVat));
-  return Math.min(outstanding, paymentCents);
-}
-
-/** What the contractor still owes on the order, VAT included. */
-export function balanceDueIncVat(totalIncVat: number, paidOnline: number, depositReceivedOffline: number): number {
-  return Math.max(0, round2(totalIncVat - paidOnline - depositReceivedOffline));
 }
 
 /** IBAN check (ISO 13616, mod 97). Returns the compact form or null. */
@@ -61,8 +43,8 @@ export type OrderAction =
   | 'deposit_proof'
   | 'deposit_received'
   | 'deposit_rejected'
-  | 'deposit_paid_online'
   | 'delivered'
+  | 'payment_proof'
   | 'contractor_cancel';
 
 const ALLOWED: Record<OrderAction, OrderStatus[]> = {
@@ -71,8 +53,8 @@ const ALLOWED: Record<OrderAction, OrderStatus[]> = {
   deposit_proof: ['awaiting_deposit', 'deposit_proof_sent'],
   deposit_received: ['deposit_proof_sent', 'awaiting_deposit'],
   deposit_rejected: ['deposit_proof_sent'],
-  deposit_paid_online: ['awaiting_deposit', 'deposit_proof_sent'],
   delivered: ['in_progress'],
+  payment_proof: ['in_progress', 'delivered'],
   contractor_cancel: ['awaiting_supplier'],
 };
 

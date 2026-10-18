@@ -1,18 +1,17 @@
 // The contractor's steps on a purchase order (signed in).
-// multipart/form-data { order_id, kind: deposit_proof | delivery_note | invoice, file }
-//   attaches a document. A deposit proof is forwarded to the supplier; an invoice
-//   is read (Peppol UBL) and checked against the order.
+// The contractor pays the supplier directly; these steps keep the proof of it.
+// multipart/form-data { order_id, kind: deposit_proof | delivery_note | invoice | payment_proof, file }
+//   attaches a document. Deposit and payment proofs are forwarded to the supplier;
+//   an invoice is read (Peppol UBL) and checked against the order.
 // JSON { order_id, action }:
-//   delivered                   confirms receipt of the goods
-//   cancel                      withdraws the order before the supplier confirmed it
-//   pay { kind: deposit | balance }  returns a secure Stripe payment page
+//   delivered   confirms receipt of the goods
+//   cancel      withdraws the order before the supplier confirmed it
 
 import { commissionFor } from '../_shared/commission.ts';
 import { depositProofMail, orderNewsMail, sendMail, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
 import { contractorOrderUrl, issueSupplierLink, storeDocument } from '../_shared/order-docs.ts';
-import { applicationFeeCents, balanceDueIncVat, canDo, commissionIncVat, toCents, type OrderStatus } from '../_shared/orders.ts';
-import { stripeClient } from '../_shared/stripe.ts';
+import { canDo, type OrderStatus } from '../_shared/orders.ts';
 import { adminClient, corsHeaders, json } from '../_shared/supabase.ts';
 import { checkInvoice, parseUbl } from '../_shared/ubl.ts';
 
@@ -24,7 +23,7 @@ async function caller(req: Request, admin: Admin) {
   const { data } = await admin.auth.getUser(jwt);
   if (!data.user) return null;
   const { data: profile } = await admin.from('profiles').select('company_id').eq('id', data.user.id).single();
-  return profile?.company_id ? { userId: data.user.id, companyId: profile.company_id as string, email: data.user.email ?? null } : null;
+  return profile?.company_id ? { userId: data.user.id, companyId: profile.company_id as string } : null;
 }
 
 async function loadOrder(admin: Admin, orderId: unknown, companyId: string) {
@@ -48,7 +47,7 @@ async function move(admin: Admin, order: Order, patch: Record<string, unknown>) 
 
 async function parties(admin: Admin, order: Order) {
   const [{ data: supplier }, { data: contractor }] = await Promise.all([
-    admin.from('companies').select('name, email, language, vat_number, online_payments, stripe_account_id').eq('id', order.supplier_id).single(),
+    admin.from('companies').select('name, email, language, vat_number').eq('id', order.supplier_id).single(),
     admin.from('companies').select('name, language, vat_number').eq('id', order.contractor_id).single(),
   ]);
   return { supplier, contractor };
@@ -89,6 +88,16 @@ async function upload(req: Request, admin: Admin, who: NonNullable<Awaited<Retur
     const stored = await storeDocument(admin, { orderId: order.id, kind, file, userId: who.userId });
     if ('error' in stored) return json({ error: stored.error }, stored.error === 'storage' ? 500 : 400);
     await logEvent(admin, { kind: 'document_uploaded', company_id: who.companyId, quote_id: order.quote_id, data: { order: order.number, kind, sha256: stored.doc.sha256 } });
+    return json({ ok: true });
+  }
+
+  if (kind === 'payment_proof') {
+    if (!canDo('payment_proof', status)) return json({ error: 'wrong_step' }, 409);
+    const stored = await storeDocument(admin, { orderId: order.id, kind, file, userId: who.userId });
+    if ('error' in stored) return json({ error: stored.error }, stored.error === 'storage' ? 500 : 400);
+    await admin.from('purchase_orders').update({ payment_reported_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', order.id);
+    await logEvent(admin, { kind: 'payment_reported', company_id: who.companyId, quote_id: order.quote_id, data: { order: order.number, sha256: stored.doc.sha256 } });
+    await mailSupplier(admin, order, (d) => orderNewsMail(d, 'payment_reported'));
     return json({ ok: true });
   }
 
@@ -146,81 +155,6 @@ async function upload(req: Request, admin: Admin, who: NonNullable<Awaited<Retur
   return json({ error: 'invalid_kind' }, 400);
 }
 
-async function pay(admin: Admin, order: Order, who: NonNullable<Awaited<ReturnType<typeof caller>>>, kind: unknown) {
-  const stripe = stripeClient();
-  if (!stripe) return json({ error: 'payments_unavailable' }, 503);
-  const status = order.status as OrderStatus;
-  const { supplier, contractor } = await parties(admin, order);
-  if (!supplier?.online_payments || !supplier.stripe_account_id) return json({ error: 'supplier_not_connected' }, 409);
-
-  let amount: number;
-  let purpose: 'order_deposit' | 'order_balance';
-  if (kind === 'deposit') {
-    if (!canDo('deposit_paid_online', status) || Number(order.deposit_inc_vat) <= 0) return json({ error: 'wrong_step' }, 409);
-    amount = Number(order.deposit_inc_vat);
-    purpose = 'order_deposit';
-  } else if (kind === 'balance') {
-    if (!['in_progress', 'delivered'].includes(status)) return json({ error: 'wrong_step' }, 409);
-    const offlineDeposit = order.deposit_method === 'transfer' ? Number(order.deposit_inc_vat) : 0;
-    amount = balanceDueIncVat(Number(order.total_inc_vat), Number(order.amount_paid_online), offlineDeposit);
-    purpose = 'order_balance';
-  } else {
-    return json({ error: 'invalid_kind' }, 400);
-  }
-  const cents = toCents(amount);
-  if (cents < 50) return json({ error: 'nothing_to_pay' }, 409);
-
-  // Commission still to collect: what is due, minus what was collected or is
-  // already part of a payment page that may still be paid.
-  const [{ data: commission }, { data: open }] = await Promise.all([
-    admin.from('commissions').select('amount_ex_vat, collected_inc_vat, status').eq('order_id', order.id).maybeSingle(),
-    admin.from('payments').select('application_fee_cents').eq('order_id', order.id).eq('status', 'open'),
-  ]);
-  const pendingFees = (open ?? []).reduce((s, p) => s + Number(p.application_fee_cents), 0) / 100;
-  const fee =
-    commission && commission.status !== 'cancelled' && commission.status !== 'paid'
-      ? applicationFeeCents(cents, commissionIncVat(Number(commission.amount_ex_vat)), Number(commission.collected_inc_vat) + pendingFees)
-      : 0;
-
-  const lang = (contractor?.language ?? 'fr') as Lang;
-  const label =
-    lang === 'nl'
-      ? `${purpose === 'order_deposit' ? 'Voorschot' : 'Saldo'} bestelling ${order.number}`
-      : `${purpose === 'order_deposit' ? 'Acompte' : 'Solde'} commande ${order.number}`;
-  const back = contractorOrderUrl(order.id);
-  const metadata = { order_id: order.id, purpose, company_id: who.companyId };
-  const session = await stripe.checkout.sessions.create(
-    {
-      mode: 'payment',
-      locale: lang,
-      customer_email: who.email ?? undefined,
-      line_items: [{ quantity: 1, price_data: { currency: 'eur', unit_amount: cents, product_data: { name: label } } }],
-      payment_intent_data: {
-        description: `${label} · ${order.title}`.slice(0, 500),
-        metadata,
-        ...(fee > 0 ? { application_fee_amount: fee } : {}),
-      },
-      metadata,
-      success_url: `${back}?paiement=ok`,
-      cancel_url: `${back}?paiement=annule`,
-      expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
-    },
-    // The payment goes straight to the supplier's account; BatiLink keeps the fee.
-    { stripeAccount: supplier.stripe_account_id },
-  );
-  await admin.from('payments').insert({
-    purpose,
-    company_id: who.companyId,
-    order_id: order.id,
-    amount_cents: cents,
-    application_fee_cents: fee,
-    stripe_account: supplier.stripe_account_id,
-    stripe_checkout_session_id: session.id,
-  });
-  await logEvent(admin, { kind: 'payment_started', company_id: who.companyId, quote_id: order.quote_id, data: { order: order.number, purpose, cents, fee } });
-  return json({ url: session.url });
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
@@ -253,8 +187,6 @@ Deno.serve(async (req) => {
     await logEvent(admin, { kind: 'order_cancelled', company_id: who.companyId, quote_id: order.quote_id, data: { order: order.number, reason } });
     return json({ ok: true, status: 'cancelled' });
   }
-
-  if (body.action === 'pay') return pay(admin, order, who, body.kind);
 
   return json({ error: 'unknown_action' }, 400);
 });

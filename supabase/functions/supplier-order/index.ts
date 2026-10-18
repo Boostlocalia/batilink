@@ -1,23 +1,22 @@
 // Public endpoint behind the order link e-mailed to the supplier (no account, no JWT).
-// GET  ?token=…  returns the order, its lines, the contractor and the deposit proofs.
+// GET  ?token=…  returns the order, its lines, the contractor and the proofs sent
+//                (deposit, delivery note, payment). The contractor pays the supplier directly.
 // POST { token, action, … } with action:
 //   confirm           { deposit_inc_vat, iban? }  confirms the order, optionally asking a deposit
 //   decline           { reason? }                 cannot deliver: the order and commission are cancelled
 //   deposit_received                              the deposit arrived: the order starts
 //   deposit_rejected  { reason }                  the deposit did not arrive
-//   connect                                       returns a Stripe link to receive online payments
 
 import { depositAnsweredMail, orderConfirmedMail, orderDeclinedMail, sendMail, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
-import { contractorOrderUrl, documentLink, orderIdFromLink, supplierOrderUrl } from '../_shared/order-docs.ts';
+import { contractorOrderUrl, documentLink, orderIdFromLink } from '../_shared/order-docs.ts';
 import { canDo, normalizeIban, statusAfterConfirm, type OrderStatus } from '../_shared/orders.ts';
-import { ensureSupplierAccount, onboardingLink, stripeClient } from '../_shared/stripe.ts';
 import { adminClient, corsHeaders, json } from '../_shared/supabase.ts';
 
 type Admin = ReturnType<typeof adminClient>;
 
 const ORDER_COLUMNS =
-  'id, number, quote_id, request_id, contractor_id, supplier_id, title, total_ex_vat, vat, total_inc_vat, status, supplier_confirmed_at, deposit_inc_vat, supplier_iban, deposit_proof_sent_at, deposit_received_at, deposit_method, deposit_rejected_reason, delivered_at, amount_paid_online, cancelled_at, created_at';
+  'id, number, quote_id, request_id, contractor_id, supplier_id, title, total_ex_vat, vat, total_inc_vat, status, supplier_confirmed_at, deposit_inc_vat, supplier_iban, deposit_proof_sent_at, deposit_received_at, deposit_rejected_reason, delivered_at, payment_reported_at, cancelled_at, created_at';
 
 async function findOrder(admin: Admin, token: unknown) {
   const orderId = await orderIdFromLink(admin, token);
@@ -56,13 +55,13 @@ Deno.serve(async (req) => {
       admin.from('price_requests').select('postal_code, city, needed_by, fulfilment, note').eq('id', order.request_id).single(),
       admin.from('request_items').select('id, label, quantity, unit').eq('request_id', order.request_id).order('position'),
       admin.from('quote_items').select('item_id, unit_price').eq('quote_id', order.quote_id),
-      admin.from('companies').select('name, language, online_payments, stripe_account_id').eq('id', order.supplier_id).single(),
+      admin.from('companies').select('name, language').eq('id', order.supplier_id).single(),
       contractorOf(admin, order),
       admin
         .from('order_documents')
         .select('id, kind, file_name, content_type, storage_path, created_at')
         .eq('order_id', order.id)
-        .in('kind', ['deposit_proof', 'delivery_note'])
+        .in('kind', ['deposit_proof', 'delivery_note', 'payment_proof'])
         .order('created_at'),
     ]);
     const documents = await Promise.all(
@@ -79,16 +78,10 @@ Deno.serve(async (req) => {
       order,
       request,
       items: (items ?? []).map((i) => ({ ...i, unit_price: Number(prices?.find((p) => p.item_id === i.id)?.unit_price ?? 0) })),
-      supplier: supplier && {
-        name: supplier.name,
-        language: supplier.language,
-        online_payments: supplier.online_payments,
-        payments_started: Boolean(supplier.stripe_account_id),
-      },
+      supplier,
       // The supplier needs to reach the contractor to deliver: the order is the agreement.
       contractor: contractor && { name: contractor.name, email: contractor.email },
       documents,
-      online_payments_available: Boolean(stripeClient()),
     });
   }
 
@@ -97,22 +90,7 @@ Deno.serve(async (req) => {
   const order = await findOrder(admin, body.token);
   if (!order) return json({ error: 'invalid_link' }, 404);
   const status = order.status as OrderStatus;
-  const token = body.token as string;
   const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 500) : '';
-
-  if (body.action === 'connect') {
-    const stripe = stripeClient();
-    if (!stripe) return json({ error: 'payments_unavailable' }, 503);
-    const { data: supplier } = await admin
-      .from('companies')
-      .select('id, name, email, vat_number, stripe_account_id')
-      .eq('id', order.supplier_id)
-      .single();
-    if (!supplier) return json({ error: 'not_found' }, 404);
-    const account = await ensureSupplierAccount(stripe, supplier);
-    if (!supplier.stripe_account_id) await admin.from('companies').update({ stripe_account_id: account }).eq('id', supplier.id);
-    return json({ url: await onboardingLink(stripe, account, supplierOrderUrl(token)) });
-  }
 
   const contractor = await contractorOf(admin, order);
   const { data: supplierName } = await admin.from('companies').select('name').eq('id', order.supplier_id).single();
@@ -143,7 +121,7 @@ Deno.serve(async (req) => {
   }
 
   if (body.action === 'decline') {
-    if (!canDo('supplier_decline', status) || Number(order.amount_paid_online) > 0) return json({ error: 'wrong_step' }, 409);
+    if (!canDo('supplier_decline', status)) return json({ error: 'wrong_step' }, 409);
     const ok = await move(admin, order, { status: 'cancelled', cancelled_at: new Date().toISOString(), cancel_reason: reason || 'supplier_declined' });
     if (!ok) return json({ error: 'wrong_step' }, 409);
     // No sale, no commission.
@@ -158,11 +136,10 @@ Deno.serve(async (req) => {
     const ok = await move(admin, order, {
       status: 'in_progress',
       deposit_received_at: new Date().toISOString(),
-      deposit_method: 'transfer',
       deposit_rejected_reason: null,
     });
     if (!ok) return json({ error: 'wrong_step' }, 409);
-    await logEvent(admin, { kind: 'deposit_received', company_id: order.supplier_id, quote_id: order.quote_id, data: { order: order.number, method: 'transfer' } });
+    await logEvent(admin, { kind: 'deposit_received', company_id: order.supplier_id, quote_id: order.quote_id, data: { order: order.number } });
     if (mailData) await sendMail(depositAnsweredMail(mailData, true)).catch(console.error);
     return json({ ok: true, status: 'in_progress' });
   }
