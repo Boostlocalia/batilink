@@ -103,7 +103,7 @@ export const signupNl: typeof signupFr = {
   commission: (rate: string) =>
     `Ik aanvaard de commissie van ${rate} excl. btw op bestellingen via ${APP_NAME}, gefactureerd op het einde van elke maand. Aanvragen ontvangen en beantwoorden blijft gratis.`,
   summary: {
-    contractor: 'U start met het gratis plan en 14 dagen Pro cadeau. Zonder bankkaart.',
+    contractor: 'U start met het Test-plan en 14 dagen Premium cadeau. Zonder bankkaart.',
     supplier: 'Uw eerste aanvragen komen per e-mail zodra we uw bedrijf hebben gecontroleerd.',
     architect: 'Uw account is gratis. Publiceer meteen uw eerste project.',
   },

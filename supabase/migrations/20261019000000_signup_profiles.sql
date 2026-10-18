@@ -116,7 +116,12 @@ grant execute on function public.set_supplier_coverage(smallint[], text[]) to au
 
 -- Sign-up ----------------------------------------------------------------------------
 
-drop function public.create_company(public.company_kind, text, text, text, text, public.app_language);
+-- The sign-up function takes the profile answers now. The earlier version is set
+-- aside rather than dropped (dropping needs a manual confirmation on hosted projects).
+alter function public.create_company(public.company_kind, text, text, text, text, public.app_language)
+  rename to create_company_v1;
+revoke all on function public.create_company_v1(public.company_kind, text, text, text, text, public.app_language)
+  from public, anon, authenticated;
 
 create function public.create_company(
   p_kind public.company_kind, p_name text, p_vat text, p_postal_code text, p_city text, p_language public.app_language,

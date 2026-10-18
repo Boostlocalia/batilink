@@ -1,6 +1,6 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -9,13 +9,12 @@ import { Button, Card, Chip, Field, Screen, Segmented } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
+import { pickFile, readPickedItems, takePendingItems, uploadCompanyFile } from '@/lib/files';
 import { isBelgianPostalCode, parseAmount, parseBelgianDate } from '@/lib/format';
 import { canSendPriceRequest, monthStart, PLANS } from '@/lib/plans';
 import { useSession } from '@/lib/session';
+import { UNITS, type ImportedItem, type Unit } from '@/lib/spreadsheet';
 import { supabase } from '@/lib/supabase';
-
-const UNITS = ['piece', 'bag', 't', 'kg', 'm', 'm2', 'm3', 'l', 'pallet'] as const;
-type Unit = (typeof UNITS)[number];
 
 type Category = { id: number; label_fr: string; label_nl: string };
 type Supplier = { id: string; name: string; city: string | null; verified: boolean };
@@ -28,6 +27,8 @@ export default function NewRequestScreen() {
   const { t, language } = useI18n();
   const { company, session, plan } = useSession();
   const theme = useTheme();
+  // Test sees which suppliers would receive the request; Premium sends it.
+  const access = PLANS[plan].suppliers;
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [title, setTitle] = useState('');
@@ -46,6 +47,37 @@ export default function NewRequestScreen() {
   const [suppliers, setSuppliers] = useState<Supplier[] | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importNotice, setImportNotice] = useState<{ text: string; error: boolean } | null>(null);
+
+  const applyImported = useCallback(
+    (imported: ImportedItem[]) => {
+      setItems((list) => [...list.filter((i) => i.label.trim() || i.quantity.trim()), ...imported.map((i) => ({ ...i, key: nextKey++ }))]);
+      setImportNotice({ text: t.files.imported(imported.length), error: false });
+    },
+    [t],
+  );
+
+  // Lines sent from the files space.
+  useFocusEffect(
+    useCallback(() => {
+      const pending = takePendingItems();
+      if (pending) applyImported(pending);
+    }, [applyImported]),
+  );
+
+  const importFile = async () => {
+    setImportNotice(null);
+    const asset = await pickFile(true);
+    if (!asset) return;
+    setImporting(true);
+    const res = await readPickedItems(asset);
+    setImporting(false);
+    if (!res.ok) return setImportNotice({ text: t.files.errors[res.error], error: true });
+    applyImported(res.items);
+    // The file is also kept in the files space; the request does not depend on it.
+    if (company) uploadCompanyFile(company.id, asset).catch(() => {});
+  };
 
   useEffect(() => {
     supabase
@@ -156,10 +188,11 @@ export default function NewRequestScreen() {
     router.push({ pathname: '/demande/[id]', params: { id, sent: String(data?.sent ?? picked.size) } });
   };
 
-  const errorText = (reason: string, limit?: number) => {
-    if (reason === 'monthly_limit' || reason === 'too_many_suppliers') setLimit(reason);
-    if (reason === 'monthly_limit') return t.request.errors.monthly_limit(limit ?? 1);
-    if (reason === 'too_many_suppliers') return t.request.errors.too_many_suppliers(limit ?? 3);
+  const errorText = (reason: string, _limit?: number) => {
+    if (reason === 'plan') {
+      setLimit('suppliers');
+      return t.request.errors.plan;
+    }
     if (reason === 'no_supplier') return t.request.errors.no_supplier;
     return t.common.error;
   };
@@ -170,11 +203,22 @@ export default function NewRequestScreen() {
   const togglePick = (id: string) =>
     setPicked((current) => {
       const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else if (next.size < PLANS[plan].suppliersPerRequest) next.add(id);
-      else setLimit('too_many_suppliers');
+      if (access !== 'full') setLimit('suppliers');
+      else if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
+
+  if (access === 'none')
+    return (
+      <Screen>
+        <View style={{ gap: Spacing.two }}>
+          <ThemedText type="title">{t.request.title}</ThemedText>
+          <ThemedText themeColor="textSecondary">{t.request.lead}</ThemedText>
+        </View>
+        <UpgradeCard reason="suppliers" />
+      </Screen>
+    );
 
   return (
     <Screen>
@@ -271,7 +315,19 @@ export default function NewRequestScreen() {
           </View>
         ))}
         {errors.items ? <ThemedText themeColor="danger">{errors.items}</ThemedText> : null}
-        <Button label={`+ ${t.request.addItem}`} variant="ghost" small onPress={() => setItems((list) => [...list, emptyItem()])} />
+        <View style={styles.wrap}>
+          <Button label={`+ ${t.request.addItem}`} variant="ghost" small onPress={() => setItems((list) => [...list, emptyItem()])} />
+          <Button label={t.files.importLines} variant="ghost" small busy={importing} onPress={importFile} />
+        </View>
+        {importNotice ? (
+          <ThemedText type="small" themeColor={importNotice.error ? 'danger' : 'textSecondary'}>
+            {importNotice.text}
+          </ThemedText>
+        ) : (
+          <ThemedText type="small" themeColor="textSecondary">
+            {t.files.importHint}
+          </ThemedText>
+        )}
         <Field label={t.request.note} placeholder={t.request.notePlaceholder} value={note} onChangeText={setNote} multiline style={{ minHeight: 80 }} />
       </Card>
 
@@ -312,8 +368,14 @@ export default function NewRequestScreen() {
             })
           )}
           {errors.form ? <ThemedText themeColor="danger">{errors.form}</ThemedText> : null}
-          {limit ? <UpgradeCard reason={limit} /> : null}
-          <Button label={t.request.send(picked.size)} variant="signal" onPress={send} busy={busy} disabled={picked.size === 0} />
+          {access !== 'full' ? (
+            <UpgradeCard reason="suppliers" />
+          ) : (
+            <>
+              {limit ? <UpgradeCard reason={limit} /> : null}
+              <Button label={t.request.send(picked.size)} variant="signal" onPress={send} busy={busy} disabled={picked.size === 0} />
+            </>
+          )}
           <Button label={t.request.findSuppliers} variant="ghost" small onPress={findSuppliers} />
         </Card>
       )}

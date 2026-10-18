@@ -7,8 +7,9 @@ import { Button, Card, Chip } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatEuro } from '@/lib/format';
 import { AGREEMENT_COLUMNS, splitFinding, type Agreement } from '@/lib/network';
+import { projectCommission } from '@/lib/project-commission';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 
@@ -159,6 +160,12 @@ function AgreementCard({ agreement: a, onChange }: { agreement: Agreement; onCha
             </>
           ) : null}
         </View>
+      ) : null}
+
+      {a.kind === 'referral' && a.amount_ex_vat ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {t.agreements.projectCommission(formatEuro(Number(a.amount_ex_vat), locale), formatEuro(projectCommission(Number(a.amount_ex_vat)), locale))}
+        </ThemedText>
       ) : null}
 
       {a.status === 'confirmed' && a.kind === 'referral' && debts ? (

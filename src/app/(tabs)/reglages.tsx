@@ -53,6 +53,11 @@ export default function SettingsScreen() {
       ) : null}
       <VerificationCard />
       <ReferralCard />
+      {company ? (
+        <View style={{ alignSelf: 'flex-start' }}>
+          <Button label={t.files.open} variant="ghost" onPress={() => router.push('/fichiers')} />
+        </View>
+      ) : null}
       {company?.kind === 'contractor' ? (
         <View style={{ alignSelf: 'flex-start' }}>
           <Button label={t.growth.favourites.open} variant="ghost" onPress={() => router.push('/fournisseurs')} />

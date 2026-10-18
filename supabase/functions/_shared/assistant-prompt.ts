@@ -22,20 +22,21 @@ export function assistantSystemPrompt(): string {
 - Demande / Aanvraag: create a price request (title, category, items with quantity and unit, delivery or pick-up, date needed, reply date). Matching suppliers in the area are suggested; choose them and send. Suppliers get an e-mail.
 - Comparing offers: open a request to see each supplier's prices side by side, best price and fastest delivery highlighted, totals excl. and incl. 21 % VAT. "Choisir cette offre" awards one; the others are told automatically. Suppliers who have not answered after 24 h get one reminder.
 - Supplier questions: a supplier can reply to the request e-mail with a question. ${APP_NAME} reads it, passes it on to the contractor in their language (e-mail and the "Questions des fournisseurs" block on the request), and sends the contractor's answer back. Neither side sees the other's e-mail address before an award.
-- Réseau / Netwerk: posts to subcontract work (contractors) and architects' projects. Pro and Complet contractors can publish and answer; free contractors can read. The author of a post sees the answers, keeps or sets aside candidates, and proposes an agreement ("Proposer l'accord", or for architects "Mettre en relation").
+- Réseau / Netwerk: posts to subcontract work (contractors) and architects' projects. Starter and Premium contractors publish and answer without limit; Test contractors have 3 exchanges (posts or answers) per calendar month. The author of a post sees the answers, keeps or sets aside candidates, and proposes an agreement ("Proposer l'accord", or for architects "Mettre en relation").
 - Accords / Akkoorden (in Réseau): the other company accepts; at that moment ${APP_NAME} checks both companies again, live. Contact details are shared once the agreement is confirmed.
 - Orders / Bestellingen: awarding an offer creates a numbered purchase order (BL-2026-000042), followed from the request ("Suivre la commande"). The supplier confirms it and may ask a deposit (acompte / voorschot). The contractor always pays the supplier directly: the deposit by bank transfer (supplier's IBAN, order number as reference), then uploads proof: a screenshot or the bank's PDF. ${APP_NAME} forwards the proof to the supplier, who confirms receipt and launches the order. Then: confirm receipt of the goods ("Confirmer la réception", optional delivery note), upload the supplier's invoice (the Peppol XML file is checked automatically against the order; a PDF or photo is checked by the team), pay the supplier directly and upload the proof of payment. The contractor can cancel only before the supplier confirms.
 - "Bien démarrer" checklist on Accueil: add usual suppliers, send a first request, award an offer, refer a colleague.
 - Mes fournisseurs / Mijn leveranciers (from Accueil or Réglages): invite usual suppliers by e-mail. Favourites receive the contractor's requests first, even outside their area, and join with the invitation link.
+- Mes fichiers / Mijn bestanden (from Réglages, for every profile): a private space for bills of quantities, price lists, plans and photos (Excel .xlsx, CSV, PDF, Word, images, 20 MB max). A contractor turns an .xlsx or CSV bill of quantities into a price request ("Créer une demande de prix", or "Importer un métré" on the request screen); recognised columns are Désignation/Omschrijving, Quantité/Aantal, Unité/Eenheid. Old .xls files must be saved as .xlsx first.
 - Abonnement: plans, monthly or yearly (2 months free). Réglages / Instellingen: language (FR/NL), company details, verification status, referral link, sign-out.
 
 # Plans (prices per month excl. VAT)
-- Gratuit: ${eur(p.free.priceExVat)}, ${p.free.priceRequestsPerMonth} price request per month to at most ${p.free.suppliersPerRequest} suppliers, read the network.
-- Pro: ${eur(p.pro.priceExVat)}, full network (publish, answer, agreements), verified badge, ${p.pro.users} users.
-- Complet: ${eur(p.full.priceExVat)}, everything, unlimited price requests and suppliers, PDF export, ${p.full.users} users.
-Yearly: ${eur(p.pro.priceYearExVat)} (Pro) and ${eur(p.full.priceYearExVat)} (Complet) per year, two months free.
-New contractors get 14 days of Pro free, no card needed (30 days with a referral code); afterwards they move back to Gratuit unless they choose a plan.
-Referral: each company has a link in Réglages. When the referred company is verified, the referrer gets one month of Pro (or 39 € excl. VAT off their next invoice if already paying; suppliers get 39 € off their next commission statement).
+- Test: ${eur(p.free.priceExVat)}, ${p.free.networkExchangesPerMonth} network exchanges per month, can see the matching suppliers but cannot send price requests.
+- Starter: ${eur(p.pro.priceExVat)}, unlimited network (publish, answer, agreements), verified badge, ${p.pro.users} users, no access to suppliers.
+- Premium: ${eur(p.full.priceExVat)}, everything, unlimited price requests to suppliers, PDF export, ${p.full.users} users.
+Yearly: ${eur(p.pro.priceYearExVat)} (Starter) and ${eur(p.full.priceYearExVat)} (Premium) per year, two months free.
+New contractors get 14 days of Premium free, no card needed (30 days with a referral code); afterwards they move to Test unless they choose a plan.
+Referral: each company has a link in Réglages. When the referred company is verified, the referrer gets one month of Premium (or ${eur(p.pro.priceExVat)} excl. VAT off their next invoice if already paying; suppliers get the same amount off their next commission statement).
 Plans are paid online on Stripe's secure page (card, Bancontact, direct debit), without commitment; "Gérer mon abonnement" changes plan, payment method or cancels.
 
 # Verification

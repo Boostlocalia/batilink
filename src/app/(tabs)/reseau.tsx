@@ -5,11 +5,13 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Agreements } from '@/components/agreements';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Option, Screen, Segmented } from '@/components/ui';
+import { UpgradeCard } from '@/components/upgrade-card';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
 import { loadTrades, OPPORTUNITY_COLUMNS, type Opportunity, type Trade } from '@/lib/network';
+import { useNetworkLeft } from '@/lib/network-quota';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 
@@ -20,6 +22,7 @@ export default function NetworkScreen() {
   const { company, canUseNetwork } = useSession();
   const theme = useTheme();
   const architect = company?.kind === 'architect';
+  const left = useNetworkLeft();
   const [view, setView] = useState<View_>(architect ? 'mine' : 'posts');
   const [trades, setTrades] = useState<Trade[]>([]);
   const [tradeFilter, setTradeFilter] = useState<number | null>(null);
@@ -71,8 +74,11 @@ export default function NetworkScreen() {
         ]}
       />
 
+      {left !== null ? <ThemedText type="small" themeColor="textSecondary">{t.growth.plans.networkLeft(left)}</ThemedText> : null}
       {view !== 'agreements' ? (
-        canUseNetwork ? (
+        left === 0 ? (
+          <UpgradeCard reason="network" />
+        ) : canUseNetwork ? (
           <View style={{ alignSelf: 'flex-start' }}>
             <Button
               label={architect ? t.network.publishProject : t.network.publish}

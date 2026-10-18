@@ -7,7 +7,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 
-export type UpgradeReason = 'monthly_limit' | 'too_many_suppliers' | 'network';
+export type UpgradeReason = 'suppliers' | 'network';
 
 /** Shown at the moment a plan limit blocks the user, with the plan that lifts it. */
 export function UpgradeCard({ reason }: { reason: UpgradeReason }) {

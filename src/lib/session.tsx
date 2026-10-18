@@ -1,7 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
-import { PLANS, type Plan } from '@/lib/plans';
+import { type Plan } from '@/lib/plans';
 import { supabase } from '@/lib/supabase';
 
 export type Company = {
@@ -24,7 +24,7 @@ type SessionContextValue = {
   plan: Plan;
   /** End of the free Pro trial, when the plan comes from it. */
   trialEndsAt: string | null;
-  /** Whether the company may post and answer in the network (architects always, contractors on Pro/Complet). */
+  /** Whether the company may post and answer in the network (Test contractors 3 times a month, checked by the database). */
   canUseNetwork: boolean;
   refresh: () => Promise<void>;
 };
@@ -78,7 +78,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const canUseNetwork =
     !!company &&
     company.verification_status !== 'rejected' &&
-    (company.kind === 'architect' || (company.kind === 'contractor' && PLANS[plan].network === 'full'));
+    (company.kind === 'architect' || company.kind === 'contractor');
 
   const refresh = useCallback(() => loadCompany(session), [loadCompany, session]);
 

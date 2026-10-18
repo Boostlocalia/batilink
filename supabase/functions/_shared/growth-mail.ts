@@ -8,7 +8,7 @@ export type Kind = 'contractor' | 'supplier' | 'architect';
 export function welcomeMail(lang: Lang, to: string, kind: Kind, url: string, trialDays: number): Mail {
   const fr: Record<Kind, string[]> = {
     contractor: [
-      `Bienvenue sur ${APP_NAME}. Vous avez ${trialDays} jours de plan Pro offerts, sans carte bancaire.`,
+      `Bienvenue sur ${APP_NAME}. Vous avez ${trialDays} jours de plan Premium offerts, sans carte bancaire.`,
       'Le plus rapide pour voir la différence : envoyez votre prochaine demande de matériaux à plusieurs négoces de votre zone. Ils répondent par e-mail, vous comparez les offres ligne par ligne.',
       'Astuce : ajoutez vos fournisseurs habituels. Ils recevront vos demandes même s’ils ne sont pas encore inscrits.',
     ],
@@ -24,7 +24,7 @@ export function welcomeMail(lang: Lang, to: string, kind: Kind, url: string, tri
   };
   const nl: Record<Kind, string[]> = {
     contractor: [
-      `Welkom bij ${APP_NAME}. U krijgt ${trialDays} dagen het Pro-plan cadeau, zonder bankkaart.`,
+      `Welkom bij ${APP_NAME}. U krijgt ${trialDays} dagen het Premium-plan cadeau, zonder bankkaart.`,
       'De snelste manier om het verschil te zien: stuur uw volgende materiaalaanvraag naar meerdere handelaars in uw regio. Zij antwoorden per e-mail, u vergelijkt de offertes regel per regel.',
       'Tip: voeg uw vaste leveranciers toe. Zij krijgen uw aanvragen, ook als ze nog niet ingeschreven zijn.',
     ],
@@ -101,20 +101,20 @@ export function activationMail(lang: Lang, to: string, kind: Kind, url: string):
 export function trialEndingMail(lang: Lang, to: string, daysLeft: number, url: string): Mail {
   return notice(lang, to, {
     fr: {
-      subject: `Votre essai Pro se termine dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`,
+      subject: `Votre essai Premium se termine dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`,
       paragraphs: [
-        'Après l’essai, votre compte repasse au plan Gratuit : une demande de prix d’essai par mois, trois fournisseurs maximum, et le réseau en lecture seule.',
-        'Gardez le plan Pro pour 39 € HTVA par mois, ou 390 € par an (deux mois offerts). Sans engagement.',
+        'Après l’essai, votre compte passe au plan Test : vous voyez les fournisseurs sans leur envoyer de demande, et vous avez 3 échanges par mois dans le réseau.',
+        'Gardez Premium pour 129,99 € HTVA par mois, ou 1 299,90 € par an (deux mois offerts). Le plan Starter (69,99 € par mois) garde le réseau sans limite, sans les fournisseurs. Sans engagement.',
       ],
-      cta: { label: 'Garder le plan Pro', url },
+      cta: { label: 'Choisir mon plan', url },
     },
     nl: {
-      subject: `Uw Pro-proefperiode eindigt over ${daysLeft} dag${daysLeft > 1 ? 'en' : ''}`,
+      subject: `Uw Premium-proefperiode eindigt over ${daysLeft} dag${daysLeft > 1 ? 'en' : ''}`,
       paragraphs: [
-        'Na de proefperiode gaat uw account terug naar het gratis plan: één proefaanvraag per maand, maximaal drie leveranciers, en het netwerk alleen lezen.',
-        'Behoud Pro voor € 39 excl. btw per maand, of € 390 per jaar (twee maanden gratis). Zonder verbintenis.',
+        'Na de proefperiode gaat uw account naar het Test-plan: u ziet de leveranciers zonder hen aanvragen te sturen, en u hebt 3 uitwisselingen per maand in het netwerk.',
+        'Behoud Premium voor € 129,99 excl. btw per maand, of € 1.299,90 per jaar (twee maanden gratis). Het Starter-plan (€ 69,99 per maand) houdt het netwerk zonder limiet, zonder de leveranciers. Zonder verbintenis.',
       ],
-      cta: { label: 'Pro behouden', url },
+      cta: { label: 'Mijn plan kiezen', url },
     },
   });
 }
@@ -122,13 +122,13 @@ export function trialEndingMail(lang: Lang, to: string, daysLeft: number, url: s
 export function trialEndedMail(lang: Lang, to: string, url: string): Mail {
   return notice(lang, to, {
     fr: {
-      subject: 'Votre essai Pro est terminé',
-      paragraphs: ['Votre compte est repassé au plan Gratuit. Vos demandes, offres et commandes restent accessibles.', 'Vous pouvez reprendre le plan Pro à tout moment.'],
+      subject: 'Votre essai Premium est terminé',
+      paragraphs: ['Votre compte est passé au plan Test. Vos demandes, offres et commandes restent accessibles.', 'Vous pouvez choisir Starter ou Premium à tout moment.'],
       cta: { label: 'Voir les plans', url },
     },
     nl: {
-      subject: 'Uw Pro-proefperiode is afgelopen',
-      paragraphs: ['Uw account staat weer op het gratis plan. Uw aanvragen, offertes en bestellingen blijven beschikbaar.', 'U kunt Pro op elk moment opnieuw nemen.'],
+      subject: 'Uw Premium-proefperiode is afgelopen',
+      paragraphs: ['Uw account staat nu op het Test-plan. Uw aanvragen, offertes en bestellingen blijven beschikbaar.', 'U kunt op elk moment Starter of Premium kiezen.'],
       cta: { label: 'Plannen bekijken', url },
     },
   });

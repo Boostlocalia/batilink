@@ -10,25 +10,22 @@ export const growthNl: typeof growthFr = {
     perYear: '/ jaar excl. btw',
     perMonthEquivalent: (amount: string) => `of ${amount} / maand`,
     recommended: 'Meest rendabel',
-    roi: 'Reken even: wie € 33 per maand bespaart op materiaalaankopen, heeft het Pro-plan al terugverdiend.',
-    trialLeft: (days: number) => `Pro-proefperiode: nog ${days} dag${days > 1 ? 'en' : ''}. Kies een plan om Pro te behouden.`,
-    trialOver: 'Uw Pro-proefperiode is afgelopen. U kunt Pro op elk moment opnieuw nemen.',
+    roi: 'Reken even: jaarlijks kost Premium € 108,33 excl. btw per maand. Zodra uw prijsaanvragen u meer besparen op uw aankopen, is het terugverdiend.',
+    trialLeft: (days: number) => `Premium-proefperiode: nog ${days} dag${days > 1 ? 'en' : ''}. Kies een plan om het te behouden.`,
+    trialOver: 'Uw Premium-proefperiode is afgelopen. U staat op het Test-plan: kies Starter of Premium wanneer u wilt.',
+    networkLeft: (left: number) =>
+      left > 0 ? `Test-plan: nog ${left} uitwisseling${left > 1 ? 'en' : ''} deze maand in het netwerk.` : 'Test-plan: uw 3 uitwisselingen van deze maand zijn gebruikt.',
   },
   upgrade: {
-    monthly_limit: {
-      title: 'U hebt de aanvraag van deze maand gebruikt',
-      text: 'Met het plan Volledig stuurt u onbeperkt aanvragen naar alle leveranciers in uw regio.',
-      cta: 'Overstappen naar Volledig',
-    },
-    too_many_suppliers: {
-      title: 'Stuur naar meer leveranciers',
-      text: 'Meer leveranciers, meer offertes om te vergelijken: daar zit de besparing.',
-      cta: 'Plannen bekijken',
+    suppliers: {
+      title: 'Prijsaanvragen zijn voorbehouden aan Premium',
+      text: 'Met Premium stuurt u onbeperkt aanvragen naar alle leveranciers in uw regio en vergelijkt u hun offertes regel per regel.',
+      cta: 'Overstappen naar Premium',
     },
     network: {
-      title: 'Antwoord op zoekertjes met Pro',
-      text: 'Publiceer uw beschikbaarheid, antwoord architecten en aannemers, en toon uw geverifieerd-badge.',
-      cta: 'Overstappen naar Pro',
+      title: 'Uw 3 uitwisselingen van deze maand zijn gebruikt',
+      text: 'Met Starter plaatst en beantwoordt u zoekertjes zonder limiet, en toont u uw geverifieerd-badge.',
+      cta: 'Overstappen naar Starter',
     },
   },
   start: {
@@ -69,7 +66,7 @@ export const growthNl: typeof growthFr = {
     code: 'Uw code',
     share: 'Mijn link delen',
     copied: 'Link gekopieerd.',
-    message: (url: string) => `Ik vergelijk mijn materiaalprijzen en vind mijn onderaannemers op ${APP_NAME}. Schrijf je in via mijn link, je krijgt een maand Pro gratis: ${url}`,
+    message: (url: string) => `Ik vergelijk mijn materiaalprijzen en vind mijn onderaannemers op ${APP_NAME}. Schrijf je in via mijn link, je krijgt een maand Premium gratis: ${url}`,
     count: (n: number) => (n === 0 ? 'Niemand heeft uw code al gebruikt.' : `${n} bedrijf${n > 1 ? 'ven' : ''} uitgenodigd.`),
     rewarded: 'Beloning ontvangen',
     waiting: 'Wacht op verificatie',
@@ -140,7 +137,7 @@ export const growthNl: typeof growthFr = {
       { title: 'Vergelijk en bestel', text: 'Beste prijs per regel, levertijd, levering. U kiest een offerte en betaalt de leverancier rechtstreeks.' },
     ],
     pricingTitle: 'Eenvoudige prijzen',
-    pricingLead: 'Begin gratis met 14 dagen Pro cadeau. Prijzen excl. btw, zonder verbintenis.',
+    pricingLead: 'Begin gratis met 14 dagen Premium cadeau. Prijzen excl. btw, zonder verbintenis.',
     pricingFrom: (price: string) => `vanaf ${price} / maand`,
     faqTitle: 'Veelgestelde vragen',
     faq: [

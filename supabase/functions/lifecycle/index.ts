@@ -1,4 +1,4 @@
-// Daily job (x-cron-secret): ends Pro trials, sends activation and retention
+// Daily job (x-cron-secret): ends Premium trials, sends activation and retention
 // e-mails, and grants referral rewards once the referred company is verified.
 // Each e-mail goes once per company (lifecycle_messages), so reruns are safe.
 
@@ -12,12 +12,15 @@ import {
   type Kind,
 } from '../_shared/growth-mail.ts';
 import { logEvent } from '../_shared/events.ts';
+import { PLANS, TRIAL_PLAN } from '../_shared/plans.ts';
 import { stripeClient } from '../_shared/stripe.ts';
 import { adminClient, appUrl, json } from '../_shared/supabase.ts';
 
 type Admin = ReturnType<typeof adminClient>;
 const DAY = 86_400_000;
-const REWARD_EX_VAT = 39;
+/** A referral is worth one month of Starter. */
+const REWARD_EX_VAT = PLANS.pro.priceExVat;
+const REWARD_LABEL = REWARD_EX_VAT.toFixed(2).replace('.', ',');
 const REWARD_DAYS = 30;
 
 /** Records the message; false when it was already sent. */
@@ -32,7 +35,7 @@ async function endTrials(admin: Admin, now: Date) {
   const { data: subs } = await admin
     .from('subscriptions')
     .select('company_id, trial_ends_at, company:companies(email, language)')
-    .eq('plan', 'pro')
+    .eq('plan', TRIAL_PLAN)
     .is('provider_subscription_id', null)
     .not('trial_ends_at', 'is', null)
     .lt('trial_ends_at', new Date(now.getTime() + 3 * DAY).toISOString());
@@ -40,7 +43,7 @@ async function endTrials(admin: Admin, now: Date) {
     const company = s.company as unknown as { email: string | null; language: Lang } | null;
     const end = new Date(s.trial_ends_at!);
     if (end <= now) {
-      await admin.from('subscriptions').update({ plan: 'free', updated_at: now.toISOString() }).eq('company_id', s.company_id).eq('plan', 'pro').is('provider_subscription_id', null);
+      await admin.from('subscriptions').update({ plan: 'free', updated_at: now.toISOString() }).eq('company_id', s.company_id).eq('plan', TRIAL_PLAN).is('provider_subscription_id', null);
       await logEvent(admin, { kind: 'subscription_changed', company_id: s.company_id, data: { plan: 'free', reason: 'trial_ended' } });
       if (company?.email && (await once(admin, s.company_id, `trial_ended:${s.trial_ends_at}`))) {
         await sendMail(trialEndedMail(company.language, company.email, `${appUrl()}/abonnement`)).catch(console.error);
@@ -141,7 +144,7 @@ async function referrals(admin: Admin, now: Date) {
 
     let reward: { kind: string; days?: number; amount_ex_vat?: number; fr: string; nl: string };
     if (referrer.kind === 'supplier') {
-      reward = { kind: 'commission_credit', amount_ex_vat: REWARD_EX_VAT, fr: `${REWARD_EX_VAT} € HTVA déduits de votre prochain relevé de commission`, nl: `€ ${REWARD_EX_VAT} excl. btw afgetrokken van uw volgende commissieoverzicht` };
+      reward = { kind: 'commission_credit', amount_ex_vat: REWARD_EX_VAT, fr: `${REWARD_LABEL} € HTVA déduits de votre prochain relevé de commission`, nl: `€ ${REWARD_LABEL} excl. btw afgetrokken van uw volgende commissieoverzicht` };
     } else {
       const { data: sub } = await admin.from('subscriptions').select('plan, provider_subscription_id, trial_ends_at').eq('company_id', referrer.id).single();
       const stripe = stripeClient();
@@ -152,16 +155,16 @@ async function referrals(admin: Admin, now: Date) {
           { amount: -Math.round(REWARD_EX_VAT * 1.21 * 100), currency: 'eur', description: `Parrainage ${c.name}` },
           { idempotencyKey: `referral-${c.id}` },
         );
-        reward = { kind: 'stripe_balance', amount_ex_vat: REWARD_EX_VAT, fr: `${REWARD_EX_VAT} € HTVA déduits de votre prochaine facture`, nl: `€ ${REWARD_EX_VAT} excl. btw afgetrokken van uw volgende factuur` };
+        reward = { kind: 'stripe_balance', amount_ex_vat: REWARD_EX_VAT, fr: `${REWARD_LABEL} € HTVA déduits de votre prochaine facture`, nl: `€ ${REWARD_LABEL} excl. btw afgetrokken van uw volgende factuur` };
       } else {
-        // Free or on trial: a month of Pro, added to any trial left.
+        // Test or on trial: a month of Premium, added to any trial left.
         const from = Math.max(now.getTime(), sub?.trial_ends_at ? new Date(sub.trial_ends_at).getTime() : 0);
         await admin
           .from('subscriptions')
-          .update({ plan: sub?.plan === 'full' ? 'full' : 'pro', status: 'active', trial_ends_at: new Date(from + REWARD_DAYS * DAY).toISOString(), updated_at: now.toISOString() })
+          .update({ plan: TRIAL_PLAN, status: 'active', trial_ends_at: new Date(from + REWARD_DAYS * DAY).toISOString(), updated_at: now.toISOString() })
           .eq('company_id', referrer.id)
           .is('provider_subscription_id', null);
-        reward = { kind: 'pro_days', days: REWARD_DAYS, fr: 'un mois de plan Pro offert', nl: 'een maand Pro gratis' };
+        reward = { kind: 'pro_days', days: REWARD_DAYS, fr: 'un mois de plan Premium offert', nl: 'een maand Premium gratis' };
       }
     }
     const { error } = await admin.from('referral_rewards').insert({

@@ -93,9 +93,7 @@ export const fr = {
       date: 'Entrez une date au format JJ/MM/AAAA.',
       replyBy: 'La date de réponse doit être dans le futur.',
       items: 'Ajoutez au moins un produit avec une quantité.',
-      monthly_limit: (limit: number) =>
-        `Votre plan permet ${limit} demande${limit > 1 ? 's' : ''} par mois. Passez au plan Complet pour en envoyer d'autres.`,
-      too_many_suppliers: (limit: number) => `Votre plan permet ${limit} fournisseurs par demande.`,
+      plan: 'L’envoi de demandes de prix est compris dans le plan Premium.',
       no_supplier: 'Choisissez au moins un fournisseur.',
     },
   },
@@ -149,7 +147,7 @@ export const fr = {
   },
   plans: {
     title: 'Abonnement',
-    lead: 'Prix HTVA par mois, sans engagement.',
+    lead: 'Prix HTVA, sans engagement.',
     perMonth: '/ mois HTVA',
     current: 'Plan actuel',
     choose: 'Choisir ce plan',
@@ -157,16 +155,20 @@ export const fr = {
     manage: 'Gérer mon abonnement',
     unavailable: "Le paiement en ligne n'est pas encore activé. Écrivez-nous pour changer de plan.",
     thanks: 'Merci ! Votre plan est activé dès que Stripe confirme le paiement.',
-    names: { free: 'Gratuit', pro: 'Pro', full: 'Complet' },
+    names: { free: 'Test', pro: 'Starter', full: 'Premium' },
     features: {
       searches: (n: number) => (Number.isFinite(n) ? `${n} recherches d'entreprises par mois` : 'Recherche illimitée'),
-      network: (level: 'read' | 'full'): string =>
-        level === 'full' ? 'Collaborations : publier, répondre, messagerie' : 'Collaborations : consulter les annonces',
+      network: (exchanges: number): string =>
+        Number.isFinite(exchanges)
+          ? `Collaborations entre entrepreneurs : ${exchanges} échanges par mois`
+          : 'Collaborations entre entrepreneurs : publier et répondre sans limite',
       badge: 'Badge vérifié (BCE, ONSS, fiscal)',
-      requests: (n: number, suppliers: number) =>
-        Number.isFinite(n)
-          ? `${n} demande de prix d'essai par mois${Number.isFinite(suppliers) ? `, ${suppliers} fournisseurs max` : ''}`
-          : 'Demandes de prix illimitées, tous les fournisseurs',
+      suppliers: (access: 'preview' | 'none' | 'full'): string =>
+        access === 'full'
+          ? 'Fournisseurs : demandes de prix illimitées'
+          : access === 'preview'
+            ? 'Fournisseurs : consulter, sans envoyer de demande'
+            : 'Pas d’accès aux fournisseurs',
       pdf: 'Export PDF du comparateur',
       users: (n: number) => `${n} utilisateur${n > 1 ? 's' : ''}`,
     },
@@ -177,7 +179,7 @@ export const fr = {
     tabs: { posts: 'Annonces', mine: 'Mes annonces', agreements: 'Accords' },
     publish: 'Publier une annonce',
     publishProject: 'Publier un projet',
-    upgrade: 'Le plan Pro permet de publier et de répondre aux annonces.',
+    upgrade: 'Le plan Starter permet de publier et de répondre aux annonces sans limite.',
     empty: 'Aucune annonce pour le moment dans vos métiers.',
     allTrades: 'Tous les métiers',
     project: "Projet d'architecte",
@@ -193,11 +195,13 @@ export const fr = {
       trades: 'Métiers (6 maximum)',
       startsOn: 'Début souhaité (JJ/MM/AAAA, facultatif)',
       budget: 'Budget HTVA (€, facultatif)',
+      projectBudget: 'Budget estimé des travaux HTVA (€)',
       submit: 'Publier',
       errors: {
         title: 'Donnez un titre de 3 caractères au moins.',
         description: 'Décrivez le travail en quelques mots.',
         trades: 'Choisissez au moins un métier.',
+        budget: 'Indiquez le budget estimé des travaux.',
       },
     },
     detail: {
@@ -240,6 +244,8 @@ export const fr = {
     contacts: 'Coordonnées',
     cancel: "Annuler l'accord",
     checkedAt: (date: string) => `Vérifié le ${date}`,
+    projectCommission: (amount: string, commission: string) =>
+      `Commission BatiLink : 5 % de ${amount} HTVA, soit ${commission} HTVA, facturée à l’entrepreneur en fin de mois s’il a un plan Starter ou Premium.`,
   },
   verification: {
     title: 'Vérification de l’entreprise',
@@ -287,7 +293,7 @@ export const fr = {
     hello: (name: string) =>
       `Bonjour, je suis ${name}. Je vous explique comment fonctionne l'application et je réponds à vos questions. Que puis-je faire pour vous ?`,
     suggestions: {
-      contractor: ['Comment envoyer une demande de prix ?', 'Comment fonctionne la vérification 30bis ?', 'Que comprend le plan Pro ?'],
+      contractor: ['Comment envoyer une demande de prix ?', 'Comment fonctionne la vérification 30bis ?', 'Que comprend le plan Premium ?'],
       architect: ['Comment publier un projet ?', 'Comment les entrepreneurs sont-ils vérifiés ?', 'Que se passe-t-il quand je mets en relation ?'],
       supplier: ['Comment remettre mon prix ?', "Comment poser une question à l'entrepreneur ?", 'Comment fonctionne la commission ?'],
     },
@@ -315,6 +321,31 @@ export const fr = {
         ['Une question ?', "Répondez à l'e-mail ou utilisez le cadre de question en bas de page : l'entrepreneur reçoit votre question et sa réponse vous revient."],
         ['Envoyez votre offre', "L'entrepreneur compare les offres. Si la vôtre est retenue, vous êtes prévenu par e-mail."],
       ],
+    },
+  },
+  files: {
+    title: 'Mes fichiers',
+    open: 'Mes fichiers',
+    lead: 'Rangez ici vos métrés, listes de prix, plans et fiches techniques. Seule votre entreprise y a accès.',
+    upload: 'Ajouter un fichier',
+    types: 'Excel (.xlsx), CSV, PDF, Word ou photo, 20 Mo maximum.',
+    empty: "Aucun fichier pour l'instant.",
+    view: 'Ouvrir',
+    remove: 'Supprimer',
+    confirmRemove: 'Supprimer définitivement ?',
+    toRequest: 'Créer une demande de prix',
+    importLines: 'Importer un métré Excel ou CSV',
+    importHint: 'Colonnes reconnues : Désignation, Quantité, Unité (ou Omschrijving, Aantal, Eenheid).',
+    imported: (n: number) => (n === 1 ? '1 ligne importée. Vérifiez-la avant d\'envoyer.' : `${n} lignes importées. Vérifiez-les avant d'envoyer.`),
+    size: (mb: string) => `${mb} Mo`,
+    errors: {
+      type: 'Ce type de fichier ne peut pas être ajouté. Utilisez Excel, CSV, PDF, Word ou une photo.',
+      size: 'Le fichier est vide ou dépasse 20 Mo.',
+      error: "Le fichier n'a pas pu être enregistré. Réessayez.",
+      xls: "Ce fichier est à l'ancien format Excel (.xls). Enregistrez-le en .xlsx puis réessayez.",
+      not_spreadsheet: 'Seuls les fichiers Excel (.xlsx) et CSV peuvent être importés dans une demande.',
+      unreadable: "Le fichier n'a pas pu être lu.",
+      empty: 'Aucune ligne avec une désignation et une quantité n\'a été trouvée.',
     },
   },
   settings: {

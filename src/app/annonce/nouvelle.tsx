@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Field, Option, Screen } from '@/components/ui';
+import { UpgradeCard } from '@/components/upgrade-card';
 import { Spacing } from '@/constants/theme';
 import { useI18n } from '@/i18n';
 import { isBelgianPostalCode, parseAmount, parseBelgianDate } from '@/lib/format';
@@ -14,7 +15,8 @@ import { supabase } from '@/lib/supabase';
 /** A contractor posts work to subcontract; an architect posts a project. */
 export default function NewPostScreen() {
   const { t, language } = useI18n();
-  const { company } = useSession();
+  const { company, plan } = useSession();
+  const [capped, setCapped] = useState(false);
   const architect = company?.kind === 'architect';
   const [trades, setTrades] = useState<Trade[]>([]);
   const [title, setTitle] = useState('');
@@ -44,6 +46,8 @@ export default function NewPostScreen() {
     if (startsOn.trim() && !start) next.startsOn = t.request.errors.date;
     const amount = budget.trim() ? parseAmount(budget) : null;
     if (budget.trim() && amount === null) next.budget = t.supplier.invalidTerms;
+    // The project commission is computed on the budget of an architect's project.
+    else if (architect && !(amount && amount > 0)) next.budget = t.network.form.errors.budget;
     setErrors(next);
     if (Object.keys(next).length || !company) return;
 
@@ -64,7 +68,7 @@ export default function NewPostScreen() {
       .select('id')
       .single();
     setBusy(false);
-    if (error || !data) return setErrors({ form: t.common.error });
+    if (error || !data) return plan === 'free' && !architect ? setCapped(true) : setErrors({ form: t.common.error });
     router.replace(`/annonce/${data.id}`);
   };
 
@@ -113,9 +117,10 @@ export default function NewPostScreen() {
         </View>
         <View style={styles.wrap}>
           <Field label={t.network.form.startsOn} value={startsOn} onChangeText={setStartsOn} placeholder="02/11/2026" error={errors.startsOn} />
-          <Field label={t.network.form.budget} value={budget} onChangeText={setBudget} keyboardType="decimal-pad" error={errors.budget} />
+          <Field label={architect ? t.network.form.projectBudget : t.network.form.budget} value={budget} onChangeText={setBudget} keyboardType="decimal-pad" error={errors.budget} />
         </View>
         {errors.form ? <ThemedText themeColor="danger">{errors.form}</ThemedText> : null}
+        {capped ? <UpgradeCard reason="network" /> : null}
         <Button label={t.network.form.submit} variant="signal" busy={busy} onPress={submit} />
       </Card>
     </Screen>

@@ -37,7 +37,7 @@ describe('isPhone', () => {
 
 describe('yearly prices', () => {
   it('give two months free', () => {
-    expect(PLANS.pro.priceYearExVat).toBe(PLANS.pro.priceExVat * 10);
-    expect(PLANS.full.priceYearExVat).toBe(PLANS.full.priceExVat * 10);
+    expect(PLANS.pro.priceYearExVat).toBeCloseTo(PLANS.pro.priceExVat * 10, 2);
+    expect(PLANS.full.priceYearExVat).toBeCloseTo(PLANS.full.priceExVat * 10, 2);
   });
 });

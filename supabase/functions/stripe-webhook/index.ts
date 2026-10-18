@@ -43,6 +43,7 @@ async function paymentSucceeded(admin: Admin, session: Stripe.Checkout.Session) 
   const now = new Date().toISOString();
   await admin.from('commission_bills').update({ status: 'paid', paid_at: now }).eq('id', payment.commission_bill_id);
   await admin.from('commissions').update({ status: 'paid', paid_at: now }).eq('bill_id', payment.commission_bill_id);
+  await admin.from('project_commissions').update({ status: 'paid', paid_at: now }).eq('bill_id', payment.commission_bill_id);
   await logEvent(admin, { kind: 'payment_succeeded', company_id: payment.company_id, data: { purpose: 'commission', cents: payment.amount_cents } });
 }
 

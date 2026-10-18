@@ -1,13 +1,14 @@
-// Called once by the app right after sign-up: starts the contractor's Pro trial,
+// Called once by the app right after sign-up: starts the contractor's Premium trial,
 // links a supplier to the contractors that invited it, and sends the welcome e-mail.
 // Safe to call twice: everything is guarded by the 'welcome' lifecycle row.
 
 import { welcomeMail, type Kind } from '../_shared/growth-mail.ts';
 import { sendMail, type Lang } from '../_shared/email.ts';
+import { TRIAL_PLAN } from '../_shared/plans.ts';
 import { adminClient, appUrl, callerCompanyId, corsHeaders, json } from '../_shared/supabase.ts';
 
 const TRIAL_DAYS = 14;
-/** A company that signed up with a referral code tries Pro for a month. */
+/** A company that signed up with a referral code tries Premium for a month. */
 const REFERRED_TRIAL_DAYS = 30;
 
 Deno.serve(async (req) => {
@@ -33,7 +34,7 @@ Deno.serve(async (req) => {
     trialDays = company.referred_by ? REFERRED_TRIAL_DAYS : TRIAL_DAYS;
     await admin
       .from('subscriptions')
-      .update({ plan: 'pro', status: 'active', trial_ends_at: new Date(Date.now() + trialDays * 86_400_000).toISOString(), updated_at: new Date().toISOString() })
+      .update({ plan: TRIAL_PLAN, status: 'active', trial_ends_at: new Date(Date.now() + trialDays * 86_400_000).toISOString(), updated_at: new Date().toISOString() })
       .eq('company_id', companyId)
       .eq('plan', 'free')
       .is('provider_subscription_id', null);

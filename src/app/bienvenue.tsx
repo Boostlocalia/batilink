@@ -131,7 +131,7 @@ export default function WelcomeScreen() {
               </ThemedText>
             </ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              {t.plans.features.requests(PLANS[id].priceRequestsPerMonth, PLANS[id].suppliersPerRequest)}
+              {t.plans.features.suppliers(PLANS[id].suppliers)}
             </ThemedText>
           </Card>
         ))}

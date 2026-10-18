@@ -8,25 +8,22 @@ export const growthFr = {
     perYear: '/ an HTVA',
     perMonthEquivalent: (amount: string) => `soit ${amount} / mois`,
     recommended: 'Le plus rentable',
-    roi: 'Faites le calcul : il suffit d’économiser 33 € par mois sur vos achats de matériaux pour que le plan Pro soit rentable.',
-    trialLeft: (days: number) => `Essai Pro : ${days} jour${days > 1 ? 's' : ''} restant${days > 1 ? 's' : ''}. Choisissez un plan pour le garder.`,
-    trialOver: 'Votre essai Pro est terminé. Reprenez le plan Pro quand vous voulez.',
+    roi: 'Faites le calcul : en annuel, Premium revient à 108,33 € HTVA par mois. Dès que vos demandes de prix vous font économiser davantage sur vos achats, il est rentable.',
+    trialLeft: (days: number) => `Essai Premium : ${days} jour${days > 1 ? 's' : ''} restant${days > 1 ? 's' : ''}. Choisissez un plan pour le garder.`,
+    trialOver: 'Votre essai Premium est terminé. Vous êtes sur le plan Test : choisissez Starter ou Premium quand vous voulez.',
+    networkLeft: (left: number) =>
+      left > 0 ? `Plan Test : encore ${left} échange${left > 1 ? 's' : ''} ce mois-ci dans le réseau.` : 'Plan Test : vos 3 échanges du mois sont utilisés.',
   },
   upgrade: {
-    monthly_limit: {
-      title: 'Vous avez utilisé votre demande de ce mois',
-      text: 'Le plan Complet envoie des demandes illimitées à tous les fournisseurs de votre zone.',
-      cta: 'Passer au plan Complet',
-    },
-    too_many_suppliers: {
-      title: 'Envoyez à plus de fournisseurs',
-      text: 'Plus de fournisseurs, plus d’offres à comparer : c’est là que se font les économies.',
-      cta: 'Voir les plans',
+    suppliers: {
+      title: 'Les demandes de prix sont réservées au plan Premium',
+      text: 'Avec Premium, vous envoyez des demandes illimitées à tous les fournisseurs de votre zone et vous comparez leurs offres ligne par ligne.',
+      cta: 'Passer au plan Premium',
     },
     network: {
-      title: 'Répondez aux annonces avec le plan Pro',
-      text: 'Publiez vos disponibilités, répondez aux architectes et aux entrepreneurs, et affichez votre badge vérifié.',
-      cta: 'Passer au plan Pro',
+      title: 'Vos 3 échanges du mois sont utilisés',
+      text: 'Avec Starter, vous publiez et répondez aux annonces sans limite, et vous affichez votre badge vérifié.',
+      cta: 'Passer au plan Starter',
     },
   },
   start: {
@@ -67,7 +64,7 @@ export const growthFr = {
     code: 'Votre code',
     share: 'Partager mon lien',
     copied: 'Lien copié.',
-    message: (url: string) => `Je compare mes prix de matériaux et je trouve mes sous-traitants sur ${APP_NAME}. Inscris-toi avec mon lien, tu as un mois de Pro offert : ${url}`,
+    message: (url: string) => `Je compare mes prix de matériaux et je trouve mes sous-traitants sur ${APP_NAME}. Inscris-toi avec mon lien, tu as un mois de Premium offert : ${url}`,
     count: (n: number) => (n === 0 ? 'Personne n’a encore utilisé votre code.' : `${n} entreprise${n > 1 ? 's' : ''} parrainée${n > 1 ? 's' : ''}.`),
     rewarded: 'Récompense reçue',
     waiting: 'En attente de vérification',
@@ -138,7 +135,7 @@ export const growthFr = {
       { title: 'Comparez et commandez', text: 'Meilleur prix par ligne, délai, livraison. Vous retenez une offre et payez le fournisseur en direct.' },
     ],
     pricingTitle: 'Des prix simples',
-    pricingLead: 'Commencez gratuitement avec 14 jours de Pro offerts. Prix HTVA, sans engagement.',
+    pricingLead: 'Commencez gratuitement avec 14 jours de Premium offerts. Prix HTVA, sans engagement.',
     pricingFrom: (price: string) => `à partir de ${price} / mois`,
     faqTitle: 'Questions fréquentes',
     faq: [

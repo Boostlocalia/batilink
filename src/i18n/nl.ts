@@ -95,9 +95,7 @@ export const nl: Dictionary = {
       date: 'Vul een datum in als DD/MM/JJJJ.',
       replyBy: 'De antwoorddatum moet in de toekomst liggen.',
       items: 'Voeg minstens één product met een hoeveelheid toe.',
-      monthly_limit: (limit: number) =>
-        `Uw plan laat ${limit} aanvra${limit > 1 ? 'gen' : 'ag'} per maand toe. Kies Volledig om er meer te versturen.`,
-      too_many_suppliers: (limit: number) => `Uw plan laat ${limit} leveranciers per aanvraag toe.`,
+      plan: 'Prijsaanvragen versturen kan met het Premium-plan.',
       no_supplier: 'Kies minstens één leverancier.',
     },
   },
@@ -150,7 +148,7 @@ export const nl: Dictionary = {
   },
   plans: {
     title: 'Abonnement',
-    lead: 'Prijzen excl. btw per maand, zonder verbintenis.',
+    lead: 'Prijzen excl. btw, zonder verbintenis.',
     perMonth: '/ maand excl. btw',
     current: 'Huidig plan',
     choose: 'Dit plan kiezen',
@@ -158,16 +156,20 @@ export const nl: Dictionary = {
     manage: 'Mijn abonnement beheren',
     unavailable: 'Online betalen is nog niet geactiveerd. Schrijf ons om van plan te wisselen.',
     thanks: 'Bedankt! Uw plan wordt actief zodra Stripe de betaling bevestigt.',
-    names: { free: 'Gratis', pro: 'Pro', full: 'Volledig' },
+    names: { free: 'Test', pro: 'Starter', full: 'Premium' },
     features: {
       searches: (n: number) => (Number.isFinite(n) ? `${n} bedrijfszoekopdrachten per maand` : 'Onbeperkt zoeken'),
-      network: (level: 'read' | 'full') =>
-        level === 'full' ? 'Samenwerkingen: plaatsen, antwoorden, berichten' : 'Samenwerkingen: zoekertjes bekijken',
+      network: (exchanges: number) =>
+        Number.isFinite(exchanges)
+          ? `Samenwerkingen tussen aannemers: ${exchanges} uitwisselingen per maand`
+          : 'Samenwerkingen tussen aannemers: onbeperkt plaatsen en antwoorden',
       badge: 'Geverifieerd-badge (KBO, RSZ, fiscaal)',
-      requests: (n: number, suppliers: number) =>
-        Number.isFinite(n)
-          ? `${n} proefprijsaanvraag per maand${Number.isFinite(suppliers) ? `, max. ${suppliers} leveranciers` : ''}`
-          : 'Onbeperkte prijsaanvragen, alle leveranciers',
+      suppliers: (access: 'preview' | 'none' | 'full') =>
+        access === 'full'
+          ? 'Leveranciers: onbeperkt prijsaanvragen'
+          : access === 'preview'
+            ? 'Leveranciers: bekijken, zonder aanvragen te versturen'
+            : 'Geen toegang tot leveranciers',
       pdf: 'PDF-export van de vergelijking',
       users: (n: number) => `${n} gebruiker${n > 1 ? 's' : ''}`,
     },
@@ -178,7 +180,7 @@ export const nl: Dictionary = {
     tabs: { posts: 'Zoekertjes', mine: 'Mijn zoekertjes', agreements: 'Akkoorden' },
     publish: 'Zoekertje plaatsen',
     publishProject: 'Project plaatsen',
-    upgrade: 'Met het Pro-plan kunt u zoekertjes plaatsen en beantwoorden.',
+    upgrade: 'Met het Starter-plan plaatst en beantwoordt u zoekertjes zonder limiet.',
     empty: 'Nog geen zoekertjes in uw vakgebieden.',
     allTrades: 'Alle vakgebieden',
     project: 'Project van architect',
@@ -194,11 +196,13 @@ export const nl: Dictionary = {
       trades: 'Vakgebieden (max. 6)',
       startsOn: 'Gewenste start (DD/MM/JJJJ, optioneel)',
       budget: 'Budget excl. btw (€, optioneel)',
+      projectBudget: 'Geraamd budget van de werken excl. btw (€)',
       submit: 'Plaatsen',
       errors: {
         title: 'Geef een titel van minstens 3 tekens.',
         description: 'Beschrijf het werk in enkele woorden.',
         trades: 'Kies minstens één vakgebied.',
+        budget: 'Geef het geraamde budget van de werken.',
       },
     },
     detail: {
@@ -241,6 +245,8 @@ export const nl: Dictionary = {
     contacts: 'Contactgegevens',
     cancel: 'Akkoord annuleren',
     checkedAt: (date: string) => `Gecontroleerd op ${date}`,
+    projectCommission: (amount: string, commission: string) =>
+      `BatiLink-commissie: 5 % van ${amount} excl. btw, of ${commission} excl. btw, op het einde van de maand gefactureerd aan de aannemer als die een Starter- of Premium-plan heeft.`,
   },
   verification: {
     title: 'Controle van het bedrijf',
@@ -288,7 +294,7 @@ export const nl: Dictionary = {
     hello: (name: string) =>
       `Goedendag, ik ben ${name}. Ik leg uit hoe de app werkt en beantwoord uw vragen. Wat kan ik voor u doen?`,
     suggestions: {
-      contractor: ['Hoe verstuur ik een prijsaanvraag?', 'Hoe werkt de 30bis-controle?', 'Wat houdt het Pro-plan in?'],
+      contractor: ['Hoe verstuur ik een prijsaanvraag?', 'Hoe werkt de 30bis-controle?', 'Wat houdt het Premium-plan in?'],
       architect: ['Hoe plaats ik een project?', 'Hoe worden aannemers gecontroleerd?', 'Wat gebeurt er als ik in contact breng?'],
       supplier: ['Hoe geef ik mijn prijs door?', 'Hoe stel ik een vraag aan de aannemer?', 'Hoe werkt de commissie?'],
     },
@@ -316,6 +322,31 @@ export const nl: Dictionary = {
         ['Een vraag?', 'Beantwoord de e-mail of gebruik het vraagvak onderaan: de aannemer krijgt uw vraag en zijn antwoord komt bij u terug.'],
         ['Verstuur uw offerte', 'De aannemer vergelijkt de offertes. Wordt de uwe gekozen, dan krijgt u een e-mail.'],
       ],
+    },
+  },
+  files: {
+    title: 'Mijn bestanden',
+    open: 'Mijn bestanden',
+    lead: 'Bewaar hier uw meetstaten, prijslijsten, plannen en technische fiches. Alleen uw bedrijf heeft er toegang toe.',
+    upload: 'Bestand toevoegen',
+    types: 'Excel (.xlsx), CSV, PDF, Word of foto, maximaal 20 MB.',
+    empty: 'Nog geen bestanden.',
+    view: 'Openen',
+    remove: 'Verwijderen',
+    confirmRemove: 'Definitief verwijderen?',
+    toRequest: 'Prijsaanvraag maken',
+    importLines: 'Meetstaat importeren (Excel of CSV)',
+    importHint: 'Herkende kolommen: Omschrijving, Aantal, Eenheid (of Désignation, Quantité, Unité).',
+    imported: (n: number) => (n === 1 ? '1 regel geïmporteerd. Controleer ze voor u verstuurt.' : `${n} regels geïmporteerd. Controleer ze voor u verstuurt.`),
+    size: (mb: string) => `${mb} MB`,
+    errors: {
+      type: 'Dit bestandstype kan niet worden toegevoegd. Gebruik Excel, CSV, PDF, Word of een foto.',
+      size: 'Het bestand is leeg of groter dan 20 MB.',
+      error: 'Het bestand kon niet worden opgeslagen. Probeer opnieuw.',
+      xls: 'Dit bestand heeft het oude Excel-formaat (.xls). Sla het op als .xlsx en probeer opnieuw.',
+      not_spreadsheet: 'Alleen Excel- (.xlsx) en CSV-bestanden kunnen in een aanvraag worden geïmporteerd.',
+      unreadable: 'Het bestand kon niet worden gelezen.',
+      empty: 'Er werd geen regel met een omschrijving en een aantal gevonden.',
     },
   },
   settings: {

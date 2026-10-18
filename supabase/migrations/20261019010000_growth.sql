@@ -3,7 +3,7 @@
 
 -- Trial and billing interval -------------------------------------------------------
 
--- A trial is plan 'pro' with trial_ends_at set and no Stripe subscription; the
+-- A trial is plan 'full' (Premium) with trial_ends_at set and no Stripe subscription; the
 -- daily lifecycle job moves it back to 'free' when it ends.
 alter table public.subscriptions
   add column trial_ends_at timestamptz,

@@ -72,9 +72,9 @@ export default function PlansScreen() {
           const f = t.plans.features;
           const features: [boolean, string][] = [
             [true, f.searches(p.searchesPerMonth)],
-            [true, f.network(p.network)],
+            [true, f.network(p.networkExchangesPerMonth)],
             [p.verifiedBadge, f.badge],
-            [true, f.requests(p.priceRequestsPerMonth, p.suppliersPerRequest)],
+            [p.suppliers !== 'none', f.suppliers(p.suppliers)],
             [p.pdfExport, f.pdf],
             [true, f.users(p.users)],
           ];

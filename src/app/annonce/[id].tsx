@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Field, Screen } from '@/components/ui';
+import { UpgradeCard } from '@/components/upgrade-card';
 import { Spacing } from '@/constants/theme';
 import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
@@ -25,7 +26,8 @@ const RESPONSE_TONE = { sent: 'neutral', shortlisted: 'warn', declined: 'neutral
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, language, locale } = useI18n();
-  const { company, canUseNetwork } = useSession();
+  const { company, canUseNetwork, plan } = useSession();
+  const [capped, setCapped] = useState(false);
   const [post, setPost] = useState<Opportunity | null>(null);
   const [trades, setTrades] = useState<Trade[]>([]);
   const [responses, setResponses] = useState<Response[]>([]);
@@ -67,7 +69,7 @@ export default function PostScreen() {
     setBusy('answer');
     const { error } = await supabase.from('opportunity_responses').insert({ opportunity_id: id, company_id: company.id, message: message.trim() });
     setBusy(null);
-    if (error) return setNotice(t.common.error);
+    if (error) return plan === 'free' ? setCapped(true) : setNotice(t.common.error);
     setMessage('');
     load();
   };
@@ -215,6 +217,8 @@ export default function PostScreen() {
             <ThemedText themeColor="textSecondary">{t.network.detail.onlyContractors}</ThemedText>
           ) : !canUseNetwork ? (
             <ThemedText themeColor="warn">{t.network.upgrade}</ThemedText>
+          ) : capped ? (
+            <UpgradeCard reason="network" />
           ) : (
             <>
               <Field

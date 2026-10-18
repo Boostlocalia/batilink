@@ -10,61 +10,71 @@ export type PlanLimits = {
   priceYearExVat: number;
   /** Company searches per month in the contractor network. */
   searchesPerMonth: number;
+  /** Posts and answers in the contractor network per calendar month. */
+  networkExchangesPerMonth: number;
+  /** Supplier side: 'preview' shows the matching suppliers without sending, 'none' hides it. */
+  suppliers: 'preview' | 'none' | 'full';
   /** Price requests that can be sent per calendar month. */
   priceRequestsPerMonth: number;
   /** Suppliers that one price request can be sent to. */
   suppliersPerRequest: number;
-  /** 'read' only lets the company browse collaboration posts. */
-  network: 'read' | 'full';
   verifiedBadge: boolean;
   pdfExport: boolean;
   users: number;
 };
 
+// Ids stay free / pro / full in the database; the names shown are Test, Starter, Premium.
 export const PLANS: Record<Plan, PlanLimits> = {
   free: {
     priceExVat: 0,
     priceYearExVat: 0,
     searchesPerMonth: 10,
-    priceRequestsPerMonth: 1,
-    suppliersPerRequest: 3,
-    network: 'read',
+    networkExchangesPerMonth: 3,
+    suppliers: 'preview',
+    priceRequestsPerMonth: 0,
+    suppliersPerRequest: 0,
     verifiedBadge: false,
     pdfExport: false,
     users: 1,
   },
   pro: {
-    priceExVat: 39,
-    priceYearExVat: 390,
+    priceExVat: 69.99,
+    priceYearExVat: 699.9,
     searchesPerMonth: Infinity,
-    priceRequestsPerMonth: 1,
-    suppliersPerRequest: Infinity,
-    network: 'full',
+    networkExchangesPerMonth: Infinity,
+    suppliers: 'none',
+    priceRequestsPerMonth: 0,
+    suppliersPerRequest: 0,
     verifiedBadge: true,
     pdfExport: false,
     users: 2,
   },
   full: {
-    priceExVat: 89,
-    priceYearExVat: 890,
+    priceExVat: 129.99,
+    priceYearExVat: 1299.9,
     searchesPerMonth: Infinity,
+    networkExchangesPerMonth: Infinity,
+    suppliers: 'full',
     priceRequestsPerMonth: Infinity,
     suppliersPerRequest: Infinity,
-    network: 'full',
     verifiedBadge: true,
     pdfExport: true,
     users: 5,
   },
 };
 
+/** The plan a new contractor tries for free, and the one a referral reward gives. */
+export const TRIAL_PLAN: Plan = 'full';
+
 export type SendCheck =
   | { ok: true }
-  | { ok: false; reason: 'monthly_limit' | 'too_many_suppliers' | 'no_supplier'; limit?: number };
+  | { ok: false; reason: 'plan' | 'monthly_limit' | 'too_many_suppliers' | 'no_supplier'; limit?: number };
 
 /** Whether a company on `plan` may send a request to `supplierCount` suppliers,
  * having already sent `sentThisMonth` requests this calendar month. */
 export function canSendPriceRequest(plan: Plan, sentThisMonth: number, supplierCount: number): SendCheck {
   const limits = PLANS[plan];
+  if (limits.suppliers !== 'full') return { ok: false, reason: 'plan' };
   if (supplierCount < 1) return { ok: false, reason: 'no_supplier' };
   if (sentThisMonth >= limits.priceRequestsPerMonth) {
     return { ok: false, reason: 'monthly_limit', limit: limits.priceRequestsPerMonth };

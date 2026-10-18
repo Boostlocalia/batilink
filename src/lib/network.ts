@@ -29,6 +29,7 @@ export type Agreement = {
   blocked_findings: string[];
   retention_social_pct: number;
   retention_tax_pct: number;
+  amount_ex_vat: number | null;
   checked_at: string | null;
   created_at: string;
   client: { name: string } | null;
@@ -39,7 +40,7 @@ export const OPPORTUNITY_COLUMNS =
   'id, company_id, kind, title, description, trade_ids, postal_code, city, starts_on, budget_ex_vat, status, created_at, company:companies(name, verification_status), responses:opportunity_responses(count)';
 
 export const AGREEMENT_COLUMNS =
-  'id, kind, client_id, subcontractor_id, title, status, blocked_findings, retention_social_pct, retention_tax_pct, checked_at, created_at, client:companies!agreements_client_id_fkey(name), subcontractor:companies!agreements_subcontractor_id_fkey(name)';
+  'id, kind, client_id, subcontractor_id, title, status, blocked_findings, retention_social_pct, retention_tax_pct, amount_ex_vat, checked_at, created_at, client:companies!agreements_client_id_fkey(name), subcontractor:companies!agreements_subcontractor_id_fkey(name)';
 
 export async function loadTrades(): Promise<Trade[]> {
   const { data } = await supabase.from('trades').select('id, slug, label_fr, label_nl').order('id');

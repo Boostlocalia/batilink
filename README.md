@@ -4,7 +4,8 @@ Plateforme belge pour les PME du bâtiment, en français et en néerlandais.
 
 - **Demandes de prix** : un entrepreneur interroge plusieurs négoces en une fois ; les négoces répondent depuis l'e-mail sans créer de compte, et l'entrepreneur compare les offres côte à côte. Si une offre est retenue, le négoce doit une commission (5 % HTVA par défaut).
 - **Questions des fournisseurs** : un négoce qui répond à l'e-mail de demande pose une question ; un agent IA la lit, la transmet à l'entrepreneur dans sa langue et renvoie la réponse. Aucune adresse n'est révélée avant l'attribution.
-- **Réseau** : les entrepreneurs sous-traitent du travail, les architectes publient leurs projets, les entrepreneurs vérifiés répondent.
+- **Réseau** : les entrepreneurs sous-traitent du travail, les architectes publient leurs projets gratuitement, les entrepreneurs vérifiés répondent. Quand un entrepreneur abonné (Starter ou Premium) confirme un projet d'architecte, BatiLink facture 5 % HTVA du montant convenu à l'entrepreneur (réglage dans `supabase/functions/_shared/project-commission.ts`).
+- **Mes fichiers** : chaque entreprise (entrepreneur, fournisseur, architecte) range ses métrés, listes de prix, plans et photos dans un espace privé (`/fichiers`). Un métré Excel (.xlsx) ou CSV devient une demande de prix en un geste.
 - **Vérification** : chaque entrepreneur et architecte est contrôlé (TVA, BCE, dettes sociales et fiscales 30bis) à l'inscription, chaque mois et juste avant chaque accord.
 - **Commandes et preuve d'achat** : l'entrepreneur paie le fournisseur en direct ; BatiLink garde la preuve de la transaction. Une offre retenue devient un bon de commande numéroté (BL-2026-000042). Le fournisseur le confirme depuis son e-mail et peut demander un acompte ; l'entrepreneur dépose la preuve de son virement, que le fournisseur reçoit avant de lancer la commande. Réception confirmée, facture Peppol vérifiée automatiquement, preuve de paiement : chaque étape est horodatée et chaque fichier reçoit une empreinte SHA-256.
 - **Commission mensuelle** : chaque mois, le fournisseur reçoit le relevé des commandes passées via BatiLink et la commission due, avec un lien de paiement sécurisé (Stripe : Bancontact, carte, virement). Les abonnements se paient aussi par Stripe.
@@ -16,7 +17,7 @@ Une seule base de code produit l'app iOS, l'app Android et le site web (téléph
 
 | Dossier | Rôle |
 | --- | --- |
-| `src/app/` | Écrans (Expo Router) : page d'accueil publique (`/bienvenue`), connexion par code e-mail, inscription en 4 étapes adaptée au profil (entrepreneur, fournisseur, architecte), espace fournisseur, fournisseurs favoris (`/fournisseurs`), catégories et provinces d'un fournisseur (`/zones`), accueil, nouvelle demande, comparateur d'offres avec questions des fournisseurs, réseau (annonces, projets, accords), abonnement, réglages avec statut de vérification, page publique de réponse fournisseur (`/offre/[token]`). |
+| `src/app/` | Écrans (Expo Router) : page d'accueil publique (`/bienvenue`), connexion par code e-mail, inscription en 4 étapes adaptée au profil (entrepreneur, fournisseur, architecte), espace fournisseur, fichiers de l'entreprise (`/fichiers`), fournisseurs favoris (`/fournisseurs`), catégories et provinces d'un fournisseur (`/zones`), accueil, nouvelle demande, comparateur d'offres avec questions des fournisseurs, réseau (annonces, projets, accords), abonnement, réglages avec statut de vérification, page publique de réponse fournisseur (`/offre/[token]`). |
 | `src/i18n/` | Textes FR et NL. La langue suit l'appareil, se change dans Réglages et est mémorisée. |
 | `src/lib/` | Client Supabase, session, calcul des totaux (TVA 21 %), formats belges (dates, TVA, codes postaux). |
 | `supabase/migrations/` | Schéma Postgres, règles d'accès (RLS), catégories de produits et métiers. |
@@ -26,20 +27,21 @@ Une seule base de code produit l'app iOS, l'app Android et le site web (téléph
 
 ## Abonnements
 
-| | Gratuit | Pro | Complet |
+| | Test | Starter | Premium |
 | --- | --- | --- | --- |
-| Prix HTVA / mois | 0 € | 39 € | 89 € |
-| Prix HTVA / an (2 mois offerts) | 0 € | 390 € | 890 € |
-| Demandes de prix | 1 d'essai par mois, 3 fournisseurs max | 1 d'essai par mois | Illimitées |
-| Réseau entrepreneurs | Consultation | Publier, répondre, accords | Publier, répondre, accords |
+| Prix HTVA / mois | 0 € | 69,99 € | 129,99 € |
+| Prix HTVA / an (2 mois offerts) | 0 € | 699,90 € | 1 299,90 € |
+| Réseau entrepreneurs | 3 échanges par mois (annonce ou réponse) | Illimité | Illimité |
+| Fournisseurs | Consultation, sans envoi de demande de prix | Non inclus | Demandes de prix illimitées |
+| Utilisateurs | 1 | 2 | 5 |
 
-Les architectes utilisent le réseau gratuitement. Les fournisseurs s'inscrivent gratuitement et ne paient qu'une commission sur les ventes.
+Dans la base, les plans gardent leurs identifiants `free`, `pro` et `full`. Les architectes publient gratuitement ; un projet confirmé par un entrepreneur abonné donne lieu à une commission de 5 % HTVA. Les fournisseurs s'inscrivent gratuitement et paient 5 % HTVA sur les ventes passées par BatiLink.
 
 ## Inscription et conversion
 
 - **Inscription par profil** : profil, entreprise (TVA avec nom trouvé à la BCE, adresse, contact, taille), activité (métiers, types de chantiers et achats mensuels pour un entrepreneur ; type, catégories, provinces, livraison, enlèvement, minimum de commande et adresse des demandes pour un fournisseur ; numéro d'architecte, projets pour un architecte), puis origine, code de parrainage et conditions. Un fournisseur accepte la commission à l'inscription. La province est déduite du code postal.
-- **Essai** : chaque nouvel entrepreneur a 14 jours de Pro (30 avec un code de parrainage), sans carte. `lifecycle` prévient 3 jours avant la fin puis repasse l'entreprise en Gratuit.
-- **Parrainage** : chaque entreprise a un lien `/bienvenue?ref=CODE`. Quand l'entreprise parrainée est vérifiée, le parrain reçoit un mois de Pro (gratuit ou en essai), 39 € HTVA de crédit Stripe (abonné) ou 39 € HTVA déduits de son relevé de commission (fournisseur).
+- **Essai** : chaque nouvel entrepreneur a 14 jours de Premium (30 avec un code de parrainage), sans carte. `lifecycle` prévient 3 jours avant la fin puis repasse l'entreprise en Gratuit.
+- **Parrainage** : chaque entreprise a un lien `/bienvenue?ref=CODE`. Quand l'entreprise parrainée est vérifiée, le parrain reçoit un mois de Premium (gratuit ou en essai), 69,99 € HTVA de crédit Stripe (abonné) ou 69,99 € HTVA déduits de son relevé de commission (fournisseur).
 - **Fournisseurs favoris** : un entrepreneur invite ses fournisseurs habituels par e-mail ; ils reçoivent ses demandes en priorité, même hors zone, et rejoignent BatiLink avec le lien d'invitation.
 - **E-mails** : bienvenue, activation (entre 2 et 14 jours si rien n'a été fait), fin d'essai, relance mensuelle des entrepreneurs inactifs, récompense de parrainage. Chaque e-mail part une seule fois (`lifecycle_messages`).
 - **Pilotage** : les vues `funnel_weekly` (inscriptions, entreprises vérifiées, actives et payantes, par semaine et par profil) et `revenue_monthly` (abonnements et commissions par mois) sont réservées au back-office.
@@ -52,6 +54,7 @@ Les architectes utilisent le réseau gratuitement. Les fournisseurs s'inscrivent
 - `purchase_orders`, `order_documents`, `order_links` : les bons de commande, leurs pièces (preuves d'acompte, bons de livraison, factures) et les liens envoyés aux fournisseurs.
 - `payments`, `commission_bills` : les relevés mensuels de commission et leurs paiements Stripe.
 - `company_checks` : l'historique de chaque contrôle, avec la réponse brute du registre comme preuve.
+- `project_commissions` : la commission de 5 % sur les projets d'architectes confirmés, ajoutée au relevé mensuel de celui qui la paie.
 Ces tables sont réservées au back-office : l'app ne peut pas les lire.
 
 ## Vérification des entreprises
@@ -76,16 +79,16 @@ Tant qu'un registre n'est pas branché ou ne répond pas, l'entreprise reste « 
 | Facture | Entrepreneur | Facture Peppol (UBL) comparée à la commande : TVA du fournisseur, TVA de l'entrepreneur, numéro de commande, montant. Une même facture ne peut servir qu'une fois. |
 | Paiement | Entrepreneur paie le fournisseur en direct | Preuve de paiement transmise au fournisseur |
 
-La commission suit le montant facturé quand la facture correspond. Elle est due dès que la vente est prouvée (réception, preuve de paiement, facture conforme, ou 45 jours après la confirmation du fournisseur) ; sinon elle attend le mois suivant. Le 2 de chaque mois, `bill-commissions` envoie à chaque fournisseur le relevé détaillé (numéro de commande, entrepreneur, montant, commission) avec un lien de paiement sécurisé. Faites valider les conditions générales des fournisseurs (commission, acompte, référence de commande sur la facture) par un avocat.
+La commission suit le montant facturé quand la facture correspond. Elle est due dès que la vente est prouvée (réception, preuve de paiement, facture conforme, ou 45 jours après la confirmation du fournisseur) ; sinon elle attend le mois suivant. Le 2 de chaque mois, `bill-commissions` envoie à chaque fournisseur, et à chaque entrepreneur qui doit une commission de projet, le relevé détaillé (numéro de commande, entrepreneur, montant, commission) avec un lien de paiement sécurisé. Faites valider les conditions générales des fournisseurs (commission, acompte, référence de commande sur la facture) par un avocat.
 
-**Facturation de BatiLink** : depuis 2026, les factures entre entreprises belges passent par Peppol. Les relevés `BL-COM-…` servent de référence ; la facture de commission elle-même doit partir de votre logiciel comptable relié à Peppol, avec le même numéro.
+**Facturation de BatiLink** : depuis 2026, les factures entre entreprises belges passent par Peppol. Les relevés `BL-COM-…` servent de référence ; la facture de commission elle-même part du logiciel comptable de la société qui exploite BatiLink, déjà relié à Peppol, avec le même numéro.
 
 ### Brancher Stripe
 
 Stripe sert à encaisser les abonnements et les commissions ; les commandes se paient en direct entre entrepreneur et fournisseur.
 
 1. Créer le compte Stripe de l'entreprise qui exploite BatiLink (Belgique).
-2. Créer deux produits (Pro, Complet), chacun avec un prix mensuel (39 €, 89 € HTVA) et un prix annuel (390 €, 890 € HTVA), et noter les quatre identifiants de prix.
+2. Créer deux produits (Starter, Premium), chacun avec un prix mensuel (69,99 €, 129,99 € HTVA) et un prix annuel (699,90 €, 1 299,90 € HTVA), et noter les quatre identifiants de prix.
 3. Activer le **portail client** (changement de plan, moyen de paiement, factures, résiliation) et, si souhaité, **Stripe Tax**.
 4. Créer un point de terminaison webhook vers `https://<ref>.supabase.co/functions/v1/stripe-webhook` avec les événements `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`.
 5. Renseigner les secrets :
@@ -103,14 +106,14 @@ Stripe sert à encaisser les abonnements et les commissions ; les commandes se p
 
 ## Mise en route
 
-1. Créer un projet sur [supabase.com](https://supabase.com), région **Frankfurt (eu-central-1)**.
+1. Le projet Supabase existe : **batilink**, réf. `bkmzstdviytslegbxsax`, région Frankfurt (eu-central-1), URL `https://bkmzstdviytslegbxsax.supabase.co`. Tout le schéma de `supabase/migrations/` y est installé.
 2. Installer les dépendances : `npm install`.
-3. Lier le projet et appliquer le schéma :
+3. Lier le projet :
    ```bash
    npx supabase login
-   npx supabase link --project-ref <ref>
-   npx supabase db push
+   npx supabase link --project-ref bkmzstdviytslegbxsax
    ```
+   Le schéma a été installé par le connecteur Supabase, sous d'autres numéros de version que les fichiers. Avant le premier `npx supabase db push`, aligner l'historique : `npx supabase migration list`, puis `npx supabase migration repair --status applied <version>` pour chaque fichier déjà installé (tous ceux présents aujourd'hui) et `--status reverted` pour les versions distantes qui n'ont pas de fichier. Un nouveau projet vide s'installe simplement avec `npx supabase db push`.
 4. Configurer les secrets des fonctions puis les déployer :
    ```bash
    npx supabase secrets set BREVO_API_KEY=... EMAIL_FROM=demandes@votre-domaine.be APP_URL=https://app.votre-domaine.be \
@@ -147,7 +150,7 @@ Stripe sert à encaisser les abonnements et les commissions ; les commandes se p
    $$);
    ```
    La deuxième tâche recontrôle chaque nuit les entreprises dont la dernière vérification date de plus de 30 jours. La troisième gère chaque matin les essais, les e-mails d'activation et les parrainages. La quatrième envoie le 2 de chaque mois les relevés de commission du mois précédent.
-6. Copier `.env.example` en `.env` et le remplir, puis lancer l'app : `npm run web`, `npm run ios` ou `npm run android`.
+6. Copier `.env.example` en `.env` et le remplir (`EXPO_PUBLIC_SUPABASE_URL=https://bkmzstdviytslegbxsax.supabase.co`, et la clé publique du projet, Supabase → Project Settings → API Keys, `sb_publishable_…`), puis lancer l'app : `npm run web`, `npm run ios` ou `npm run android`.
 7. Dans Supabase → Authentication → Email templates, mettre `{{ .Token }}` dans le modèle « Magic link » pour que l'e-mail de connexion contienne le code à 6 chiffres.
 
 ### Ajouter les fournisseurs démarchés

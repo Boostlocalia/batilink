@@ -4,9 +4,11 @@
 // - The client confirms they will withhold the legal share (when the
 //   subcontractor has social or tax debts).
 // Each time, both companies are checked again against the registers, right now,
-// before anything is confirmed.
+// before anything is confirmed. A confirmed architect's project records the
+// project commission when the contractor is subscribed.
 
 import { logEvent } from '../_shared/events.ts';
+import { PROJECT_COMMISSION_PAYER, PROJECT_COMMISSION_RATE, projectCommission, SUBSCRIBED_PLANS } from '../_shared/project-commission.ts';
 import { adminClient, callerCompanyId, corsHeaders, json } from '../_shared/supabase.ts';
 import { decideAgreement } from '../_shared/verification.ts';
 import { verifyCompany } from '../_shared/verify.ts';
@@ -25,7 +27,7 @@ Deno.serve(async (req) => {
   };
   const { data: agreement } = await admin
     .from('agreements')
-    .select('id, kind, client_id, subcontractor_id, opportunity_id, response_id, status, subcontractor_accepted_at, retention_acknowledged_at')
+    .select('id, kind, client_id, subcontractor_id, opportunity_id, response_id, amount_ex_vat, status, subcontractor_accepted_at, retention_acknowledged_at')
     .eq('id', agreementId)
     .maybeSingle();
   if (!agreement || ![agreement.client_id, agreement.subcontractor_id].includes(companyId)) return json({ error: 'not_found' }, 404);
@@ -64,6 +66,24 @@ Deno.serve(async (req) => {
     // A subcontract fills the post; an architect's project may need several trades.
     if (agreement.kind === 'subcontract' && agreement.opportunity_id) {
       await admin.from('opportunities').update({ status: 'awarded' }).eq('id', agreement.opportunity_id);
+    }
+  }
+
+  if (decision.status === 'confirmed' && agreement.kind === 'referral' && Number(agreement.amount_ex_vat) > 0) {
+    const { data: sub } = await admin.from('subscriptions').select('plan, status').eq('company_id', agreement.subcontractor_id).maybeSingle();
+    if (sub?.status === 'active' && (SUBSCRIBED_PLANS as readonly string[]).includes(sub.plan)) {
+      const base = Number(agreement.amount_ex_vat);
+      // Unique per agreement: a second confirmation cannot bill twice.
+      await admin.from('project_commissions').insert({
+        agreement_id: agreement.id,
+        payer_id: PROJECT_COMMISSION_PAYER === 'architect' ? agreement.client_id : agreement.subcontractor_id,
+        architect_id: agreement.client_id,
+        contractor_id: agreement.subcontractor_id,
+        base_ex_vat: base,
+        rate: PROJECT_COMMISSION_RATE,
+        amount_ex_vat: projectCommission(base),
+        confirmed_at: now,
+      });
     }
   }
 
