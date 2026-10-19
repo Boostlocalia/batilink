@@ -1,7 +1,8 @@
 // Sends a draft price request to the chosen suppliers: one quote row and one
 // e-mail with a personal reply link per supplier.
 
-import { invitationMail, REPLY_HOURS, sendMail, type Lang } from '../_shared/email.ts';
+import { SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
+import { contractorAddress, invitationMail, REPLY_HOURS, sendMail, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
 import { relayAddress } from '../_shared/relay-address.ts';
 import { canSendPriceRequest, monthStart, type Plan } from '../_shared/plans.ts';
@@ -70,8 +71,9 @@ Deno.serve(async (req) => {
 
   const [{ data: items }, { data: contractor }, { data: suppliers }] = await Promise.all([
     admin.from('request_items').select('label, quantity, unit').eq('request_id', request.id).order('position'),
-    admin.from('companies').select('name, verified_at').eq('id', companyId).single(),
-    admin.from('companies').select('id, email, quote_email, language, commission_rate').in('id', uniqueSuppliers),
+    admin.from('companies').select('name, verified_at, vat_number, street, postal_code, city').eq('id', companyId).single(),
+    // Suppliers who unsubscribed from request e-mails are skipped.
+    admin.from('companies').select('id, email, quote_email, language, commission_rate').in('id', uniqueSuppliers).is('requests_stopped_at', null),
   ]);
 
   const failed: string[] = [];
@@ -98,6 +100,8 @@ Deno.serve(async (req) => {
           to: supplier.quote_email ?? supplier.email,
           contractor: contractor?.name ?? '',
           contractorVerified: Boolean(contractor?.verified_at),
+          contractorVat: contractor?.vat_number ?? null,
+          contractorAddress: contractorAddress(contractor),
           title: request.title,
           postalCode: request.postal_code,
           city: request.city,
@@ -106,7 +110,7 @@ Deno.serve(async (req) => {
           replyBy,
           delivery: request.fulfilment === 'delivery',
           url: `${appUrl()}/offre/${token}`,
-          commissionRate: Number(supplier.commission_rate),
+          commissionRate: SUPPLIER_COMMISSION_ACTIVE ? Number(supplier.commission_rate) : null,
           replyTo: relayAddress('supplier', quote.reply_key, Deno.env.get('RELAY_EMAIL_DOMAIN') ?? undefined),
         }),
       );

@@ -2,7 +2,8 @@
 // 24 h after the invitation, once, and closes requests past their reply date.
 // Only the stored hash of a reply link is known, so a reminder carries a fresh link.
 
-import { invitationMail, sendMail, type Lang } from '../_shared/email.ts';
+import { SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
+import { contractorAddress, invitationMail, sendMail, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
 import { relayAddress } from '../_shared/relay-address.ts';
 import { adminClient, appUrl, json } from '../_shared/supabase.ts';
@@ -26,7 +27,7 @@ Deno.serve(async (req) => {
   const { data: due } = await admin
     .from('quotes')
     .select(
-      'id, reply_key, supplier:companies(email, quote_email, language, commission_rate), request:price_requests!inner(id, title, postal_code, city, needed_by, reply_by, fulfilment, status, company:companies(name, verified_at))',
+      'id, reply_key, supplier:companies(email, quote_email, language, commission_rate, requests_stopped_at), request:price_requests!inner(id, title, postal_code, city, needed_by, reply_by, fulfilment, status, company:companies(name, verified_at, vat_number, street, postal_code, city))',
     )
     .eq('status', 'invited')
     .is('reminded_at', null)
@@ -35,7 +36,13 @@ Deno.serve(async (req) => {
 
   let reminded = 0;
   for (const q of due ?? []) {
-    const supplier = q.supplier as unknown as { email: string | null; quote_email: string | null; language: Lang; commission_rate: number } | null;
+    const supplier = q.supplier as unknown as {
+      email: string | null;
+      quote_email: string | null;
+      language: Lang;
+      commission_rate: number;
+      requests_stopped_at: string | null;
+    } | null;
     const request = q.request as unknown as {
       id: string;
       title: string;
@@ -44,9 +51,16 @@ Deno.serve(async (req) => {
       needed_by: string | null;
       reply_by: string;
       fulfilment: string;
-      company: { name: string; verified_at: string | null } | null;
+      company: {
+        name: string;
+        verified_at: string | null;
+        vat_number: string | null;
+        street: string | null;
+        postal_code: string | null;
+        city: string | null;
+      } | null;
     };
-    if (!supplier?.email) continue;
+    if (!supplier?.email || supplier.requests_stopped_at) continue;
     const token = newToken();
     await admin
       .from('quotes')
@@ -64,6 +78,8 @@ Deno.serve(async (req) => {
           to: supplier.quote_email ?? supplier.email,
           contractor: request.company?.name ?? '',
           contractorVerified: Boolean(request.company?.verified_at),
+          contractorVat: request.company?.vat_number ?? null,
+          contractorAddress: contractorAddress(request.company),
           title: request.title,
           postalCode: request.postal_code,
           city: request.city,
@@ -72,7 +88,7 @@ Deno.serve(async (req) => {
           replyBy: request.reply_by,
           delivery: request.fulfilment === 'delivery',
           url: `${appUrl()}/offre/${token}`,
-          commissionRate: Number(supplier.commission_rate),
+          commissionRate: SUPPLIER_COMMISSION_ACTIVE ? Number(supplier.commission_rate) : null,
           replyTo: relayAddress('supplier', q.reply_key, Deno.env.get('RELAY_EMAIL_DOMAIN') ?? undefined),
         },
         true,

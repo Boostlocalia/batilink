@@ -88,6 +88,7 @@ export const growthFr = {
       wonAmount: 'Ventes via ' + APP_NAME,
     },
     month: 'Ce mois-ci',
+    monthSales: (sales: string) => `${sales} de ventes via ${APP_NAME}.`,
     monthLine: (sales: string, commission: string) => `${sales} de ventes, ${commission} de commission à facturer en fin de mois.`,
     requests: 'Demandes de prix',
     noRequests: 'Aucune demande pour l’instant. Elles arrivent par e-mail et s’affichent ici.',
@@ -118,7 +119,7 @@ export const growthFr = {
     eyebrow: 'Pour les PME de la construction en Belgique',
     title: 'Achetez vos matériaux au meilleur prix. Travaillez avec des partenaires en règle.',
     lead: `${APP_NAME} envoie vos demandes de prix aux négoces de votre zone, compare les offres ligne par ligne et garde la preuve de chaque commande. En français et en néerlandais.`,
-    proof: ['Vérification BCE, ONSS et SPF Finances', 'Factures Peppol contrôlées', 'Sans engagement'],
+    proof: ['Vérification TVA et BCE', 'Factures Peppol contrôlées', 'Sans engagement'],
     personasTitle: 'Une plateforme, trois métiers',
     personas: {
       contractor: {
@@ -133,7 +134,7 @@ export const growthFr = {
       },
       architect: {
         title: 'Architectes',
-        points: ['Publiez vos projets gratuitement', 'Entrepreneurs vérifiés de votre zone', 'Situation ONSS et fiscale visible', 'Gratuit, sans limite'],
+        points: ['Publiez vos projets gratuitement', 'Entrepreneurs vérifiés de votre zone', 'Entreprises en règle (TVA, BCE)', 'Gratuit, sans limite'],
         cta: 'Je suis architecte',
       },
     },

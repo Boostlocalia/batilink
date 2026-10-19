@@ -87,6 +87,7 @@ export const nl: Dictionary = {
     postalCode: 'Postcode van de werf',
     city: 'Gemeente',
     replyWindow: 'De aanvraag krijgt de datum van verzending. Leveranciers hebben 48 uur om hun offerte in te dienen.',
+    consent: 'Door de aanvraag te versturen, gaat u ermee akkoord dat de naam, het btw-nummer en het adres van uw bedrijf aan de gekozen leveranciers worden bezorgd. Uw e-mailadres krijgen ze pas als u hun offerte kiest.',
     fulfilment: 'Levering of afhaling',
     delivery: 'Levering op de werf',
     pickup: 'Afhaling',
@@ -298,7 +299,7 @@ export const nl: Dictionary = {
     suggestions: {
       contractor: ['Hoe verstuur ik een prijsaanvraag?', 'Hoe controleert u de bedrijven?', 'Wat houdt het Premium-plan in?'],
       architect: ['Hoe plaats ik een project?', 'Hoe worden aannemers gecontroleerd?', 'Wat gebeurt er als ik in contact breng?'],
-      supplier: ['Hoe geef ik mijn prijs door?', 'Hoe stel ik een vraag aan de aannemer?', 'Hoe werkt de commissie?'],
+      supplier: ['Hoe geef ik mijn prijs door?', 'Hoe stel ik een vraag aan de aannemer?', 'Hoeveel tijd heb ik om te antwoorden?'],
     },
   },
   guide: {
@@ -477,7 +478,13 @@ export const nl: Dictionary = {
   },
   supplier: {
     title: 'Prijsaanvraag',
-    from: (contractor: string) => `Van ${contractor}`,
+    site: (place: string) => `Werf in ${place}`,
+    client: 'Klant',
+    stopTitle: 'Geen prijsaanvragen meer ontvangen',
+    stopLead: 'U ontvangt geen prijsaanvragen van aannemers meer via Batinode. Wilt u ze opnieuw ontvangen, schrijf dan naar support@batinode.be.',
+    stopConfirm: 'Afmelden',
+    stopCancel: 'Aanvraag bekijken',
+    stopped: 'Genoteerd: u ontvangt geen prijsaanvragen meer via Batinode.',
     noAccount: 'Geen account nodig. Deze link is persoonlijk.',
     sentOn: (date: string) => `Aanvraag van ${date}`,
     replyBy: (date: string) => `48 uur om uw offerte in te dienen (tot ${date})`,

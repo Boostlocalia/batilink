@@ -2,7 +2,7 @@
 // a numbered purchase order and the supplier's commission are recorded, and every
 // supplier who answered is told by e-mail (the winner gets the order to confirm).
 
-import { commissionFor } from '../_shared/commission.ts';
+import { commissionFor, SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
 import { awardedMail, notSelectedMail, sendMail, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
 import { issueSupplierLink } from '../_shared/order-docs.ts';
@@ -60,23 +60,25 @@ Deno.serve(async (req) => {
   // The award stands either way; a missing order shows up in the back office.
   if (orderError) console.error('order', orderError.message);
   const orderUrl = order ? await issueSupplierLink(admin, order.id).catch((e) => (console.error(e), null)) : null;
-  const { error: commissionError } = await admin.from('commissions').insert({
-    order_id: order?.id ?? null,
-    quote_id: quote.id,
-    supplier_id: quote.supplier_id,
-    contractor_id: companyId,
-    base_ex_vat: base,
-    rate,
-    amount_ex_vat: commissionFor(base, rate),
-  });
-  // The award stands either way; a missing commission row shows up in the back office.
-  if (commissionError) console.error('commission', commissionError.message);
+  if (SUPPLIER_COMMISSION_ACTIVE) {
+    const { error: commissionError } = await admin.from('commissions').insert({
+      order_id: order?.id ?? null,
+      quote_id: quote.id,
+      supplier_id: quote.supplier_id,
+      contractor_id: companyId,
+      base_ex_vat: base,
+      rate,
+      amount_ex_vat: commissionFor(base, rate),
+    });
+    // The award stands either way; a missing commission row shows up in the back office.
+    if (commissionError) console.error('commission', commissionError.message);
+  }
   await logEvent(admin, {
     kind: 'quote_awarded',
     company_id: companyId,
     request_id: request.id,
     quote_id: quote.id,
-    data: { supplier_id: quote.supplier_id, total_ex_vat: base, commission_rate: rate, order: order?.number ?? null },
+    data: { supplier_id: quote.supplier_id, total_ex_vat: base, commission_rate: SUPPLIER_COMMISSION_ACTIVE ? rate : 0, order: order?.number ?? null },
   });
   await admin
     .from('quotes')
@@ -103,7 +105,7 @@ Deno.serve(async (req) => {
             supplier.email,
             contractor?.name ?? '',
             request.title,
-            { base, rate, amount: commissionFor(base, rate) },
+            SUPPLIER_COMMISSION_ACTIVE ? { base, rate, amount: commissionFor(base, rate) } : null,
             // Without an order (it failed to be created), the back office follows up.
             order && orderUrl ? { number: order.number, url: orderUrl } : { number: '–', url: appUrl() },
           )

@@ -8,6 +8,8 @@ const base = {
   to: 'offres@exemple.be',
   contractor: 'Bati Services SRL',
   contractorVerified: true,
+  contractorVat: 'BE0403170701',
+  contractorAddress: 'Rue de la Station 12, 1410 Waterloo',
   title: 'Chape <urgent>',
   postalCode: '1410',
   city: 'Waterloo',
@@ -16,22 +18,30 @@ const base = {
   replyBy: '2026-10-22',
   delivery: true,
   url: 'https://app.batinode.be/offre/abc',
-  commissionRate: 0.05,
+  commissionRate: null,
 };
 
 describe('invitationMail', () => {
   it('writes to a French-speaking supplier in French', () => {
     const mail = invitationMail({ ...base, lang: 'fr' });
-    expect(mail.subject).toBe('Nouvelle demande de prix : Chape <urgent> (1410 Waterloo)');
+    expect(mail.subject).toBe('Demande de prix de Bati Services SRL : Chape <urgent> (1410 Waterloo)');
     expect(mail.text).toContain('40 sac(s) · Ciment CEM II');
-    expect(mail.html).toContain('Remettre mon prix');
+    expect(mail.html).toContain('Remettre mon offre');
   });
 
   it('writes to a Dutch-speaking supplier in Dutch', () => {
     const mail = invitationMail({ ...base, lang: 'nl' });
-    expect(mail.subject).toBe('Nieuwe prijsaanvraag: Chape <urgent> (1410 Waterloo)');
+    expect(mail.subject).toBe('Prijsaanvraag van Bati Services SRL: Chape <urgent> (1410 Waterloo)');
     expect(mail.text).toContain('40 zak(ken) · Ciment CEM II');
-    expect(mail.html).toContain('Mijn prijs doorgeven');
+    expect(mail.html).toContain('Mijn offerte indienen');
+  });
+
+  it('presents the client, the 48-hour deadline and a way to unsubscribe', () => {
+    const mail = invitationMail({ ...base, lang: 'fr' });
+    expect(mail.text).toContain('Client : Bati Services SRL · TVA BE0403170701 · Rue de la Station 12, 1410 Waterloo');
+    expect(mail.text).toContain('48 heures');
+    expect(mail.text).toContain('https://app.batinode.be/offre/abc?stop=1');
+    expect(mail.text).not.toMatch(/commission/i);
   });
 
   it('marks reminders in the subject', () => {
@@ -65,9 +75,10 @@ describe('commission', () => {
     expect(commissionFor(2274, 0.03)).toBe(68.22);
   });
 
-  it('is announced in the invitation and detailed in the award e-mail', () => {
-    expect(invitationMail({ ...base, lang: 'fr' }).text).toMatch(/commission de 5\s?%/);
-    expect(invitationMail({ ...base, lang: 'nl' }).text).toMatch(/commissie van 5\s?%/);
+  it('is announced in the invitation and detailed in the award e-mail once active', () => {
+    expect(invitationMail({ ...base, lang: 'fr', commissionRate: 0.05 }).text).toMatch(/commission de 5\s?%/);
+    expect(invitationMail({ ...base, lang: 'nl', commissionRate: 0.05 }).text).toMatch(/commissie van 5\s?%/);
+    expect(awardedMail('fr', 'a@b.be', 'Bati', 'Chape', null, { number: 'BL-1', url: 'https://x' }).text).not.toMatch(/commission/i);
     const mail = awardedMail('fr', 'a@b.be', 'Bati', 'Chape', { base: 1505, rate: 0.05, amount: 75.25 }, { number: 'BL-2026-000042', url: 'https://x/bon/t' });
     expect(mail.text).toContain('75,25');
     expect(mail.text).toContain('BL-2026-000042');

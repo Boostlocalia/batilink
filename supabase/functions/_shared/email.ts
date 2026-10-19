@@ -59,6 +59,9 @@ export type InvitationData = {
   to: string;
   contractor: string;
   contractorVerified: boolean;
+  /** The client's company details, so the supplier recognises a real customer. */
+  contractorVat: string | null;
+  contractorAddress: string | null;
   title: string;
   postalCode: string;
   city: string | null;
@@ -67,8 +70,8 @@ export type InvitationData = {
   replyBy: string;
   delivery: boolean;
   url: string;
-  /** Commission due if the offer is awarded, e.g. 0.05. */
-  commissionRate: number;
+  /** Commission due if the offer is awarded, e.g. 0.05; null while suppliers answer for free. */
+  commissionRate: number | null;
   /** Supplier's relay address: replying to the e-mail asks the contractor a question. */
   replyTo?: string;
 };
@@ -94,35 +97,51 @@ function itemLines(d: InvitationData): { html: string; text: string } {
 /** Hours a supplier has to answer a price request, from the moment it is sent. */
 export const REPLY_HOURS = 48;
 
+/** "Rue X 1, 1000 Bruxelles" from a company's address fields, or null. */
+export function contractorAddress(c: { street: string | null; postal_code: string | null; city: string | null } | null | undefined): string | null {
+  if (!c) return null;
+  const town = [c.postal_code, c.city].filter(Boolean).join(' ');
+  return [c.street, town].filter(Boolean).join(', ') || null;
+}
+
 export function invitationMail(d: InvitationData, reminder = false): Mail {
   const place = `${d.postalCode}${d.city ? ` ${d.city}` : ''}`;
   const items = itemLines(d);
+  const stopUrl = `${d.url}?stop=1`;
   if (d.lang === 'nl') {
-    const who = `${d.contractor}${d.contractorVerified ? ' (geverifieerd bedrijf)' : ''}`;
+    const client = [d.contractor, d.contractorVat ? `btw ${d.contractorVat}` : null, d.contractorAddress].filter(Boolean).join(' · ');
     const when = d.neededBy ? `${d.delivery ? 'levering op de werf' : 'afhaling'} op ${dateFmt(d.neededBy, 'nl')}` : d.delivery ? 'levering op de werf' : 'afhaling';
-    const intro = `${esc(who)} vraagt u een prijs voor ${d.items.length} product(en) in ${esc(place)}, ${when}. U hebt 48 uur om uw offerte in te dienen (tot ${dateFmt(d.replyBy, 'nl')}).`;
-    const subject = `${reminder ? 'Herinnering: ' : ''}Nieuwe prijsaanvraag: ${d.title} (${place})`;
-    const ask = 'Een vraag over de aanvraag? Beantwoord gewoon deze e-mail: we sturen uw vraag door naar de aannemer en bezorgen u zijn antwoord.';
-    const footer = `Antwoorden is gratis en zonder account. Wordt uw offerte gekozen, dan factureert ${APP_NAME} een commissie van ${pct(d.commissionRate, 'nl')} excl. btw op het bedrag van de offerte. U krijgt deze e-mail omdat uw handel deze categorie en regio bedient op ${APP_NAME}.`;
+    const intro = `Uw klant <b>${esc(d.contractor)}</b>${d.contractorVerified ? ' (geverifieerd bedrijf)' : ''} vraagt u via ${APP_NAME} een offerte voor ${d.items.length} product(en), werf in ${esc(place)}, ${when}.`;
+    const deadline = `U hebt 48 uur om uw offerte in te dienen (tot ${dateFmt(d.replyBy, 'nl')}). Wij bezorgen ze meteen aan de klant.`;
+    const subject = `${reminder ? 'Herinnering: ' : ''}Prijsaanvraag van ${d.contractor}: ${d.title} (${place})`;
+    const ask = 'Een vraag over de aanvraag? Beantwoord gewoon deze e-mail: we sturen uw vraag door naar de klant en bezorgen u zijn antwoord.';
+    const terms = d.commissionRate
+      ? `Wordt uw offerte gekozen, dan factureert ${APP_NAME} een commissie van ${pct(d.commissionRate, 'nl')} excl. btw op het bedrag van de offerte.`
+      : 'Antwoorden is gratis, zonder account en zonder verplichting.';
+    const footer = `${terms} Geen aanvragen meer ontvangen via ${APP_NAME}? <a href="${stopUrl}">Afmelden</a>.`;
     return {
       to: d.to,
       subject,
-      html: layout(['Goedendag,', intro, items.html], { label: 'Mijn prijs doorgeven', url: d.url }, `${ask}<br><br>${footer}`),
-      text: `Goedendag,\n\n${who} vraagt u een prijs voor:\n${items.text}\n\nAntwoorden: ${d.url}\n\n${ask}\n\n${footer}`,
+      html: layout(['Goedendag,', intro, `<b>Klant:</b> ${esc(client)}`, items.html, deadline], { label: 'Mijn offerte indienen', url: d.url }, `${ask}<br><br>${footer}`),
+      text: `Goedendag,\n\n${d.contractor} vraagt u via ${APP_NAME} een offerte.\nKlant: ${client}\nWerf: ${place}\n${items.text}\n\n${deadline}\nOfferte indienen: ${d.url}\n\n${ask}\n\n${terms}\nAfmelden: ${stopUrl}`,
       replyTo: d.replyTo,
     };
   }
-  const who = `${d.contractor}${d.contractorVerified ? ' (entreprise vérifiée)' : ''}`;
+  const client = [d.contractor, d.contractorVat ? `TVA ${d.contractorVat}` : null, d.contractorAddress].filter(Boolean).join(' · ');
   const when = d.neededBy ? `${d.delivery ? 'livraison sur chantier' : 'enlèvement'} le ${dateFmt(d.neededBy, 'fr')}` : d.delivery ? 'livraison sur chantier' : 'enlèvement';
-  const intro = `${esc(who)} vous demande un prix pour ${d.items.length} produit(s) à ${esc(place)}, ${when}. Vous avez 48 heures pour remettre votre offre (jusqu'au ${dateFmt(d.replyBy, 'fr')}).`;
-  const subject = `${reminder ? 'Rappel : ' : ''}Nouvelle demande de prix : ${d.title} (${place})`;
-  const ask = "Une question sur la demande ? Répondez simplement à cet e-mail : nous transmettons votre question à l'entrepreneur et vous renvoyons sa réponse.";
-  const footer = `Répondre est gratuit et ne demande pas de compte. Si votre offre est retenue, ${APP_NAME} facture une commission de ${pct(d.commissionRate, 'fr')} HTVA sur le montant de l'offre. Vous recevez cet e-mail parce que votre négoce couvre cette catégorie et cette zone sur ${APP_NAME}.`;
+  const intro = `Votre client <b>${esc(d.contractor)}</b>${d.contractorVerified ? ' (entreprise vérifiée)' : ''} vous demande, via ${APP_NAME}, une offre pour ${d.items.length} produit(s), chantier à ${esc(place)}, ${when}.`;
+  const deadline = `Vous avez 48 heures pour remettre votre offre (jusqu'au ${dateFmt(d.replyBy, 'fr')}). Nous la transmettons aussitôt au client.`;
+  const subject = `${reminder ? 'Rappel : ' : ''}Demande de prix de ${d.contractor} : ${d.title} (${place})`;
+  const ask = "Une question sur la demande ? Répondez simplement à cet e-mail : nous transmettons votre question au client et vous renvoyons sa réponse.";
+  const terms = d.commissionRate
+    ? `Si votre offre est retenue, ${APP_NAME} facture une commission de ${pct(d.commissionRate, 'fr')} HTVA sur le montant de l'offre.`
+    : 'Répondre est gratuit, sans compte et sans engagement.';
+  const footer = `${terms} Vous ne souhaitez plus recevoir de demandes via ${APP_NAME} ? <a href="${stopUrl}">Se désinscrire</a>.`;
   return {
     to: d.to,
     subject,
-    html: layout(['Bonjour,', intro, items.html], { label: 'Remettre mon prix', url: d.url }, `${esc(ask)}<br><br>${footer}`),
-    text: `Bonjour,\n\n${who} vous demande un prix pour :\n${items.text}\n\nRépondre : ${d.url}\n\n${ask}\n\n${footer}`,
+    html: layout(['Bonjour,', intro, `<b>Client :</b> ${esc(client)}`, items.html, deadline], { label: 'Remettre mon offre', url: d.url }, `${esc(ask)}<br><br>${footer}`),
+    text: `Bonjour,\n\n${d.contractor} vous demande une offre via ${APP_NAME}.\nClient : ${client}\nChantier : ${place}\n${items.text}\n\n${deadline}\nRemettre mon offre : ${d.url}\n\n${ask}\n\n${terms}\nSe désinscrire : ${stopUrl}`,
     replyTo: d.replyTo,
   };
 }
@@ -135,7 +154,7 @@ export function awardedMail(
   to: string,
   contractor: string,
   title: string,
-  commission: CommissionLine,
+  commission: CommissionLine | null,
   order: { number: string; url: string },
 ): Mail {
   if (lang === 'nl') {
@@ -143,8 +162,10 @@ export function awardedMail(
       `Goed nieuws: ${esc(contractor)} heeft uw offerte voor « ${esc(title)} » gekozen. Bestelbon: <b>${esc(order.number)}</b>.`,
       'Bevestig de bestelling via de knop hieronder. U kunt er een voorschot vragen: de aannemer betaalt u rechtstreeks en stuurt het betalingsbewijs voordat u de bestelling start.',
       `Vermeld het nummer ${esc(order.number)} als bestelreferentie op uw (Peppol-)factuur.`,
-      `Commissie ${APP_NAME}: ${pct(commission.rate, 'nl')} van het gefactureerde bedrag excl. btw (offerte: ${eur(commission.base, 'nl')}, of ${eur(commission.amount, 'nl')}), gefactureerd aan het einde van de maand.`,
-    ];
+      commission
+        ? `Commissie ${APP_NAME}: ${pct(commission.rate, 'nl')} van het gefactureerde bedrag excl. btw (offerte: ${eur(commission.base, 'nl')}, of ${eur(commission.amount, 'nl')}), gefactureerd aan het einde van de maand.`
+        : null,
+    ].filter((l): l is string => l !== null);
     return {
       to,
       subject: `Uw offerte is gekozen: ${title} (${order.number})`,
@@ -156,8 +177,10 @@ export function awardedMail(
     `Bonne nouvelle : ${esc(contractor)} a retenu votre offre pour « ${esc(title)} ». Bon de commande : <b>${esc(order.number)}</b>.`,
     "Confirmez la commande avec le bouton ci-dessous. Vous pouvez y demander un acompte : l'entrepreneur vous le paie directement et envoie la preuve de paiement avant que vous lanciez la commande.",
     `Indiquez le numéro ${esc(order.number)} comme référence de commande sur votre facture (Peppol).`,
-    `Commission ${APP_NAME} : ${pct(commission.rate, 'fr')} du montant facturé HTVA (offre : ${eur(commission.base, 'fr')}, soit ${eur(commission.amount, 'fr')}), facturée en fin de mois.`,
-  ];
+    commission
+      ? `Commission ${APP_NAME} : ${pct(commission.rate, 'fr')} du montant facturé HTVA (offre : ${eur(commission.base, 'fr')}, soit ${eur(commission.amount, 'fr')}), facturée en fin de mois.`
+      : null,
+  ].filter((l): l is string => l !== null);
   return {
     to,
     subject: `Votre offre est retenue : ${title} (${order.number})`,

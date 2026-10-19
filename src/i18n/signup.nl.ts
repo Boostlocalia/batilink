@@ -16,7 +16,7 @@ export const signupNl: typeof signupFr = {
     },
     supplier: {
       title: 'Leverancier of handelaar',
-      lead: 'Ontvang prijsaanvragen van aannemers in uw regio. Gratis inschrijving, commissie alleen op verkopen.',
+      lead: 'Ontvang prijsaanvragen van aannemers in uw regio. Inschrijven en antwoorden is gratis.',
     },
     architect: {
       title: 'Architect',

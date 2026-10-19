@@ -90,6 +90,7 @@ export const growthNl: typeof growthFr = {
       wonAmount: 'Verkoop via ' + APP_NAME,
     },
     month: 'Deze maand',
+    monthSales: (sales: string) => `${sales} verkoop via ${APP_NAME}.`,
     monthLine: (sales: string, commission: string) => `${sales} verkoop, ${commission} commissie te factureren op het einde van de maand.`,
     requests: 'Prijsaanvragen',
     noRequests: 'Nog geen aanvragen. Ze komen per e-mail en verschijnen hier.',
@@ -120,7 +121,7 @@ export const growthNl: typeof growthFr = {
     eyebrow: 'Voor bouw-kmo’s in België',
     title: 'Koop uw materialen aan de beste prijs. Werk met partners die in orde zijn.',
     lead: `${APP_NAME} stuurt uw prijsaanvragen naar de handelaars in uw regio, vergelijkt de offertes regel per regel en bewaart het bewijs van elke bestelling. In het Nederlands en het Frans.`,
-    proof: ['Controle KBO, RSZ en FOD Financiën', 'Peppol-facturen gecontroleerd', 'Zonder verbintenis'],
+    proof: ['Controle btw en KBO', 'Peppol-facturen gecontroleerd', 'Zonder verbintenis'],
     personasTitle: 'Eén platform, drie beroepen',
     personas: {
       contractor: {
@@ -135,7 +136,7 @@ export const growthNl: typeof growthFr = {
       },
       architect: {
         title: 'Architecten',
-        points: ['Publiceer uw projecten gratis', 'Geverifieerde aannemers uit uw regio', 'RSZ- en fiscale situatie zichtbaar', 'Gratis, zonder limiet'],
+        points: ['Publiceer uw projecten gratis', 'Geverifieerde aannemers uit uw regio', 'Bedrijven in orde (btw, KBO)', 'Gratis, zonder limiet'],
         cta: 'Ik ben architect',
       },
     },

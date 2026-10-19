@@ -27,7 +27,7 @@ import {
 } from '@/lib/signup';
 import { clearIntent, readIntent } from '@/lib/signup-intent';
 import { supabase } from '@/lib/supabase';
-import { DEFAULT_COMMISSION_RATE, formatRate } from '../../supabase/functions/_shared/commission';
+import { DEFAULT_COMMISSION_RATE, formatRate, SUPPLIER_COMMISSION_ACTIVE } from '../../supabase/functions/_shared/commission';
 
 type Item = { id: number; label_fr: string; label_nl: string };
 
@@ -134,7 +134,7 @@ export default function SignupScreen() {
     }
     if (n === 4) {
       if (!terms) e.terms = s.errors.terms;
-      if (profile === 'supplier' && !commission) e.commission = s.errors.commission;
+      if (profile === 'supplier' && SUPPLIER_COMMISSION_ACTIVE && !commission) e.commission = s.errors.commission;
     }
     return e;
   };
@@ -164,7 +164,7 @@ export default function SignupScreen() {
     if (profile === 'contractor') Object.assign(answers, { work_types: workTypes, client_types: clientTypes, monthly_purchases: monthlyPurchases });
     if (profile === 'supplier') {
       Object.assign(answers, {
-        commission: true,
+        commission: SUPPLIER_COMMISSION_ACTIVE,
         supplier_type: supplierType,
         delivers,
         pickup,
@@ -415,7 +415,7 @@ export default function SignupScreen() {
             </Group>
             <Field label={s.referral} value={referral} onChangeText={setReferral} autoCapitalize="characters" hint={s.referralHint} />
             <Check label={s.terms} checked={terms} onChange={setTerms} error={errors.terms} />
-            {profile === 'supplier' ? <Check label={s.commission(rate)} checked={commission} onChange={setCommission} error={errors.commission} /> : null}
+            {profile === 'supplier' && SUPPLIER_COMMISSION_ACTIVE ? <Check label={s.commission(rate)} checked={commission} onChange={setCommission} error={errors.commission} /> : null}
             {errors.form ? <ThemedText themeColor="danger">{errors.form}</ThemedText> : null}
           </Card>
         </>

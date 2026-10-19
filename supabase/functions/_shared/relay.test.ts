@@ -45,6 +45,8 @@ describe('relay e-mails', () => {
       to: 'offres@negoce.be',
       contractor: 'Bati SRL',
       contractorVerified: false,
+      contractorVat: null,
+      contractorAddress: null,
       title: 'Chape',
       postalCode: '1000',
       city: null,

@@ -364,6 +364,9 @@ export default function NewRequestScreen() {
           ) : (
             <>
               {limit ? <UpgradeCard reason={limit} /> : null}
+              <ThemedText type="small" themeColor="textSecondary">
+                {t.request.consent}
+              </ThemedText>
               <Button label={t.request.send(picked.size)} variant="signal" onPress={send} busy={busy} disabled={picked.size === 0} />
             </>
           )}

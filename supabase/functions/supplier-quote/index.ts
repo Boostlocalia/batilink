@@ -2,9 +2,10 @@
 // GET  ?token=…  returns the request to price.
 // POST { token, prices, delivery_fee, lead_time_days, valid_until, comment, accept_commission }
 // submits the offer, { token, decline: true } declines it, and
-// { token, question } asks the contractor something (relayed like a reply e-mail).
+// { token, question } asks the contractor something (relayed like a reply e-mail),
+// and { token, stop_requests: true } unsubscribes the supplier from request e-mails.
 
-import { offerTotalExVat } from '../_shared/commission.ts';
+import { offerTotalExVat, SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
 import { newQuoteMail, sendMail, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
 import { adminClient, appUrl, corsHeaders, json } from '../_shared/supabase.ts';
@@ -37,11 +38,11 @@ Deno.serve(async (req) => {
     const [{ data: request }, { data: items }, { data: supplier }, { data: prices }, { data: messages }] = await Promise.all([
       admin
         .from('price_requests')
-        .select('title, postal_code, city, needed_by, reply_by, sent_at, fulfilment, note, status, company:companies(name, verified_at)')
+        .select('title, postal_code, city, needed_by, reply_by, sent_at, fulfilment, note, status, company:companies(name, verified_at, vat_number, street, postal_code, city)')
         .eq('id', quote.request_id)
         .single(),
       admin.from('request_items').select('id, label, quantity, unit').eq('request_id', quote.request_id).order('position'),
-      admin.from('companies').select('name, language, commission_rate').eq('id', quote.supplier_id).single(),
+      admin.from('companies').select('name, language, commission_rate, requests_stopped_at').eq('id', quote.supplier_id).single(),
       admin.from('quote_items').select('item_id, unit_price').eq('quote_id', quote.id),
       admin
         .from('quote_messages')
@@ -62,7 +63,13 @@ Deno.serve(async (req) => {
       },
       request,
       items,
-      supplier: supplier && { ...supplier, commission_rate: Number(supplier.commission_rate) },
+      supplier: supplier && {
+        name: supplier.name,
+        language: supplier.language,
+        // null while suppliers answer for free.
+        commission_rate: SUPPLIER_COMMISSION_ACTIVE ? Number(supplier.commission_rate) : null,
+        requests_stopped: Boolean(supplier.requests_stopped_at),
+      },
       // The supplier sees their own words, and the contractor's answers as relayed to them.
       messages: (messages ?? []).map((m) => ({
         author: m.author,
@@ -76,6 +83,13 @@ Deno.serve(async (req) => {
   const body = await req.json();
   const quote = await findQuote(admin, body.token);
   if (!quote) return json({ error: 'invalid_link' }, 404);
+
+  // Works on any link, even once the request is closed.
+  if (body.stop_requests === true) {
+    await admin.from('companies').update({ requests_stopped_at: new Date().toISOString() }).eq('id', quote.supplier_id).is('requests_stopped_at', null);
+    await logEvent(admin, { kind: 'supplier_unsubscribed', company_id: quote.supplier_id, quote_id: quote.id });
+    return json({ ok: true });
+  }
 
   const { data: request } = await admin
     .from('price_requests')
@@ -99,7 +113,7 @@ Deno.serve(async (req) => {
   }
 
   // Offers are made on the platform's terms: a commission is due if this one is awarded.
-  if (!quote.commission_accepted_at && body.accept_commission !== true) {
+  if (SUPPLIER_COMMISSION_ACTIVE && !quote.commission_accepted_at && body.accept_commission !== true) {
     return json({ error: 'commission_not_accepted' }, 400);
   }
 
@@ -134,7 +148,7 @@ Deno.serve(async (req) => {
       comment: typeof body.comment === 'string' ? body.comment.slice(0, 2000) : null,
       submitted_at: new Date().toISOString(),
       total_ex_vat: totalExVat,
-      commission_accepted_at: quote.commission_accepted_at ?? new Date().toISOString(),
+      commission_accepted_at: quote.commission_accepted_at ?? (SUPPLIER_COMMISSION_ACTIVE ? new Date().toISOString() : null),
     })
     .eq('id', quote.id);
   await logEvent(admin, {

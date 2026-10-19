@@ -26,7 +26,8 @@ type Event = {
     | 'payment_failed'
     | 'subscription_changed'
     | 'commission_billed'
-    | 'supplier_requested';
+    | 'supplier_requested'
+    | 'supplier_unsubscribed';
   company_id?: string | null;
   request_id?: string | null;
   quote_id?: string | null;

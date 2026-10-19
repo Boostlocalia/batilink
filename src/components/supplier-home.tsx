@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
 import { useSession } from '@/lib/session';
+import { SUPPLIER_COMMISSION_ACTIVE } from '@/lib/commission';
 import { supabase } from '@/lib/supabase';
 
 type QuoteStatus = 'invited' | 'submitted' | 'declined' | 'awarded' | 'not_selected';
@@ -92,7 +93,9 @@ export function SupplierHome() {
 
           <Card>
             <ThemedText type="smallBold">{s.month}</ThemedText>
-            <ThemedText themeColor="textSecondary">{s.monthLine(eur(space.this_month.sales_ex_vat), eur(space.this_month.commission_ex_vat))}</ThemedText>
+            <ThemedText themeColor="textSecondary">
+              {SUPPLIER_COMMISSION_ACTIVE ? s.monthLine(eur(space.this_month.sales_ex_vat), eur(space.this_month.commission_ex_vat)) : s.monthSales(eur(space.this_month.sales_ex_vat))}
+            </ThemedText>
           </Card>
 
           <Card>

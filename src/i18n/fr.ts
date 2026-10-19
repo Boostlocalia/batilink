@@ -85,6 +85,7 @@ export const fr = {
     postalCode: 'Code postal du chantier',
     city: 'Commune',
     replyWindow: 'La demande est datée du jour de l’envoi. Les fournisseurs ont 48 heures pour remettre leur offre.',
+    consent: 'En envoyant la demande, vous acceptez que le nom, le numéro de TVA et l’adresse de votre entreprise soient transmis aux fournisseurs choisis. Votre adresse e-mail ne leur est communiquée que si vous retenez leur offre.',
     fulfilment: 'Livraison ou enlèvement',
     delivery: 'Livraison sur chantier',
     pickup: 'Enlèvement',
@@ -297,7 +298,7 @@ export const fr = {
     suggestions: {
       contractor: ['Comment envoyer une demande de prix ?', 'Comment vérifiez-vous les entreprises ?', 'Que comprend le plan Premium ?'],
       architect: ['Comment publier un projet ?', 'Comment les entrepreneurs sont-ils vérifiés ?', 'Que se passe-t-il quand je mets en relation ?'],
-      supplier: ['Comment remettre mon prix ?', "Comment poser une question à l'entrepreneur ?", 'Comment fonctionne la commission ?'],
+      supplier: ['Comment remettre mon prix ?', "Comment poser une question à l'entrepreneur ?", 'Combien de temps ai-je pour répondre ?'],
     },
   },
   guide: {
@@ -476,7 +477,13 @@ export const fr = {
   },
   supplier: {
     title: 'Demande de prix',
-    from: (contractor: string) => `De la part de ${contractor}`,
+    site: (place: string) => `Chantier à ${place}`,
+    client: 'Client',
+    stopTitle: 'Ne plus recevoir de demandes de prix',
+    stopLead: 'Vous ne recevrez plus de demandes de prix d’entrepreneurs via Batinode. Pour les recevoir à nouveau, écrivez à support@batinode.be.',
+    stopConfirm: 'Me désinscrire',
+    stopCancel: 'Voir la demande',
+    stopped: 'C’est noté : vous ne recevrez plus de demandes de prix via Batinode.',
     noAccount: 'Pas de compte nécessaire. Ce lien est personnel.',
     sentOn: (date: string) => `Demande du ${date}`,
     replyBy: (date: string) => `48 heures pour remettre votre offre (jusqu’au ${date})`,

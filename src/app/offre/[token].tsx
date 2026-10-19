@@ -39,10 +39,18 @@ type Payload = {
     fulfilment: "delivery" | "pickup";
     note: string | null;
     status: string;
-    company: { name: string; verified_at: string | null } | null;
+    company: {
+      name: string;
+      verified_at: string | null;
+      vat_number: string | null;
+      street: string | null;
+      postal_code: string | null;
+      city: string | null;
+    } | null;
   };
   items: { id: string; label: string; quantity: number; unit: string }[];
-  supplier: { name: string; language: Language; commission_rate: number };
+  /** commission_rate is null while suppliers answer for free. */
+  supplier: { name: string; language: Language; commission_rate: number | null; requests_stopped: boolean };
   messages: {
     author: "supplier" | "contractor";
     text: string | null;
@@ -52,13 +60,14 @@ type Payload = {
 
 /** Public page opened from the supplier e-mail. No account needed. */
 export default function SupplierQuoteScreen() {
-  const { token } = useLocalSearchParams<{ token: string }>();
+  const { token, stop } = useLocalSearchParams<{ token: string; stop?: string }>();
   const { t, locale, language, setLanguage } = useI18n();
   const theme = useTheme();
   const [data, setData] = useState<Payload | null>(null);
   const [state, setState] = useState<
-    "loading" | "ready" | "invalid" | "error" | "sent" | "declined"
+    "loading" | "ready" | "invalid" | "error" | "sent" | "declined" | "stopped"
   >("loading");
+  const [confirmStop, setConfirmStop] = useState(stop === "1");
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [deliveryFee, setDeliveryFee] = useState("0");
   const [leadTime, setLeadTime] = useState("");
@@ -142,7 +151,8 @@ export default function SupplierQuoteScreen() {
       return setError(t.supplier.invalidTerms);
     const valid = validUntil.trim() ? parseBelgianDate(validUntil) : null;
     if (validUntil.trim() && !valid) return setError(t.request.errors.date);
-    if (!acceptCommission) return setError(t.supplier.commissionRequired);
+    const commissionOn = data.supplier.commission_rate !== null;
+    if (commissionOn && !acceptCommission) return setError(t.supplier.commissionRequired);
     if (
       await post({
         prices: parsed,
@@ -150,7 +160,7 @@ export default function SupplierQuoteScreen() {
         lead_time_days: days,
         valid_until: valid,
         comment,
-        accept_commission: true,
+        accept_commission: commissionOn,
       })
     ) {
       setState("sent");
@@ -178,6 +188,10 @@ export default function SupplierQuoteScreen() {
 
   const decline = async () => {
     if (await post({ decline: true })) setState("declined");
+  };
+
+  const stopRequests = async () => {
+    if (await post({ stop_requests: true })) setState("stopped");
   };
 
   const total =
@@ -210,6 +224,7 @@ export default function SupplierQuoteScreen() {
       error: t.common.error,
       sent: t.supplier.thanks,
       declined: t.supplier.declinedThanks,
+      stopped: t.supplier.stopped,
       ready: "",
     }[state];
     return (
@@ -218,7 +233,7 @@ export default function SupplierQuoteScreen() {
         <Card>
           <ThemedText
             themeColor={
-              state === "sent" || state === "declined"
+              state === "sent" || state === "declined" || state === "stopped"
                 ? "good"
                 : state === "loading"
                   ? "textSecondary"
@@ -232,7 +247,34 @@ export default function SupplierQuoteScreen() {
     );
   }
 
+  if (confirmStop && !data.supplier.requests_stopped) {
+    return (
+      <Screen withTabBar={false}>
+        {header}
+        <Card>
+          <ThemedText type="subtitle">{t.supplier.stopTitle}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {t.supplier.stopLead}
+          </ThemedText>
+          {error ? <ThemedText themeColor="danger">{error}</ThemedText> : null}
+          <Button label={t.supplier.stopConfirm} variant="signal" busy={busy} onPress={stopRequests} />
+          <Button label={t.supplier.stopCancel} variant="ghost" small onPress={() => setConfirmStop(false)} />
+        </Card>
+      </Screen>
+    );
+  }
+
   const { request, items } = data;
+  const client = request.company;
+  const clientLine = client
+    ? [
+        client.name,
+        client.vat_number,
+        [client.street, [client.postal_code, client.city].filter(Boolean).join(" ")].filter(Boolean).join(", "),
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
   const open =
     request.status === "sent" &&
     ["invited", "submitted"].includes(data.quote.status);
@@ -248,9 +290,13 @@ export default function SupplierQuoteScreen() {
           </ThemedText>
           <ThemedText type="title">{request.title}</ThemedText>
           <ThemedText themeColor="textSecondary">
-            {t.supplier.from(request.company?.name ?? "")} ·{" "}
-            {request.postal_code} {request.city ?? ""}
+            {t.supplier.site(`${request.postal_code} ${request.city ?? ""}`.trim())}
           </ThemedText>
+          {clientLine ? (
+            <ThemedText type="small">
+              {t.supplier.client}: {clientLine}
+            </ThemedText>
+          ) : null}
           <View style={styles.chips}>
             <Chip
               label={
@@ -343,7 +389,7 @@ export default function SupplierQuoteScreen() {
               {formatEuro(total, locale)}
             </ThemedText>
           </View>
-          {open ? (
+          {open && data.supplier.commission_rate !== null ? (
             <Pressable
               accessibilityRole="checkbox"
               accessibilityState={{

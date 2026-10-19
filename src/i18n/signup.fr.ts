@@ -14,7 +14,7 @@ export const signupFr = {
     },
     supplier: {
       title: 'Fournisseur ou négoce',
-      lead: 'Recevez des demandes de prix d’entrepreneurs de votre zone. Inscription gratuite, commission seulement sur les ventes.',
+      lead: 'Recevez des demandes de prix d’entrepreneurs de votre zone. Inscription et réponses gratuites.',
     },
     architect: {
       title: 'Architecte',

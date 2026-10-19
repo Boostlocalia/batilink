@@ -14,12 +14,12 @@ export function welcomeMail(lang: Lang, to: string, kind: Kind, url: string, tri
     ],
     supplier: [
       `Bienvenue sur ${APP_NAME}. Nous vérifions votre entreprise auprès de la BCE ; vos premières demandes de prix arrivent ensuite par e-mail.`,
-      'Répondre est gratuit et ne demande pas de compte : un lien suffit. La commission ne s’applique que sur les commandes passées via la plateforme.',
+      'Répondre est gratuit et ne demande pas de compte : un lien suffit.',
       'Dans votre espace, vous suivez vos demandes, vos commandes et votre relevé du mois.',
     ],
     architect: [
       `Bienvenue sur ${APP_NAME}. Votre compte est gratuit.`,
-      'Publiez votre premier projet : les entrepreneurs vérifiés de votre zone vous répondent, et vous voyez leur situation ONSS et fiscale avant de les recommander.',
+      'Publiez votre premier projet : les entrepreneurs vérifiés de votre zone vous répondent, et vous voyez qu’ils sont en règle (TVA, BCE) avant de les recommander.',
     ],
   };
   const nl: Record<Kind, string[]> = {
@@ -30,12 +30,12 @@ export function welcomeMail(lang: Lang, to: string, kind: Kind, url: string, tri
     ],
     supplier: [
       `Welkom bij ${APP_NAME}. We controleren uw bedrijf bij de KBO; daarna komen uw eerste prijsaanvragen per e-mail.`,
-      'Antwoorden is gratis en vraagt geen account: een link volstaat. De commissie geldt alleen op bestellingen via het platform.',
+      'Antwoorden is gratis en vraagt geen account: een link volstaat.',
       'In uw ruimte volgt u uw aanvragen, bestellingen en het overzicht van de maand.',
     ],
     architect: [
       `Welkom bij ${APP_NAME}. Uw account is gratis.`,
-      'Publiceer uw eerste project: geverifieerde aannemers uit uw regio antwoorden, en u ziet hun RSZ- en fiscale situatie voor u ze aanbeveelt.',
+      'Publiceer uw eerste project: geverifieerde aannemers uit uw regio antwoorden, en u ziet dat ze in orde zijn (btw, KBO) voor u ze aanbeveelt.',
     ],
   };
   const cta = {
