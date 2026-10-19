@@ -4,6 +4,7 @@
 // Each e-mail is checked against the quote's supplier or contractor, then relayed.
 
 import { logEvent } from '../_shared/events.ts';
+import { sameSecret } from '../_shared/limits.ts';
 import { parseRelayAddress, senderMatches, stripQuoted } from '../_shared/relay-address.ts';
 import { relayMessage } from '../_shared/relay.ts';
 import { adminClient, json } from '../_shared/supabase.ts';
@@ -22,7 +23,7 @@ type InboundItem = {
 
 Deno.serve(async (req) => {
   const secret = Deno.env.get('INBOUND_EMAIL_SECRET');
-  if (!secret || new URL(req.url).searchParams.get('secret') !== secret) return json({ error: 'unauthorized' }, 401);
+  if (!(await sameSecret(new URL(req.url).searchParams.get('secret'), secret))) return json({ error: 'unauthorized' }, 401);
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
   const admin = adminClient();

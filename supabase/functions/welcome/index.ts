@@ -40,8 +40,9 @@ Deno.serve(async (req) => {
   }
 
   if (kind === 'supplier') {
-    // Contractors that invited this address keep it as a favourite.
-    const addresses = [company.email, company.quote_email].filter(Boolean).map((e: string) => e.toLowerCase());
+    // Contractors that invited this address keep it as a favourite. Only the sign-in
+    // address counts: it is proven by the sign-in, the quote address is not.
+    const addresses = [company.email].filter(Boolean).map((e: string) => e.toLowerCase());
     const { data: invites } = await admin.from('supplier_invitations').select('id, contractor_id, supplier_id').in('email', addresses);
     for (const inv of invites ?? []) {
       await admin.from('supplier_invitations').update({ supplier_id: companyId }).eq('id', inv.id);

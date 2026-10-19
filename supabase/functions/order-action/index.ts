@@ -7,7 +7,6 @@
 //   delivered   confirms receipt of the goods
 //   cancel      withdraws the order before the supplier confirmed it
 
-import { commissionFor } from '../_shared/commission.ts';
 import { depositProofMail, orderNewsMail, sendMail, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
 import { contractorOrderUrl, issueSupplierLink, storeDocument } from '../_shared/order-docs.ts';
@@ -132,17 +131,8 @@ async function upload(req: Request, admin: Admin, who: NonNullable<Awaited<Retur
       },
     });
     if ('error' in stored) return json({ error: stored.error }, stored.error === 'storage' ? 500 : 400);
-    // The commission follows what was actually invoiced, as long as it is not billed yet.
-    if (check.status === 'matched' && invoice?.totalExVat !== null && invoice?.totalExVat !== undefined) {
-      const { data: commission } = await admin.from('commissions').select('id, rate, status').eq('order_id', order.id).maybeSingle();
-      if (commission?.status === 'pending') {
-        await admin
-          .from('commissions')
-          .update({ base_ex_vat: invoice.totalExVat, amount_ex_vat: commissionFor(invoice.totalExVat, Number(commission.rate)), base_source: 'invoice' })
-          .eq('id', commission.id)
-          .eq('status', 'pending');
-      }
-    }
+    // The contractor writes this file, so it never changes the commission base: a
+    // different invoiced total is logged below and settled by hand.
     await logEvent(admin, {
       kind: 'invoice_checked',
       company_id: who.companyId,

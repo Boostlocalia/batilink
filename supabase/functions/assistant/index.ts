@@ -5,12 +5,15 @@
 import Anthropic from 'npm:@anthropic-ai/sdk@0.135.0';
 
 import { assistantSystemPrompt, audienceNote, type Audience } from '../_shared/assistant-prompt.ts';
+import { overLimit } from '../_shared/limits.ts';
 import { adminClient, callerCompanyId, corsHeaders, json } from '../_shared/supabase.ts';
 import { hashToken } from '../_shared/tokens.ts';
 
 const MODEL = 'claude-opus-5-5';
 const MAX_TURNS = 12;
 const MAX_CHARS = 2000;
+
+const ASSISTANT_CALLS_PER_HOUR = 40;
 
 type Turn = { role: 'user' | 'assistant'; content: string };
 
@@ -22,20 +25,31 @@ Deno.serve(async (req) => {
 
   // Who is asking: a signed-in company, or a supplier holding a valid link.
   let audience: Audience | null = null;
+  let caller = '';
   const companyId = await callerCompanyId(req, admin);
   if (companyId) {
     const { data } = await admin.from('companies').select('kind').eq('id', companyId).single();
     audience = data?.kind === 'architect' ? 'architect' : 'contractor';
+    caller = `company:${companyId}`;
   } else if (typeof body.token === 'string' && body.token.length >= 20) {
-    const { data } = await admin.from('quotes').select('token_expires_at').eq('token_hash', await hashToken(body.token)).maybeSingle();
-    if (data && new Date(data.token_expires_at) > new Date()) audience = 'supplier';
+    const tokenHash = await hashToken(body.token);
+    const { data } = await admin.from('quotes').select('supplier_id, token_expires_at').eq('token_hash', tokenHash).maybeSingle();
+    if (data && new Date(data.token_expires_at) > new Date()) {
+      audience = 'supplier';
+      caller = `company:${data.supplier_id}`;
+    }
   } else {
     // Signed in but the company details are not filled in yet: they visit the contractor app.
     const jwt = req.headers.get('Authorization')?.replace('Bearer ', '');
     const { data } = jwt ? await admin.auth.getUser(jwt) : { data: { user: null } };
-    if (data.user) audience = 'contractor';
+    if (data.user) {
+      audience = 'contractor';
+      caller = `user:${data.user.id}`;
+    }
   }
   if (!audience) return json({ error: 'unauthorized' }, 401);
+  // Each answer is a paid model call: a person asks a few questions, a script asks thousands.
+  if (await overLimit(admin, `assistant:${caller}`, ASSISTANT_CALLS_PER_HOUR, 3600)) return json({ error: 'too_many' }, 429);
 
   // Keep the last turns, starting with the person, alternating, each one short.
   const turns = (Array.isArray(body.messages) ? body.messages : [])

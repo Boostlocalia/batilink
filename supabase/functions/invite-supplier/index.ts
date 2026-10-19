@@ -62,12 +62,10 @@ Deno.serve(async (req) => {
     return json({ ok: true, supplier: placeholder, invited: false });
   }
 
-  // Already on the platform: just keep it as a favourite.
-  const [{ data: byEmail }, { data: byQuoteEmail }] = await Promise.all([
-    admin.from('companies').select('id, name').eq('kind', 'supplier').eq('email', email).limit(1),
-    admin.from('companies').select('id, name').eq('kind', 'supplier').eq('quote_email', email).limit(1),
-  ]);
-  const existing = byQuoteEmail?.[0] ?? byEmail?.[0] ?? null;
+  // Already on the platform: just keep it as a favourite. Matched on the sign-in
+  // address only: anyone can type someone else's address as their quote address.
+  const { data: byEmail } = await admin.from('companies').select('id, name').eq('kind', 'supplier').eq('email', email).limit(1);
+  const existing = byEmail?.[0] ?? null;
   if (existing) {
     await admin.from('preferred_suppliers').upsert({ contractor_id: companyId, supplier_id: existing.id });
     return json({ ok: true, supplier: existing, invited: false });

@@ -25,6 +25,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx expo export --platform web
+      # Pages cannot send security headers, so the policy goes in the page itself.
+      - run: node scripts/add-csp.mjs dist/index.html
       # Pages has no rewrites: unknown paths get 404.html, which is the app itself.
       - run: cp dist/index.html dist/404.html && touch dist/.nojekyll
       - uses: peaceiris/actions-gh-pages@v4

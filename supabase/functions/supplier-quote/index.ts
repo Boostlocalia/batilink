@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
   if (typeof body.question === 'string') {
     if (!body.question.trim() || body.question.length > MAX_BODY) return json({ error: 'invalid_body' }, 400);
     const result = await relayMessage(admin, { quoteId: quote.id, author: 'supplier', channel: 'app', body: body.question });
-    return json(result);
+    return json(result, result.status === 'limited' ? 429 : 200);
   }
 
   if (body.decline === true) {

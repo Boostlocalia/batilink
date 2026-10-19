@@ -20,7 +20,10 @@ export type RelayInput = {
   sourceMessageId?: string | null;
 };
 
-export type RelayResult = { status: 'relayed' | 'ignored' | 'duplicate' | 'not_found'; kind?: string };
+export type RelayResult = { status: 'relayed' | 'ignored' | 'duplicate' | 'not_found' | 'limited'; kind?: string };
+
+/** Each message is an AI call and an e-mail to the other party: a conversation, not a flood. */
+const MESSAGES_PER_HOUR = 10;
 
 export async function relayMessage(admin: SupabaseClient, input: RelayInput): Promise<RelayResult> {
   const body = input.body.trim().slice(0, MAX_BODY);
@@ -29,6 +32,15 @@ export async function relayMessage(admin: SupabaseClient, input: RelayInput): Pr
     const { data: seen } = await admin.from('quote_messages').select('id').eq('source_message_id', input.sourceMessageId).maybeSingle();
     if (seen) return { status: 'duplicate' };
   }
+
+  const since = new Date(Date.now() - 3600_000).toISOString();
+  const { count: recent } = await admin
+    .from('quote_messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('quote_id', input.quoteId)
+    .eq('author', input.author)
+    .gte('created_at', since);
+  if ((recent ?? 0) >= MESSAGES_PER_HOUR) return { status: 'limited' };
 
   const { data: quote } = await admin
     .from('quotes')
