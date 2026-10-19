@@ -24,13 +24,14 @@ export type PlanLimits = {
 };
 
 // Ids stay free / pro / full in the database; the names shown are Test, Starter, Premium.
+// 'free' is what a contractor falls back to when the trial ends: no access until a plan is chosen.
 export const PLANS: Record<Plan, PlanLimits> = {
   free: {
     priceExVat: 0,
     priceYearExVat: 0,
-    searchesPerMonth: 10,
-    networkExchangesPerMonth: 3,
-    suppliers: 'preview',
+    searchesPerMonth: 0,
+    networkExchangesPerMonth: 0,
+    suppliers: 'none',
     priceRequestsPerMonth: 0,
     suppliersPerRequest: 0,
     verifiedBadge: false,
@@ -65,6 +66,19 @@ export const PLANS: Record<Plan, PlanLimits> = {
 
 /** The plan a new contractor tries for free, and the one a referral reward gives. */
 export const TRIAL_PLAN: Plan = 'full';
+
+/** Length of the free trial for a new contractor. */
+export const TRIAL_DAYS = 7;
+
+/** The plan in force now: a trial that has ended counts as 'free' before the nightly job records it. */
+export function effectivePlan(
+  sub: { plan: string; status: string; trial_ends_at?: string | null; provider_subscription_id?: string | null } | null | undefined,
+  now: Date = new Date(),
+): Plan {
+  if (!sub || sub.status !== 'active') return 'free';
+  if (sub.plan === TRIAL_PLAN && !sub.provider_subscription_id && sub.trial_ends_at && new Date(sub.trial_ends_at) <= now) return 'free';
+  return sub.plan as Plan;
+}
 
 export type SendCheck =
   | { ok: true }

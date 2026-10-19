@@ -5,7 +5,7 @@ import { SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
 import { contractorAddress, invitationMail, REPLY_HOURS, sendMail, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
 import { relayAddress } from '../_shared/relay-address.ts';
-import { canSendPriceRequest, monthStart, type Plan } from '../_shared/plans.ts';
+import { canSendPriceRequest, effectivePlan, monthStart, type Plan } from '../_shared/plans.ts';
 import { adminClient, appUrl, callerCompanyId, corsHeaders, json } from '../_shared/supabase.ts';
 import { hashToken, newToken, tokenExpiry } from '../_shared/tokens.ts';
 
@@ -32,14 +32,14 @@ Deno.serve(async (req) => {
   if (request.status !== 'draft') return json({ error: 'already_sent' }, 409);
 
   const [{ data: sub }, { count: sentThisMonth }] = await Promise.all([
-    admin.from('subscriptions').select('plan, status').eq('company_id', companyId).single(),
+    admin.from('subscriptions').select('plan, status, trial_ends_at, provider_subscription_id').eq('company_id', companyId).single(),
     admin
       .from('price_requests')
       .select('id', { count: 'exact', head: true })
       .eq('company_id', companyId)
       .gte('sent_at', monthStart(new Date()).toISOString()),
   ]);
-  const plan: Plan = sub?.status === 'active' ? (sub.plan as Plan) : 'free';
+  const plan: Plan = effectivePlan(sub);
   const check = canSendPriceRequest(plan, sentThisMonth ?? 0, uniqueSuppliers.length);
   if (!check.ok) return json({ error: check.reason, limit: check.limit, plan }, 403);
 

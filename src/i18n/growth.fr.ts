@@ -11,7 +11,7 @@ export const growthFr = {
     recommended: 'Le plus rentable',
     roi: 'Faites le calcul : en annuel, Premium revient à 108,33 € HTVA par mois. Dès que vos demandes de prix vous font économiser davantage sur vos achats, il est rentable.',
     trialLeft: (days: number) => `Essai Premium : ${days} jour${days > 1 ? 's' : ''} restant${days > 1 ? 's' : ''}. Choisissez un plan pour le garder.`,
-    trialOver: 'Votre essai Premium est terminé. Vous êtes sur le plan Test : choisissez Starter ou Premium quand vous voulez.',
+    trialOver: `Votre essai gratuit de 7 jours est terminé. Choisissez Starter ou Premium pour continuer à utiliser ${APP_NAME}. Vos demandes et commandes sont conservées.`,
     networkLeft: (left: number) =>
       left > 0 ? `Plan Test : encore ${left} échange${left > 1 ? 's' : ''} ce mois-ci dans le réseau.` : 'Plan Test : vos 3 échanges du mois sont utilisés.',
   },
@@ -146,7 +146,7 @@ export const growthFr = {
       { title: 'Comparez et commandez', text: 'Meilleur prix par ligne, délai, livraison. Vous retenez une offre et payez le fournisseur en direct.' },
     ],
     pricingTitle: 'Des prix simples',
-    pricingLead: 'Commencez gratuitement avec 14 jours de Premium offerts. Prix HTVA, sans engagement.',
+    pricingLead: 'Essayez Premium gratuitement pendant 7 jours, puis choisissez votre plan. Prix HTVA, sans engagement.',
     pricingFrom: (price: string) => `à partir de ${price} / mois`,
     faqTitle: 'Questions fréquentes',
     faq: [

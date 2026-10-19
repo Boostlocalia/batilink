@@ -183,7 +183,7 @@ export const fr = {
         Number.isFinite(exchanges)
           ? `Collaborations entre entrepreneurs : ${exchanges} échanges par mois`
           : 'Collaborations entre entrepreneurs : publier et répondre sans limite',
-      badge: 'Badge vérifié (BCE, ONSS, fiscal)',
+      badge: 'Badge vérifié (TVA, BCE)',
       suppliers: (access: 'preview' | 'none' | 'full'): string =>
         access === 'full'
           ? 'Fournisseurs : demandes de prix illimitées'

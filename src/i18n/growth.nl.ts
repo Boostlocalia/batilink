@@ -13,7 +13,7 @@ export const growthNl: typeof growthFr = {
     recommended: 'Meest rendabel',
     roi: 'Reken even: jaarlijks kost Premium € 108,33 excl. btw per maand. Zodra uw prijsaanvragen u meer besparen op uw aankopen, is het terugverdiend.',
     trialLeft: (days: number) => `Premium-proefperiode: nog ${days} dag${days > 1 ? 'en' : ''}. Kies een plan om het te behouden.`,
-    trialOver: 'Uw Premium-proefperiode is afgelopen. U staat op het Test-plan: kies Starter of Premium wanneer u wilt.',
+    trialOver: `Uw gratis proefperiode van 7 dagen is afgelopen. Kies Starter of Premium om ${APP_NAME} te blijven gebruiken. Uw aanvragen en bestellingen blijven bewaard.`,
     networkLeft: (left: number) =>
       left > 0 ? `Test-plan: nog ${left} uitwisseling${left > 1 ? 'en' : ''} deze maand in het netwerk.` : 'Test-plan: uw 3 uitwisselingen van deze maand zijn gebruikt.',
   },
@@ -148,7 +148,7 @@ export const growthNl: typeof growthFr = {
       { title: 'Vergelijk en bestel', text: 'Beste prijs per regel, levertijd, levering. U kiest een offerte en betaalt de leverancier rechtstreeks.' },
     ],
     pricingTitle: 'Eenvoudige prijzen',
-    pricingLead: 'Begin gratis met 14 dagen Premium cadeau. Prijzen excl. btw, zonder verbintenis.',
+    pricingLead: 'Probeer Premium 7 dagen gratis en kies daarna uw plan. Prijzen excl. btw, zonder verbintenis.',
     pricingFrom: (price: string) => `vanaf ${price} / maand`,
     faqTitle: 'Veelgestelde vragen',
     faq: [

@@ -4,10 +4,9 @@
 
 import { welcomeMail, type Kind } from '../_shared/growth-mail.ts';
 import { sendMail, type Lang } from '../_shared/email.ts';
-import { TRIAL_PLAN } from '../_shared/plans.ts';
+import { TRIAL_DAYS, TRIAL_PLAN } from '../_shared/plans.ts';
 import { adminClient, appUrl, callerCompanyId, corsHeaders, json } from '../_shared/supabase.ts';
 
-const TRIAL_DAYS = 14;
 /** A company that signed up with a referral code tries Premium for a month. */
 const REFERRED_TRIAL_DAYS = 30;
 

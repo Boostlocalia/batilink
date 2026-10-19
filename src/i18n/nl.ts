@@ -184,7 +184,7 @@ export const nl: Dictionary = {
         Number.isFinite(exchanges)
           ? `Samenwerkingen tussen aannemers: ${exchanges} uitwisselingen per maand`
           : 'Samenwerkingen tussen aannemers: onbeperkt plaatsen en antwoorden',
-      badge: 'Geverifieerd-badge (KBO, RSZ, fiscaal)',
+      badge: 'Geverifieerd-badge (btw, KBO)',
       suppliers: (access: 'preview' | 'none' | 'full') =>
         access === 'full'
           ? 'Leveranciers: onbeperkt prijsaanvragen'

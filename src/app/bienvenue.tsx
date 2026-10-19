@@ -118,7 +118,7 @@ export default function WelcomeScreen() {
         <ThemedText themeColor="textSecondary">{l.pricingLead}</ThemedText>
       </View>
       <View style={styles.grid}>
-        {(['free', 'pro', 'full'] as const).map((id) => (
+        {(['pro', 'full'] as const).map((id) => (
           <Card key={id} style={[styles.cell, id === 'full' && { borderColor: theme.signal }]}>
             <View style={styles.planHead}>
               <ThemedText type="smallBold">{t.plans.names[id]}</ThemedText>

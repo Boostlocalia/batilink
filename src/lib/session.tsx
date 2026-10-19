@@ -1,7 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
-import { type Plan } from '@/lib/plans';
+import { effectivePlan, type Plan } from '@/lib/plans';
 import { openedFromRecovery, supabase } from '@/lib/supabase';
 
 export type Company = {
@@ -59,10 +59,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         .select('id, name, vat_number, postal_code, city, verified_at, kind, verification_status, last_checked_at')
         .eq('id', profile.company_id)
         .single(),
-      supabase.from('subscriptions').select('plan, status, trial_ends_at').eq('company_id', profile.company_id).maybeSingle(),
+      supabase.from('subscriptions').select('plan, status, trial_ends_at, provider_subscription_id').eq('company_id', profile.company_id).maybeSingle(),
     ]);
     setCompany(c ?? null);
-    setPlan(sub?.status === 'active' ? (sub.plan as Plan) : 'free');
+    setPlan(effectivePlan(sub));
     setTrialEndsAt(sub?.trial_ends_at ?? null);
   }, []);
 

@@ -2,7 +2,7 @@
 // the product team can update it when the app changes.
 
 import { APP_NAME, ASSISTANT_NAME } from './brand.ts';
-import { PLANS } from './plans.ts';
+import { PLANS, TRIAL_DAYS } from './plans.ts';
 
 export type Audience = 'contractor' | 'architect' | 'supplier';
 
@@ -22,7 +22,7 @@ export function assistantSystemPrompt(): string {
 - Demande / Aanvraag: create a price request (title, category, items with quantity and unit, delivery or pick-up). No dates to fill in: the request is dated the day it is sent, and suppliers have 48 hours to submit their offer. Matching suppliers in the area are suggested; choose them and send. Suppliers get an e-mail.
 - Comparing offers: open a request to see each supplier's prices side by side, best price and fastest delivery highlighted, totals excl. and incl. 21 % VAT. "Choisir cette offre" awards one; the others are told automatically. Suppliers who have not answered after 24 h get one reminder.
 - Supplier questions: a supplier can reply to the request e-mail with a question. ${APP_NAME} reads it, passes it on to the contractor in their language (e-mail and the "Questions des fournisseurs" block on the request), and sends the contractor's answer back. Neither side sees the other's e-mail address before an award.
-- Réseau / Netwerk: posts to subcontract work (contractors) and architects' projects. Starter and Premium contractors publish and answer without limit; Test contractors have 3 exchanges (posts or answers) per calendar month. The author of a post sees the answers, keeps or sets aside candidates, and proposes an agreement ("Proposer l'accord", or for architects "Mettre en relation").
+- Réseau / Netwerk: posts to subcontract work (contractors) and architects' projects. Starter and Premium contractors (and those on the trial) publish and answer without limit. The author of a post sees the answers, keeps or sets aside candidates, and proposes an agreement ("Proposer l'accord", or for architects "Mettre en relation").
 - Accords / Akkoorden (in Réseau): the other company accepts; at that moment ${APP_NAME} checks both companies again, live. Contact details are shared once the agreement is confirmed.
 - Orders / Bestellingen: awarding an offer creates a numbered purchase order (BL-2026-000042), followed from the request ("Suivre la commande"). The supplier confirms it and may ask a deposit (acompte / voorschot). The contractor always pays the supplier directly: the deposit by bank transfer (supplier's IBAN, order number as reference), then uploads proof: a screenshot or the bank's PDF. ${APP_NAME} forwards the proof to the supplier, who confirms receipt and launches the order. Then: confirm receipt of the goods ("Confirmer la réception", optional delivery note), upload the supplier's invoice (the Peppol XML file is checked automatically against the order; a PDF or photo is checked by the team), pay the supplier directly and upload the proof of payment. The contractor can cancel only before the supplier confirms.
 - "Bien démarrer" checklist on Accueil: add usual suppliers, send a first request, award an offer, refer a colleague.
@@ -31,11 +31,10 @@ export function assistantSystemPrompt(): string {
 - Abonnement: plans, monthly or yearly (2 months free). Réglages / Instellingen: language (FR/NL), company details, verification status, referral link, sign-out.
 
 # Plans (prices per month excl. VAT)
-- Test: ${eur(p.free.priceExVat)}, ${p.free.networkExchangesPerMonth} network exchanges per month, can see the matching suppliers but cannot send price requests.
 - Starter: ${eur(p.pro.priceExVat)}, unlimited network (publish, answer, agreements), verified badge, ${p.pro.users} users, no access to suppliers.
 - Premium: ${eur(p.full.priceExVat)}, everything, unlimited price requests to suppliers, PDF export, ${p.full.users} users.
 Yearly: ${eur(p.pro.priceYearExVat)} (Starter) and ${eur(p.full.priceYearExVat)} (Premium) per year, two months free.
-New contractors get 14 days of Premium free, no card needed (30 days with a referral code); afterwards they move to Test unless they choose a plan.
+New contractors get a free ${TRIAL_DAYS}-day trial of Premium, no card needed (30 days with a referral code). There is no free plan: when the trial ends, the contractor must choose Starter or Premium to keep using the app; their requests, offers and orders stay saved. Architects and suppliers use ${APP_NAME} for free.
 Referral: each company has a link in Réglages. When the referred company is verified, the referrer gets one month of Premium (or ${eur(p.pro.priceExVat)} excl. VAT off their next invoice if already paying; suppliers get the same amount off their next commission statement).
 Plans are paid online on Stripe's secure page (card, Bancontact, direct debit), without commitment; "Gérer mon abonnement" changes plan, payment method or cancels.
 

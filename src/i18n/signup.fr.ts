@@ -101,7 +101,7 @@ export const signupFr = {
   commission: (rate: string) =>
     `J’accepte la commission de ${rate} HTVA sur les commandes passées via ${APP_NAME}, facturée chaque fin de mois. Recevoir des demandes et répondre reste gratuit.`,
   summary: {
-    contractor: 'Vous commencez avec le plan Test et 14 jours de Premium offerts. Sans carte bancaire.',
+    contractor: 'Vous essayez Premium gratuitement pendant 7 jours, sans carte bancaire. Ensuite, vous choisissez Starter ou Premium.',
     supplier: 'Vos premières demandes arrivent par e-mail dès que nous avons vérifié votre entreprise.',
     architect: 'Votre compte est gratuit. Publiez votre premier projet dès maintenant.',
   },

@@ -103,7 +103,7 @@ export function trialEndingMail(lang: Lang, to: string, daysLeft: number, url: s
     fr: {
       subject: `Votre essai Premium se termine dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`,
       paragraphs: [
-        'Après l’essai, votre compte passe au plan Test : vous voyez les fournisseurs sans leur envoyer de demande, et vous avez 3 échanges par mois dans le réseau.',
+        `Après l’essai, choisissez un plan pour continuer à utiliser ${APP_NAME}. Vos demandes, offres et commandes restent enregistrées.`,
         'Gardez Premium pour 129,99 € HTVA par mois, ou 1 299,90 € par an (deux mois offerts). Le plan Starter (69,99 € par mois) garde le réseau sans limite, sans les fournisseurs. Sans engagement.',
       ],
       cta: { label: 'Choisir mon plan', url },
@@ -111,7 +111,7 @@ export function trialEndingMail(lang: Lang, to: string, daysLeft: number, url: s
     nl: {
       subject: `Uw Premium-proefperiode eindigt over ${daysLeft} dag${daysLeft > 1 ? 'en' : ''}`,
       paragraphs: [
-        'Na de proefperiode gaat uw account naar het Test-plan: u ziet de leveranciers zonder hen aanvragen te sturen, en u hebt 3 uitwisselingen per maand in het netwerk.',
+        `Kies na de proefperiode een plan om ${APP_NAME} te blijven gebruiken. Uw aanvragen, offertes en bestellingen blijven bewaard.`,
         'Behoud Premium voor € 129,99 excl. btw per maand, of € 1.299,90 per jaar (twee maanden gratis). Het Starter-plan (€ 69,99 per maand) houdt het netwerk zonder limiet, zonder de leveranciers. Zonder verbintenis.',
       ],
       cta: { label: 'Mijn plan kiezen', url },
@@ -122,14 +122,14 @@ export function trialEndingMail(lang: Lang, to: string, daysLeft: number, url: s
 export function trialEndedMail(lang: Lang, to: string, url: string): Mail {
   return notice(lang, to, {
     fr: {
-      subject: 'Votre essai Premium est terminé',
-      paragraphs: ['Votre compte est passé au plan Test. Vos demandes, offres et commandes restent accessibles.', 'Vous pouvez choisir Starter ou Premium à tout moment.'],
-      cta: { label: 'Voir les plans', url },
+      subject: 'Votre essai gratuit est terminé',
+      paragraphs: [`Pour continuer à utiliser ${APP_NAME}, choisissez Starter ou Premium. Vos demandes, offres et commandes restent enregistrées et réapparaissent dès que votre plan est actif.`],
+      cta: { label: 'Choisir mon plan', url },
     },
     nl: {
-      subject: 'Uw Premium-proefperiode is afgelopen',
-      paragraphs: ['Uw account staat nu op het Test-plan. Uw aanvragen, offertes en bestellingen blijven beschikbaar.', 'U kunt op elk moment Starter of Premium kiezen.'],
-      cta: { label: 'Plannen bekijken', url },
+      subject: 'Uw gratis proefperiode is afgelopen',
+      paragraphs: [`Kies Starter of Premium om ${APP_NAME} te blijven gebruiken. Uw aanvragen, offertes en bestellingen blijven bewaard en zijn terug beschikbaar zodra uw plan actief is.`],
+      cta: { label: 'Mijn plan kiezen', url },
     },
   });
 }

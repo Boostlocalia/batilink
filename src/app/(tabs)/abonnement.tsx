@@ -14,7 +14,8 @@ import { useSession } from '@/lib/session';
 import { useTrial } from '@/lib/trial';
 import { supabase } from '@/lib/supabase';
 
-const ORDER: Plan[] = ['free', 'pro', 'full'];
+// No free plan to choose: after the trial a contractor picks one of the paid plans.
+const ORDER: Plan[] = ['pro', 'full'];
 
 export default function PlansScreen() {
   const { t, locale } = useI18n();
