@@ -11,6 +11,8 @@ export type Mail = {
   text: string;
   /** Relay address replies should go to, so the platform can pass them on. */
   replyTo?: string;
+  /** One-click unsubscribe endpoint (List-Unsubscribe), for mails the recipient did not sign up for. */
+  unsubscribeUrl?: string;
 };
 
 export async function sendMail(mail: Mail): Promise<void> {
@@ -31,6 +33,9 @@ export async function sendMail(mail: Mail): Promise<void> {
       htmlContent: mail.html,
       textContent: mail.text,
       ...(mail.replyTo ? { replyTo: { email: mail.replyTo, name: APP_NAME } } : {}),
+      ...(mail.unsubscribeUrl
+        ? { headers: { 'List-Unsubscribe': `<${mail.unsubscribeUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } }
+        : {}),
     }),
   });
   if (!res.ok) throw new Error(`Brevo ${res.status}: ${await res.text()}`);
@@ -74,6 +79,8 @@ export type InvitationData = {
   commissionRate: number | null;
   /** Supplier's relay address: replying to the e-mail asks the contractor a question. */
   replyTo?: string;
+  /** One-click unsubscribe endpoint, shown to mail clients in the List-Unsubscribe header. */
+  unsubscribeUrl?: string;
 };
 
 const pct = (rate: number, lang: Lang) =>
@@ -115,6 +122,7 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
     const intro = `Uw klant <b>${esc(d.contractor)}</b>${d.contractorVerified ? ' (geverifieerd bedrijf)' : ''} vraagt u via ${APP_NAME} een offerte voor ${d.items.length} product(en), werf in ${esc(place)}, ${when}.`;
     const deadline = `U hebt 48 uur om uw offerte in te dienen (tot ${dateFmt(d.replyBy, 'nl')}). Wij bezorgen ze meteen aan de klant.`;
     const subject = `${reminder ? 'Herinnering: ' : ''}Prijsaanvraag van ${d.contractor}: ${d.title} (${place})`;
+    const about = `${APP_NAME} is het platform voor bouwondernemers: ze sturen er hun prijsaanvragen naar hun leveranciers. Voor u zijn het klanten uit uw regio die naar u toe komen, zonder prospectie.`;
     const ask = 'Een vraag over de aanvraag? Beantwoord gewoon deze e-mail: we sturen uw vraag door naar de klant en bezorgen u zijn antwoord.';
     const terms = d.commissionRate
       ? `Wordt uw offerte gekozen, dan factureert ${APP_NAME} een commissie van ${pct(d.commissionRate, 'nl')} excl. btw op het bedrag van de offerte.`
@@ -123,9 +131,10 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
     return {
       to: d.to,
       subject,
-      html: layout(['Goedendag,', intro, `<b>Klant:</b> ${esc(client)}`, items.html, deadline], { label: 'Mijn offerte indienen', url: d.url }, `${ask}<br><br>${footer}`),
-      text: `Goedendag,\n\n${d.contractor} vraagt u via ${APP_NAME} een offerte.\nKlant: ${client}\nWerf: ${place}\n${items.text}\n\n${deadline}\nOfferte indienen: ${d.url}\n\n${ask}\n\n${terms}\nAfmelden: ${stopUrl}`,
+      html: layout(['Goedendag,', intro, `<b>Klant:</b> ${esc(client)}`, items.html, deadline], { label: 'Mijn offerte indienen', url: d.url }, `${esc(about)}<br><br>${esc(ask)}<br><br>${footer}`),
+      text: `Goedendag,\n\n${d.contractor} vraagt u via ${APP_NAME} een offerte.\nKlant: ${client}\nWerf: ${place}\n${items.text}\n\n${deadline}\nOfferte indienen: ${d.url}\n\n${ask}\n\n${terms}\nAfmelden: ${stopUrl}\n\n${about}`,
       replyTo: d.replyTo,
+      unsubscribeUrl: d.unsubscribeUrl,
     };
   }
   const client = [d.contractor, d.contractorVat ? `TVA ${d.contractorVat}` : null, d.contractorAddress].filter(Boolean).join(' · ');
@@ -133,6 +142,7 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
   const intro = `Votre client <b>${esc(d.contractor)}</b>${d.contractorVerified ? ' (entreprise vérifiée)' : ''} vous demande, via ${APP_NAME}, une offre pour ${d.items.length} produit(s), chantier à ${esc(place)}, ${when}.`;
   const deadline = `Vous avez 48 heures pour remettre votre offre (jusqu'au ${dateFmt(d.replyBy, 'fr')}). Nous la transmettons aussitôt au client.`;
   const subject = `${reminder ? 'Rappel : ' : ''}Demande de prix de ${d.contractor} : ${d.title} (${place})`;
+  const about = `${APP_NAME} est la plateforme des entrepreneurs du bâtiment : ils y envoient leurs demandes de prix à leurs fournisseurs. Pour vous, ce sont des clients de votre zone qui viennent à vous, sans prospection.`;
   const ask = "Une question sur la demande ? Répondez simplement à cet e-mail : nous transmettons votre question au client et vous renvoyons sa réponse.";
   const terms = d.commissionRate
     ? `Si votre offre est retenue, ${APP_NAME} facture une commission de ${pct(d.commissionRate, 'fr')} HTVA sur le montant de l'offre.`
@@ -141,9 +151,10 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
   return {
     to: d.to,
     subject,
-    html: layout(['Bonjour,', intro, `<b>Client :</b> ${esc(client)}`, items.html, deadline], { label: 'Remettre mon offre', url: d.url }, `${esc(ask)}<br><br>${footer}`),
-    text: `Bonjour,\n\n${d.contractor} vous demande une offre via ${APP_NAME}.\nClient : ${client}\nChantier : ${place}\n${items.text}\n\n${deadline}\nRemettre mon offre : ${d.url}\n\n${ask}\n\n${terms}\nSe désinscrire : ${stopUrl}`,
+    html: layout(['Bonjour,', intro, `<b>Client :</b> ${esc(client)}`, items.html, deadline], { label: 'Remettre mon offre', url: d.url }, `${esc(about)}<br><br>${esc(ask)}<br><br>${footer}`),
+    text: `Bonjour,\n\n${d.contractor} vous demande une offre via ${APP_NAME}.\nClient : ${client}\nChantier : ${place}\n${items.text}\n\n${deadline}\nRemettre mon offre : ${d.url}\n\n${ask}\n\n${terms}\nSe désinscrire : ${stopUrl}\n\n${about}`,
     replyTo: d.replyTo,
+    unsubscribeUrl: d.unsubscribeUrl,
   };
 }
 

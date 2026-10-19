@@ -4,6 +4,7 @@
 // submits the offer, { token, decline: true } declines it, and
 // { token, question } asks the contractor something (relayed like a reply e-mail),
 // and { token, stop_requests: true } unsubscribes the supplier from request e-mails.
+// POST ?token=…&unsubscribe=1 is the one-click unsubscribe sent by mail clients.
 
 import { offerTotalExVat, SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
 import { newQuoteMail, sendMail, type Lang } from '../_shared/email.ts';
@@ -80,6 +81,17 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+
+  // One-click unsubscribe from the mail client (List-Unsubscribe-Post, RFC 8058).
+  const query = new URL(req.url).searchParams;
+  if (query.get('unsubscribe') === '1') {
+    const target = await findQuote(admin, query.get('token'));
+    if (!target) return json({ error: 'invalid_link' }, 404);
+    await admin.from('companies').update({ requests_stopped_at: new Date().toISOString() }).eq('id', target.supplier_id).is('requests_stopped_at', null);
+    await logEvent(admin, { kind: 'supplier_unsubscribed', company_id: target.supplier_id, quote_id: target.id, data: { via: 'one_click' } });
+    return json({ ok: true });
+  }
+
   const body = await req.json();
   const quote = await findQuote(admin, body.token);
   if (!quote) return json({ error: 'invalid_link' }, 404);

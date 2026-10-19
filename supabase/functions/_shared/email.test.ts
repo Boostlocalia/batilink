@@ -71,6 +71,13 @@ describe('commission', () => {
     expect(commissionFor(total)).toBe(75.25);
   });
 
+  it('gives the invitation a one-click unsubscribe and no wished date', () => {
+    const mail = invitationMail({ ...base, lang: 'fr', unsubscribeUrl: 'https://f/supplier-quote?token=t&unsubscribe=1' });
+    expect(mail.unsubscribeUrl).toBe('https://f/supplier-quote?token=t&unsubscribe=1');
+    expect(mail.text).toContain('plateforme des entrepreneurs du bâtiment');
+    expect(mail.html).not.toContain('28 octobre');
+  });
+
   it('honours a negotiated rate', () => {
     expect(commissionFor(2274, 0.03)).toBe(68.22);
   });

@@ -322,6 +322,9 @@ export default function SupplierQuoteScreen() {
           <ThemedText type="small" themeColor="good">
             {t.supplier.noAccount}
           </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {t.supplier.about}
+          </ThemedText>
         </View>
 
         <Card>

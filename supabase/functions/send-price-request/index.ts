@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
           replyBy,
           delivery: request.fulfilment === 'delivery',
           url: `${appUrl()}/offre/${token}`,
+          unsubscribeUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/supplier-quote?token=${token}&unsubscribe=1`,
           commissionRate: SUPPLIER_COMMISSION_ACTIVE ? Number(supplier.commission_rate) : null,
           replyTo: relayAddress('supplier', quote.reply_key, Deno.env.get('RELAY_EMAIL_DOMAIN') ?? undefined),
         }),

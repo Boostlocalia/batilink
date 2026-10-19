@@ -496,6 +496,7 @@ export const fr = {
     stopConfirm: 'Me désinscrire',
     stopCancel: 'Voir la demande',
     stopped: 'C’est noté : vous ne recevrez plus de demandes de prix via BatiNode.',
+    about: `${APP_NAME} est la plateforme des entrepreneurs du bâtiment : ils y envoient leurs demandes de prix à leurs fournisseurs. Pour vous, ce sont des clients de votre zone qui viennent à vous, sans prospection.`,
     noAccount: 'Pas de compte nécessaire. Ce lien est personnel.',
     sentOn: (date: string) => `Demande du ${date}`,
     replyBy: (date: string) => `48 heures pour remettre votre offre (jusqu’au ${date})`,

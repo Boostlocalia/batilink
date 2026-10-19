@@ -497,6 +497,7 @@ export const nl: Dictionary = {
     stopConfirm: 'Afmelden',
     stopCancel: 'Aanvraag bekijken',
     stopped: 'Genoteerd: u ontvangt geen prijsaanvragen meer via BatiNode.',
+    about: `${APP_NAME} is het platform voor bouwondernemers: ze sturen er hun prijsaanvragen naar hun leveranciers. Voor u zijn het klanten uit uw regio die naar u toe komen, zonder prospectie.`,
     noAccount: 'Geen account nodig. Deze link is persoonlijk.',
     sentOn: (date: string) => `Aanvraag van ${date}`,
     replyBy: (date: string) => `48 uur om uw offerte in te dienen (tot ${date})`,
