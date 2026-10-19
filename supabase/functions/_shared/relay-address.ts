@@ -5,7 +5,7 @@
 
 export type Author = 'supplier' | 'contractor';
 
-export const DEFAULT_RELAY_DOMAIN = 'reply.batilink.be';
+export const DEFAULT_RELAY_DOMAIN = 'reply.batinode.be';
 
 export function relayAddress(author: Author, replyKey: string, domain = DEFAULT_RELAY_DOMAIN): string {
   return `${author === 'supplier' ? 's' : 'c'}-${replyKey}@${domain}`;

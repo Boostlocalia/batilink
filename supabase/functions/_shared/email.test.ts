@@ -15,7 +15,7 @@ const base = {
   neededBy: '2026-10-28',
   replyBy: '2026-10-22',
   delivery: true,
-  url: 'https://app.batilink.be/offre/abc',
+  url: 'https://app.batinode.be/offre/abc',
   commissionRate: 0.05,
 };
 

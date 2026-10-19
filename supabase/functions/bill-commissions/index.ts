@@ -1,5 +1,5 @@
 // Monthly job (x-cron-secret): bills each supplier the commission on the sales
-// made through BatiLink, and e-mails the statement with a secure payment link.
+// made through Batinode, and e-mails the statement with a secure payment link.
 // Contractors pay suppliers directly; a commission is billed once the sale is
 // proven (delivery confirmed by the contractor, a matching invoice, proof of
 // payment, or 45 days after the supplier confirmed). Unproven ones wait for the

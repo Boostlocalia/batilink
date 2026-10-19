@@ -262,7 +262,7 @@ export const fr = {
     cancel: "Annuler l'accord",
     checkedAt: (date: string) => `Vérifié le ${date}`,
     projectCommission: (amount: string, commission: string) =>
-      `Commission BatiLink : 5 % de ${amount} HTVA, soit ${commission} HTVA, facturée à l’entrepreneur en fin de mois s’il a un plan Starter ou Premium.`,
+      `Commission Batinode : 5 % de ${amount} HTVA, soit ${commission} HTVA, facturée à l’entrepreneur en fin de mois s’il a un plan Starter ou Premium.`,
   },
   verification: {
     title: 'Vérification de l’entreprise',

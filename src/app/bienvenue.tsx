@@ -15,7 +15,7 @@ import { saveIntent } from '@/lib/signup-intent';
 
 const PROFILES: Profile[] = ['contractor', 'supplier', 'architect'];
 
-/** Public welcome page: what BatiLink does for each trade, and one tap to start. */
+/** Public welcome page: what Batinode does for each trade, and one tap to start. */
 export default function WelcomeScreen() {
   const { t, language, setLanguage, locale } = useI18n();
   const l = t.growth.landing;

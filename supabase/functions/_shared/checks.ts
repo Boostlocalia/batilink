@@ -68,7 +68,7 @@ export async function checkKbo(admin: SupabaseClient, vat: string, kind: Company
 // Retention obligation (30bis social + tax debts): ONSS billRetainment ----------
 //
 // REST service of socialsecurity.be (OAuth2 client credentials with a signed JWT,
-// after BatiLink's REST channel is set up in Chaman). One call returns both the
+// after Batinode's REST channel is set up in Chaman). One call returns both the
 // social (ONSS/INASTI) and the tax (SPF Finances) decisions for a company number.
 // Request and response shapes below follow the published v2 service and must be
 // validated in the simulation environment before going live; anything not

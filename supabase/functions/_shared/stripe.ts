@@ -1,5 +1,5 @@
-// Stripe: BatiLink's plans and the monthly commission bills. Card and bank
-// details are entered on Stripe's pages only and never reach BatiLink.
+// Stripe: Batinode's plans and the monthly commission bills. Card and bank
+// details are entered on Stripe's pages only and never reach Batinode.
 // Orders are paid by the contractor directly to the supplier.
 
 import Stripe from 'npm:stripe@23.0.0';

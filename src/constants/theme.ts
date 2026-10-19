@@ -1,5 +1,5 @@
 /**
- * BatiLink colours ("Volt"): a near-black base with electric lime for the main
+ * Batinode colours ("Volt"): a near-black base with electric lime for the main
  * call to action (`signal`) and white as the second accent (`brand`: selected
  * pills, user chat bubbles). The app is dark only, so both schemes share one palette.
  */

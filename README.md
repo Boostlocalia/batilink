@@ -1,14 +1,14 @@
-# BatiLink
+# Batinode
 
 Plateforme belge pour les PME du bâtiment, en français et en néerlandais.
 
 - **Demandes de prix** : un entrepreneur interroge plusieurs négoces en une fois ; les négoces répondent depuis l'e-mail sans créer de compte, et l'entrepreneur compare les offres côte à côte. Si une offre est retenue, le négoce doit une commission (5 % HTVA par défaut).
 - **Questions des fournisseurs** : un négoce qui répond à l'e-mail de demande pose une question ; un agent IA la lit, la transmet à l'entrepreneur dans sa langue et renvoie la réponse. Aucune adresse n'est révélée avant l'attribution.
-- **Réseau** : les entrepreneurs sous-traitent du travail, les architectes publient leurs projets gratuitement, les entrepreneurs vérifiés répondent. Quand un entrepreneur abonné (Starter ou Premium) confirme un projet d'architecte, BatiLink facture 5 % HTVA du montant convenu à l'entrepreneur (réglage dans `supabase/functions/_shared/project-commission.ts`).
+- **Réseau** : les entrepreneurs sous-traitent du travail, les architectes publient leurs projets gratuitement, les entrepreneurs vérifiés répondent. Quand un entrepreneur abonné (Starter ou Premium) confirme un projet d'architecte, Batinode facture 5 % HTVA du montant convenu à l'entrepreneur (réglage dans `supabase/functions/_shared/project-commission.ts`).
 - **Mes fichiers** : chaque entreprise (entrepreneur, fournisseur, architecte) range ses métrés, listes de prix, plans et photos dans un espace privé (`/fichiers`). Un métré Excel (.xlsx) ou CSV devient une demande de prix en un geste.
 - **Vérification** : chaque entrepreneur et architecte est contrôlé (TVA, BCE, dettes sociales et fiscales 30bis) à l'inscription, chaque mois et juste avant chaque accord.
-- **Commandes et preuve d'achat** : l'entrepreneur paie le fournisseur en direct ; BatiLink garde la preuve de la transaction. Une offre retenue devient un bon de commande numéroté (BL-2026-000042). Le fournisseur le confirme depuis son e-mail et peut demander un acompte ; l'entrepreneur dépose la preuve de son virement, que le fournisseur reçoit avant de lancer la commande. Réception confirmée, facture Peppol vérifiée automatiquement, preuve de paiement : chaque étape est horodatée et chaque fichier reçoit une empreinte SHA-256.
-- **Commission mensuelle** : chaque mois, le fournisseur reçoit le relevé des commandes passées via BatiLink et la commission due, avec un lien de paiement sécurisé (Stripe : Bancontact, carte, virement). Les abonnements se paient aussi par Stripe.
+- **Commandes et preuve d'achat** : l'entrepreneur paie le fournisseur en direct ; Batinode garde la preuve de la transaction. Une offre retenue devient un bon de commande numéroté (BL-2026-000042). Le fournisseur le confirme depuis son e-mail et peut demander un acompte ; l'entrepreneur dépose la preuve de son virement, que le fournisseur reçoit avant de lancer la commande. Réception confirmée, facture Peppol vérifiée automatiquement, preuve de paiement : chaque étape est horodatée et chaque fichier reçoit une empreinte SHA-256.
+- **Commission mensuelle** : chaque mois, le fournisseur reçoit le relevé des commandes passées via Batinode et la commission due, avec un lien de paiement sécurisé (Stripe : Bancontact, carte, virement). Les abonnements se paient aussi par Stripe.
 - **Assistant** : un assistant IA accueille chaque type d'utilisateur avec un guide et répond aux questions. Son nom et celui de l'app sont dans `supabase/functions/_shared/brand.ts`.
 
 Une seule base de code produit l'app iOS, l'app Android et le site web (téléphone, tablette, ordinateur).
@@ -35,14 +35,14 @@ Une seule base de code produit l'app iOS, l'app Android et le site web (téléph
 | Fournisseurs | Consultation, sans envoi de demande de prix | Non inclus | Demandes de prix illimitées |
 | Utilisateurs | 1 | 2 | 5 |
 
-Dans la base, les plans gardent leurs identifiants `free`, `pro` et `full`. Les architectes publient gratuitement ; un projet confirmé par un entrepreneur abonné donne lieu à une commission de 5 % HTVA. Les fournisseurs s'inscrivent gratuitement et paient 5 % HTVA sur les ventes passées par BatiLink.
+Dans la base, les plans gardent leurs identifiants `free`, `pro` et `full`. Les architectes publient gratuitement ; un projet confirmé par un entrepreneur abonné donne lieu à une commission de 5 % HTVA. Les fournisseurs s'inscrivent gratuitement et paient 5 % HTVA sur les ventes passées par Batinode.
 
 ## Inscription et conversion
 
 - **Inscription par profil** : profil, entreprise (TVA avec nom trouvé à la BCE, adresse, contact, taille), activité (métiers, types de chantiers et achats mensuels pour un entrepreneur ; type, catégories, provinces, livraison, enlèvement, minimum de commande et adresse des demandes pour un fournisseur ; numéro d'architecte, projets pour un architecte), puis origine, code de parrainage et conditions. Un fournisseur accepte la commission à l'inscription. La province est déduite du code postal.
 - **Essai** : chaque nouvel entrepreneur a 14 jours de Premium (30 avec un code de parrainage), sans carte. `lifecycle` prévient 3 jours avant la fin puis repasse l'entreprise en Gratuit.
 - **Parrainage** : chaque entreprise a un lien `/bienvenue?ref=CODE`. Quand l'entreprise parrainée est vérifiée, le parrain reçoit un mois de Premium (gratuit ou en essai), 69,99 € HTVA de crédit Stripe (abonné) ou 69,99 € HTVA déduits de son relevé de commission (fournisseur).
-- **Fournisseurs favoris** : un entrepreneur invite ses fournisseurs habituels par e-mail ; ils reçoivent ses demandes en priorité, même hors zone, et rejoignent BatiLink avec le lien d'invitation.
+- **Fournisseurs favoris** : un entrepreneur invite ses fournisseurs habituels par e-mail ; ils reçoivent ses demandes en priorité, même hors zone, et rejoignent Batinode avec le lien d'invitation.
 - **E-mails** : bienvenue, activation (entre 2 et 14 jours si rien n'a été fait), fin d'essai, relance mensuelle des entrepreneurs inactifs, récompense de parrainage. Chaque e-mail part une seule fois (`lifecycle_messages`).
 - **Pilotage** : les vues `funnel_weekly` (inscriptions, entreprises vérifiées, actives et payantes, par semaine et par profil) et `revenue_monthly` (abonnements et commissions par mois) sont réservées au back-office.
 
@@ -63,7 +63,7 @@ Ces tables sont réservées au back-office : l'app ne peut pas les lire.
 | --- | --- | --- |
 | Numéro de TVA actif | VIES (Commission européenne) | Aucun, service public. |
 | Entreprise active, activité construction (41-43) ou architecture (71.11) | Données ouvertes de la BCE | Télécharger l'extrait mensuel complet sur [kbopub.economie.fgov.be/kbo-open-data](https://kbopub.economie.fgov.be/kbo-open-data), le dézipper, puis `SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… node scripts/import-kbo.mjs <dossier>`. |
-| Dettes sociales (ONSS, INASTI) et fiscales (SPF Finances), art. 30bis | Service REST `billRetainment` de l'ONSS | L'entreprise qui exploite BatiLink doit désigner un gestionnaire d'accès, activer le canal REST dans Chaman avec un certificat, puis renseigner `BILLRETAINMENT_CLIENT_ID` et `BILLRETAINMENT_PRIVATE_KEY`. Valider d'abord en simulation (`BILLRETAINMENT_ENV` différent de `production`) : le format exact des réponses est à confirmer avec la spécification officielle. Contact : billretainment30bis@onss.fgov.be. |
+| Dettes sociales (ONSS, INASTI) et fiscales (SPF Finances), art. 30bis | Service REST `billRetainment` de l'ONSS | L'entreprise qui exploite Batinode doit désigner un gestionnaire d'accès, activer le canal REST dans Chaman avec un certificat, puis renseigner `BILLRETAINMENT_CLIENT_ID` et `BILLRETAINMENT_PRIVATE_KEY`. Valider d'abord en simulation (`BILLRETAINMENT_ENV` différent de `production`) : le format exact des réponses est à confirmer avec la spécification officielle. Contact : billretainment30bis@onss.fgov.be. |
 
 Tant qu'un registre n'est pas branché ou ne répond pas, l'entreprise reste « à compléter » : elle n'est jamais validée par défaut, et un accord est bloqué. Avant chaque accord, les deux entreprises sont recontrôlées en direct. Si le sous-traitant a des dettes, le donneur d'ordre doit confirmer qu'il fera les retenues légales avant que l'accord soit confirmé.
 
@@ -81,13 +81,13 @@ Tant qu'un registre n'est pas branché ou ne répond pas, l'entreprise reste « 
 
 La commission suit le montant facturé quand la facture correspond. Elle est due dès que la vente est prouvée (réception, preuve de paiement, facture conforme, ou 45 jours après la confirmation du fournisseur) ; sinon elle attend le mois suivant. Le 2 de chaque mois, `bill-commissions` envoie à chaque fournisseur, et à chaque entrepreneur qui doit une commission de projet, le relevé détaillé (numéro de commande, entrepreneur, montant, commission) avec un lien de paiement sécurisé. Faites valider les conditions générales des fournisseurs (commission, acompte, référence de commande sur la facture) par un avocat.
 
-**Facturation de BatiLink** : depuis 2026, les factures entre entreprises belges passent par Peppol. Les relevés `BL-COM-…` servent de référence ; la facture de commission elle-même part du logiciel comptable de la société qui exploite BatiLink, déjà relié à Peppol, avec le même numéro.
+**Facturation de Batinode** : depuis 2026, les factures entre entreprises belges passent par Peppol. Les relevés `BL-COM-…` servent de référence ; la facture de commission elle-même part du logiciel comptable de la société qui exploite Batinode, déjà relié à Peppol, avec le même numéro.
 
 ### Brancher Stripe
 
 Stripe sert à encaisser les abonnements et les commissions ; les commandes se paient en direct entre entrepreneur et fournisseur.
 
-1. Créer le compte Stripe de l'entreprise qui exploite BatiLink (Belgique).
+1. Créer le compte Stripe de l'entreprise qui exploite Batinode (Belgique).
 2. Créer deux produits (Starter, Premium), chacun avec un prix mensuel (69,99 €, 129,99 € HTVA) et un prix annuel (699,90 €, 1 299,90 € HTVA), et noter les quatre identifiants de prix.
 3. Activer le **portail client** (changement de plan, moyen de paiement, factures, résiliation) et, si souhaité, **Stripe Tax**.
 4. Créer un point de terminaison webhook vers `https://<ref>.supabase.co/functions/v1/stripe-webhook` avec les événements `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`.
@@ -189,5 +189,5 @@ cd supabase/functions && npx deno check --node-modules-dir=none */index.ts   # T
 - Les limites d'abonnement sont vérifiées par le serveur, pas seulement par l'app.
 - Une entreprise ne peut modifier que son nom, sa langue et son adresse : statut de vérification, commission et retenues sont écrits par le serveur. Les adresses e-mail des autres entreprises ne sont pas lisibles ; elles sont partagées une fois un accord confirmé.
 - Les messages reçus par e-mail sont traités comme du contenu à relayer, jamais comme des instructions pour l'IA.
-- Paiements : les commandes se paient en direct entre entrepreneur et fournisseur. Abonnements et commissions se paient sur les pages de Stripe : les données de carte et de compte ne passent jamais par BatiLink. Un paiement n'est marqué payé et un plan ne change que sur un webhook dont la signature Stripe est vérifiée. Les montants et la commission sont calculés par le serveur.
+- Paiements : les commandes se paient en direct entre entrepreneur et fournisseur. Abonnements et commissions se paient sur les pages de Stripe : les données de carte et de compte ne passent jamais par Batinode. Un paiement n'est marqué payé et un plan ne change que sur un webhook dont la signature Stripe est vérifiée. Les montants et la commission sont calculés par le serveur.
 - Documents : bucket privé, type de fichier vérifié sur son contenu (pas sur son nom), 10 Mo maximum, empreinte SHA-256 conservée ; le fournisseur les consulte par un lien signé valable 5 minutes. Chaque étape d'une commande n'est possible qu'au bon moment et par la bonne partie.

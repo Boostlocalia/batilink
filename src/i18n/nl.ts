@@ -263,7 +263,7 @@ export const nl: Dictionary = {
     cancel: 'Akkoord annuleren',
     checkedAt: (date: string) => `Gecontroleerd op ${date}`,
     projectCommission: (amount: string, commission: string) =>
-      `BatiLink-commissie: 5 % van ${amount} excl. btw, of ${commission} excl. btw, op het einde van de maand gefactureerd aan de aannemer als die een Starter- of Premium-plan heeft.`,
+      `Batinode-commissie: 5 % van ${amount} excl. btw, of ${commission} excl. btw, op het einde van de maand gefactureerd aan de aannemer als die een Starter- of Premium-plan heeft.`,
   },
   verification: {
     title: 'Controle van het bedrijf',
