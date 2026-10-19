@@ -11,22 +11,22 @@ additional_redirect_urls = ["batilink://"]
 enable_signup = true
 otp_length = 6
 
-# Sign-in e-mails in French and Dutch. Paste the same subject and file into
+# Sign-in e-mails in the user's language (user metadata "language", kept in sync with profiles.language). Paste the same subject and file into
 # Supabase → Authentication → Email Templates for the hosted project.
 [auth.email.template.confirmation]
-subject = "Confirmez votre adresse · Bevestig uw adres — Batinode"
+subject = "{{ if eq (printf \"%v\" .Data.language) \"nl\" }}Bevestig uw e-mailadres{{ else }}Confirmez votre adresse{{ end }} · Batinode"
 content_path = "./supabase/templates/confirmation.html"
 
 [auth.email.template.recovery]
-subject = "Nouveau mot de passe · Nieuw wachtwoord — Batinode"
+subject = "{{ if eq (printf \"%v\" .Data.language) \"nl\" }}Uw nieuwe wachtwoord{{ else }}Votre nouveau mot de passe{{ end }} · Batinode"
 content_path = "./supabase/templates/recovery.html"
 
 [auth.email.template.magic_link]
-subject = "Votre lien de connexion · Uw aanmeldlink — Batinode"
+subject = "{{ if eq (printf \"%v\" .Data.language) \"nl\" }}Uw aanmeldlink{{ else }}Votre lien de connexion{{ end }} · Batinode"
 content_path = "./supabase/templates/magic_link.html"
 
 [auth.email.template.email_change]
-subject = "Confirmez votre nouvelle adresse · Bevestig uw nieuwe adres — Batinode"
+subject = "{{ if eq (printf \"%v\" .Data.language) \"nl\" }}Bevestig uw nieuwe adres{{ else }}Confirmez votre nouvelle adresse{{ end }} · Batinode"
 content_path = "./supabase/templates/email_change.html"
 
 # Suppliers open their reply link without an account.

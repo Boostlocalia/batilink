@@ -75,7 +75,8 @@ export default function SignInScreen() {
     const { data, error } = await supabase.auth.signUp({
       email: address,
       password,
-      options: { emailRedirectTo: returnUrl() },
+      // The confirmation and reset e-mails are written in this language.
+      options: { emailRedirectTo: returnUrl(), data: { language } },
     });
     setBusy(false);
     if (error) return setErrors({ form: authMessage(error) });

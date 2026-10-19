@@ -1,12 +1,14 @@
 <div style="font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#f4f4f6;background:#09090b;padding:28px;border-radius:14px;max-width:560px">
 <p style="margin:0 0 20px;font-weight:800;font-size:18px;color:#d4ff3a">Batinode</p>
-<p style="margin:0 0 8px;font-weight:700">Votre lien de connexion</p>
-<p style="margin:0 0 14px">Cliquez sur le bouton pour vous connecter à Batinode. Le lien ne sert qu’une fois.</p>
-<p style="margin:20px 0"><a href="{{ .ConfirmationURL }}" style="background:#d4ff3a;color:#09090b;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Me connecter</a></p>
-<p style="margin:0 0 24px;color:#9b9ba6;font-size:12px">Vous n’êtes pas à l’origine de cette demande ? Ignorez simplement cet e-mail. Une question : support@batinode.be</p>
-<hr style="border:0;border-top:1px solid #2a2a30;margin:0 0 24px">
+{{ if eq (printf "%v" .Data.language) "nl" }}
 <p style="margin:0 0 8px;font-weight:700">Uw aanmeldlink</p>
 <p style="margin:0 0 14px">Klik op de knop om u aan te melden bij Batinode. De link werkt maar één keer.</p>
 <p style="margin:20px 0"><a href="{{ .ConfirmationURL }}" style="background:#d4ff3a;color:#09090b;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Aanmelden</a></p>
 <p style="margin:0;color:#9b9ba6;font-size:12px">Heeft u dit niet aangevraagd? Negeer dan deze e-mail. Een vraag: support@batinode.be</p>
+{{ else }}
+<p style="margin:0 0 8px;font-weight:700">Votre lien de connexion</p>
+<p style="margin:0 0 14px">Cliquez sur le bouton pour vous connecter à Batinode. Le lien ne sert qu’une fois.</p>
+<p style="margin:20px 0"><a href="{{ .ConfirmationURL }}" style="background:#d4ff3a;color:#09090b;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Me connecter</a></p>
+<p style="margin:0;color:#9b9ba6;font-size:12px">Vous n’êtes pas à l’origine de cette demande ? Ignorez simplement cet e-mail. Une question : support@batinode.be</p>
+{{ end }}
 </div>
