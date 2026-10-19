@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Screen, Segmented } from '@/components/ui';
+import { PlansBanner } from '@/components/home-banners';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
@@ -50,6 +51,7 @@ export default function PlansScreen() {
         <ThemedText type="title">{t.plans.title}</ThemedText>
         <ThemedText themeColor="textSecondary">{t.plans.lead}</ThemedText>
       </View>
+      <PlansBanner />
       {!company ? <CompleteProfileCard text={t.signup.later.plans} /> : null}
       {onTrial ? (
         <Card style={{ borderColor: theme.signal }}>

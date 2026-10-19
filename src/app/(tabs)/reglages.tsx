@@ -6,6 +6,7 @@ import { ReferralCard } from '@/components/referral-card';
 import { VerificationCard } from '@/components/verification-card';
 import { router } from 'expo-router';
 import { Button, Card, Screen, Segmented } from '@/components/ui';
+import { SettingsBanner } from '@/components/home-banners';
 import { Spacing } from '@/constants/theme';
 import { useI18n, type Language } from '@/i18n';
 import { useSession } from '@/lib/session';
@@ -44,6 +45,7 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <ThemedText type="title">{t.settings.title}</ThemedText>
+      {company ? <SettingsBanner /> : null}
       <Card>
         <ThemedText type="smallBold">{t.settings.language}</ThemedText>
         <Segmented<Language>

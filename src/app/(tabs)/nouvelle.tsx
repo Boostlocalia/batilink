@@ -7,6 +7,7 @@ import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { ThemedText } from '@/components/themed-text';
 import { UpgradeCard, type UpgradeReason } from '@/components/upgrade-card';
 import { Button, Card, Chip, Field, Screen, Segmented } from '@/components/ui';
+import { RequestBanner } from '@/components/home-banners';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
@@ -250,6 +251,7 @@ export default function NewRequestScreen() {
         <ThemedText type="title">{t.request.title}</ThemedText>
         <ThemedText themeColor="textSecondary">{t.request.lead}</ThemedText>
       </View>
+      <RequestBanner />
 
       <Card>
         <Field label={t.request.name} placeholder={t.request.namePlaceholder} value={title} onChangeText={setTitle} error={errors.title} />

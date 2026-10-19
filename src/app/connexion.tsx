@@ -9,6 +9,7 @@ import { Spacing } from "@/constants/theme";
 import { useI18n, type Language } from "@/i18n";
 import { supabase } from "@/lib/supabase";
 import { Logo } from '@/components/logo';
+import { SignInBanners } from "@/components/home-banners";
 
 type Mode = "signin" | "signup";
 
@@ -180,6 +181,7 @@ export default function SignInScreen() {
           <Button label={a.forgot} variant="ghost" small onPress={forgot} />
         ) : null}
       </Card>
+      <SignInBanners />
     </Screen>
   );
 }

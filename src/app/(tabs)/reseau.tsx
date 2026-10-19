@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Agreements } from '@/components/agreements';
 import { CompleteProfileCard } from '@/components/complete-profile-card';
-import { ArchitectBanners } from '@/components/home-banners';
+import { ArchitectBanners, NetworkBanners } from '@/components/home-banners';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Option, Screen, Segmented } from '@/components/ui';
 import { UpgradeCard } from '@/components/upgrade-card';
@@ -67,7 +67,7 @@ export default function NetworkScreen() {
         <ThemedText themeColor="textSecondary">{t.network.lead}</ThemedText>
       </View>
 
-      {architect ? <ArchitectBanners onBrowse={() => setView('mine')} /> : null}
+      {architect ? <ArchitectBanners onBrowse={() => setView('mine')} /> : <NetworkBanners />}
 
       <Segmented<View_>
         value={view}

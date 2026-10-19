@@ -73,3 +73,41 @@ export function ArchitectBanners({ onBrowse }: { onBrowse: () => void }) {
     />
   );
 }
+
+type PageSlide = { kicker: string; title: string; text: string };
+const PAGE_LOOKS: { image: Slide['image']; accent: Slide['accent'] }[] = [
+  { image: 'materials', accent: 'lime' },
+  { image: 'network', accent: 'cyan' },
+  { image: 'phone', accent: 'magenta' },
+];
+
+/** A page header banner made of one or more hook lines, each with its own photo and accent. */
+function PageBanner({ items, looks = PAGE_LOOKS }: { items: PageSlide[]; looks?: typeof PAGE_LOOKS }) {
+  const slides: Slide[] = items.map((s, i) => ({ key: String(i), ...looks[i % looks.length], ...s }));
+  return <HeroCarousel slides={slides} height={170} />;
+}
+
+export function SignInBanners() {
+  const { t } = useI18n();
+  return <PageBanner items={t.banners.pages.signin} />;
+}
+
+export function RequestBanner() {
+  const { t } = useI18n();
+  return <PageBanner items={[t.banners.pages.request]} looks={[{ image: 'delivery', accent: 'orange' }]} />;
+}
+
+export function NetworkBanners() {
+  const { t } = useI18n();
+  return <PageBanner items={t.banners.pages.network} looks={[{ image: 'site', accent: 'cyan' }, { image: 'architect', accent: 'violet' }]} />;
+}
+
+export function PlansBanner() {
+  const { t } = useI18n();
+  return <PageBanner items={[t.banners.pages.plans]} looks={[{ image: 'phone', accent: 'magenta' }]} />;
+}
+
+export function SettingsBanner() {
+  const { t } = useI18n();
+  return <PageBanner items={[t.banners.pages.settings]} looks={[{ image: 'network', accent: 'violet' }]} />;
+}
