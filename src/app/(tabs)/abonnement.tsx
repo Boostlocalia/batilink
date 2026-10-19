@@ -62,7 +62,8 @@ export default function PlansScreen() {
             { value: 'year', label: g.yearly },
           ]}
         />
-        <Chip label={g.yearlySave} tone="good" />
+        {/* The two free months only come with yearly billing. */}
+        <Chip label={billing === 'year' ? g.yearlySave : g.yearlyHint} tone={billing === 'year' ? 'good' : 'neutral'} />
       </View>
       <View style={styles.plans}>
         {ORDER.map((id) => {

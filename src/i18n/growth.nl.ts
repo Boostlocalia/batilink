@@ -7,6 +7,7 @@ export const growthNl: typeof growthFr = {
     monthly: 'Maandelijks',
     yearly: 'Jaarlijks',
     yearlySave: '2 maanden gratis',
+    yearlyHint: 'Kies jaarlijks: 2 maanden gratis',
     perYear: '/ jaar excl. btw',
     perMonthEquivalent: (amount: string) => `of ${amount} / maand`,
     recommended: 'Meest rendabel',

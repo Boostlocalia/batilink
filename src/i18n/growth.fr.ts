@@ -5,6 +5,7 @@ export const growthFr = {
     monthly: 'Mensuel',
     yearly: 'Annuel',
     yearlySave: '2 mois offerts',
+    yearlyHint: 'Passez à l’annuel : 2 mois offerts',
     perYear: '/ an HTVA',
     perMonthEquivalent: (amount: string) => `soit ${amount} / mois`,
     recommended: 'Le plus rentable',
