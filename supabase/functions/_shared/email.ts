@@ -1,4 +1,4 @@
-import { APP_NAME } from './brand.ts';
+import { APP_NAME, EMAIL_LOGO_URL } from './brand.ts';
 
 // Transactional e-mails, sent through Brevo's HTTP API in the recipient's language.
 
@@ -46,7 +46,7 @@ function layout(paragraphs: string[], cta?: { label: string; url: string }, foot
     : '';
   const foot = footer ? `<p style="margin:24px 0 0;color:#9b9ba6;font-size:12px">${footer}</p>` : '';
   return `<div style="font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#f4f4f6;background:#09090b;padding:28px;border-radius:14px;max-width:560px">
-<p style="margin:0 0 20px;font-weight:800;font-size:18px;color:#d4ff3a">${APP_NAME}</p>${body}${button}${foot}</div>`;
+<p style="margin:0 0 20px"><img src="${EMAIL_LOGO_URL}" width="200" height="47" alt="${APP_NAME}" style="display:block;border:0;width:200px;height:47px;color:#d4ff3a;font-weight:800;font-size:18px"></p>${body}${button}${foot}</div>`;
 }
 
 const dateFmt = (iso: string, lang: Lang) =>
