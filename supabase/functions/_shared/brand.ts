@@ -4,4 +4,4 @@
 export const APP_NAME = 'Batinode';
 
 /** The AI assistant that welcomes people and answers their questions. */
-export const ASSISTANT_NAME = 'Bati';
+export const ASSISTANT_NAME = 'Nodi';

@@ -17,7 +17,7 @@ export default function TabLayout() {
   return (
     <View style={{ flex: 1 }}>
       <AppTabs />
-      {/* Bati speaks to contractors and architects; suppliers have their own space. */}
+      {/* Nodi speaks to contractors and architects; suppliers have their own space. */}
       {company?.kind !== 'supplier' ? <Assistant audience={company?.kind === 'architect' ? 'architect' : 'contractor'} /> : null}
     </View>
   );
