@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { HeroCarousel } from '@/components/hero-carousel';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Screen, Segmented } from '@/components/ui';
-import { APP_NAME } from '@/constants/brand';
+import { Logo } from '@/components/logo';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n, type Language } from '@/i18n';
@@ -37,9 +37,7 @@ export default function WelcomeScreen() {
   return (
     <Screen withTabBar={false}>
       <View style={styles.top}>
-        <ThemedText type="subtitle" themeColor="signal">
-          {APP_NAME}
-        </ThemedText>
+        <Logo size={26} />
         <View style={styles.topActions}>
           <Segmented<Language>
             value={language}

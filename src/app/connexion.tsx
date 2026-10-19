@@ -8,7 +8,7 @@ import { Button, Card, Field, Screen, Segmented } from "@/components/ui";
 import { Spacing } from "@/constants/theme";
 import { useI18n, type Language } from "@/i18n";
 import { supabase } from "@/lib/supabase";
-import { APP_NAME } from "@/constants/brand";
+import { Logo } from '@/components/logo';
 
 type Mode = "signin" | "signup";
 
@@ -113,9 +113,7 @@ export default function SignInScreen() {
             { value: "nl", label: "NL" },
           ]}
         />
-        <ThemedText type="title" themeColor="brand">
-          {APP_NAME}
-        </ThemedText>
+        <Logo size={34} />
         <ThemedText type="subtitle">
           {mode === "signin" ? a.title : a.signUpTitle}
         </ThemedText>

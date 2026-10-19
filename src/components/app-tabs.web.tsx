@@ -7,7 +7,7 @@ import { useSession } from '@/lib/session';
 
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
-import { APP_NAME } from '@/constants/brand';
+import { Logo } from '@/components/logo';
 
 export default function AppTabs() {
   const { t } = useI18n();
@@ -80,9 +80,9 @@ export function CustomTabList(props: TabListProps) {
     return (
       <ThemedView type="backgroundElement" {...props} style={styles.tabListContainer}>
         <View style={styles.innerContainer}>
-          <ThemedText type="subtitle" themeColor="signal" style={styles.brandText}>
-            {APP_NAME}
-          </ThemedText>
+          <View style={styles.brandText}>
+            <Logo />
+          </View>
           <LanguageSwitch />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: '100%' }} contentContainerStyle={styles.scrollTabs}>
@@ -94,9 +94,9 @@ export function CustomTabList(props: TabListProps) {
   return (
     <ThemedView type="backgroundElement" {...props} style={styles.tabListContainer}>
       <View style={styles.innerContainer}>
-        <ThemedText type="subtitle" themeColor="signal" style={styles.brandText}>
-          {APP_NAME}
-        </ThemedText>
+        <View style={styles.brandText}>
+          <Logo />
+        </View>
         {props.children}
         <LanguageSwitch />
       </View>
