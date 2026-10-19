@@ -30,6 +30,19 @@ async function payLink(admin: Admin, token: string | null): Promise<Response> {
     .maybeSingle();
   if (!bill) return new Response('Lien invalide / Ongeldige link', { status: 404 });
   if (bill.status !== 'open') return Response.redirect(`${appUrl()}/?commission=payee`, 303);
+  // Reuse the payment page already opened from this link (mail scanners open links too).
+  const { data: open } = await admin
+    .from('payments')
+    .select('stripe_checkout_session_id')
+    .eq('commission_bill_id', bill.id)
+    .eq('status', 'open')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (open?.stripe_checkout_session_id) {
+    const previous = await stripe.checkout.sessions.retrieve(open.stripe_checkout_session_id).catch(() => null);
+    if (previous?.status === 'open' && previous.url) return Response.redirect(previous.url, 303);
+  }
   const { data: supplier } = await admin.from('companies').select('email, language').eq('id', bill.supplier_id).single();
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',

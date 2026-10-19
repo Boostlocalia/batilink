@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   const companyId = await callerCompanyId(req, admin);
   if (!companyId) return json({ error: 'unauthorized' }, 401);
 
-  const [{ data: company }, { data: sub }] = await Promise.all([
+  let [{ data: company }, { data: sub }] = await Promise.all([
     admin.from('companies').select('id, kind, name, email, language, vat_number, stripe_customer_id').eq('id', companyId).single(),
     admin.from('subscriptions').select('plan, status, provider_subscription_id').eq('company_id', companyId).maybeSingle(),
   ]);
@@ -24,6 +24,21 @@ Deno.serve(async (req) => {
   const back = `${appUrl()}/abonnement`;
 
   let customer = company.stripe_customer_id as string | null;
+  if (customer) {
+    // Ids made in Stripe's test mode do not exist once the live keys are in place:
+    // start again with a new customer, and drop the test subscription with it.
+    const found = await stripe.customers.retrieve(customer).catch((e) => (e?.code === 'resource_missing' ? null : Promise.reject(e)));
+    if (!found || found.deleted) {
+      customer = null;
+      if (sub?.provider_subscription_id) {
+        await admin
+          .from('subscriptions')
+          .update({ plan: 'free', status: 'canceled', provider_subscription_id: null, provider_customer_id: null, current_period_end: null, updated_at: new Date().toISOString() })
+          .eq('company_id', company.id);
+        sub = null;
+      }
+    }
+  }
   if (!customer) {
     const created = await stripe.customers.create(
       {

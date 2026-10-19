@@ -195,13 +195,21 @@ async function referrals(admin: Admin, now: Date) {
     } else {
       const { data: sub } = await admin.from('subscriptions').select('plan, provider_subscription_id, trial_ends_at').eq('company_id', referrer.id).single();
       const stripe = stripeClient();
-      if (sub?.provider_subscription_id && referrer.stripe_customer_id && stripe) {
-        // Paying customer: credit on the next Stripe invoice (VAT included in the credit).
-        await stripe.customers.createBalanceTransaction(
-          referrer.stripe_customer_id,
-          { amount: -Math.round(REWARD_EX_VAT * 1.21 * 100), currency: 'eur', description: `Parrainage ${c.name}` },
-          { idempotencyKey: `referral-${c.id}` },
-        );
+      // Paying customer: credit on the next Stripe invoice (VAT included in the credit).
+      const credited =
+        sub?.provider_subscription_id && referrer.stripe_customer_id && stripe
+          ? await stripe.customers
+              .createBalanceTransaction(
+                referrer.stripe_customer_id,
+                { amount: -Math.round(REWARD_EX_VAT * 1.21 * 100), currency: 'eur', description: `Parrainage ${c.name}` },
+                { idempotencyKey: `referral-${c.id}` },
+              )
+              .then(() => true)
+              .catch(() => false)
+          : false;
+      // A paying customer whose Stripe credit failed: try again on the next run.
+      if (!credited && sub?.provider_subscription_id) continue;
+      if (credited) {
         reward = { kind: 'stripe_balance', amount_ex_vat: REWARD_EX_VAT, fr: `${REWARD_LABEL} € HTVA déduits de votre prochaine facture`, nl: `€ ${REWARD_LABEL} excl. btw afgetrokken van uw volgende factuur` };
       } else {
         // Test or on trial: a month of Premium, added to any trial left.
