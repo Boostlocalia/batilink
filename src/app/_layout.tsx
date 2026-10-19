@@ -76,6 +76,7 @@ function RootNavigator() {
         <Stack.Screen name="commande/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
         <Stack.Screen name="fournisseurs" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
         <Stack.Screen name="zones" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
+        <Stack.Screen name="admin" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
         <Stack.Screen name="fichiers" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
       </Stack.Protected>
       <Stack.Protected guard={!!session && !company} redirectTo="/connexion">

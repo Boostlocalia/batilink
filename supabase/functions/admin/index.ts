@@ -1,0 +1,231 @@
+// The platform team's space: key figures, requests waiting for quotes, suppliers to
+// complete or add, companies to verify. Only accounts listed in platform_admins.
+// POST { action: 'overview' }
+// POST { action: 'suppliers', q? }                        search suppliers
+// POST { action: 'supplier', id }                         one supplier with its coverage
+// POST { action: 'save_supplier', supplier }              add (no id) or edit a supplier
+// POST { action: 'verify', company_id, status }           verified | rejected | needs_review
+
+import { adminClient, corsHeaders, json } from '../_shared/supabase.ts';
+
+// Same provinces as public.region_prefixes().
+const REGION_PREFIXES: Record<string, string[]> = {
+  BRU: ['10', '11', '12'],
+  BW: ['13', '14'],
+  VB: ['15', '16', '17', '18', '19', '30', '31', '32', '33', '34'],
+  ANT: ['2'],
+  LIM: ['35', '36', '37', '38', '39'],
+  LIE: ['4'],
+  NAM: ['5'],
+  HAI: ['60', '61', '62', '63', '64', '65', '7'],
+  LUX: ['66', '67', '68', '69'],
+  WVL: ['8'],
+  OVL: ['9'],
+};
+
+const SUPPLIER_FIELDS = 'id, name, vat_number, email, quote_email, phone, contact_name, street, postal_code, city, language, regions, verification_status, requests_stopped_at, created_at';
+
+type SupplierInput = {
+  id?: string;
+  name?: string;
+  vat_number?: string;
+  email?: string;
+  quote_email?: string;
+  phone?: string;
+  contact_name?: string;
+  street?: string;
+  postal_code?: string;
+  city?: string;
+  language?: string;
+  categories?: number[];
+  regions?: string[];
+};
+
+function text(value: unknown, max: number): string | null {
+  if (typeof value !== 'string') return null;
+  const v = value.trim().slice(0, max);
+  return v || null;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  const admin = adminClient();
+  const jwt = req.headers.get('Authorization')?.replace('Bearer ', '');
+  const { data: auth } = jwt ? await admin.auth.getUser(jwt) : { data: { user: null } };
+  if (!auth.user) return json({ error: 'unauthorized' }, 401);
+  const { data: allowed } = await admin.from('platform_admins').select('user_id').eq('user_id', auth.user.id).maybeSingle();
+  if (!allowed) return json({ error: 'forbidden' }, 403);
+
+  const body = (await req.json().catch(() => ({}))) as {
+    action?: string;
+    q?: string;
+    id?: string;
+    supplier?: SupplierInput;
+    company_id?: string;
+    status?: string;
+  };
+
+  if (body.action === 'overview') {
+    const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+    const count = (q: PromiseLike<{ count: number | null }>) => Promise.resolve(q).then((r) => r.count ?? 0);
+    const companies = () => admin.from('companies').select('id', { count: 'exact', head: true });
+    const [contractors, suppliers, architects, newWeek, toVerify, waiting, quotesWeek, ordersWeek, plans, open, review, incomplete, recent] = await Promise.all([
+      count(companies().eq('kind', 'contractor')),
+      count(companies().eq('kind', 'supplier')),
+      count(companies().eq('kind', 'architect')),
+      count(companies().gte('created_at', weekAgo)),
+      count(companies().in('verification_status', ['pending', 'needs_review']).neq('kind', 'supplier')),
+      count(admin.from('price_requests').select('id', { count: 'exact', head: true }).eq('status', 'sent')),
+      count(admin.from('quotes').select('id', { count: 'exact', head: true }).gte('submitted_at', weekAgo)),
+      count(admin.from('quotes').select('id', { count: 'exact', head: true }).eq('status', 'awarded').gte('submitted_at', weekAgo)),
+      admin.from('subscriptions').select('plan, status, trial_ends_at'),
+      admin
+        .from('price_requests')
+        .select('id, title, city, postal_code, reply_by, sent_at, company:companies(name), quotes(status)')
+        .eq('status', 'sent')
+        .order('sent_at', { ascending: false })
+        .limit(30),
+      admin
+        .from('companies')
+        .select('id, kind, name, vat_number, city, created_at, verification_status')
+        .in('verification_status', ['pending', 'needs_review'])
+        .neq('kind', 'supplier')
+        .order('created_at', { ascending: false })
+        .limit(30),
+      admin
+        .from('companies')
+        .select('id, name, city, phone, created_at, fans:preferred_suppliers!preferred_suppliers_supplier_id_fkey(contractor:companies!preferred_suppliers_contractor_id_fkey(name))')
+        .eq('kind', 'supplier')
+        .is('email', null)
+        .is('quote_email', null)
+        .order('created_at', { ascending: false })
+        .limit(30),
+      admin.from('companies').select('id, kind, name, city, created_at').order('created_at', { ascending: false }).limit(10),
+    ]);
+
+    const byPlan: Record<string, number> = {};
+    let trials = 0;
+    for (const s of plans.data ?? []) {
+      if (s.status !== 'active') continue;
+      byPlan[s.plan] = (byPlan[s.plan] ?? 0) + 1;
+      if (s.trial_ends_at && s.trial_ends_at > new Date().toISOString()) trials++;
+    }
+
+    return json({
+      figures: { contractors, suppliers, architects, newWeek, toVerify, waiting, quotesWeek, ordersWeek, byPlan, trials },
+      waiting: (open.data ?? []).map((r) => {
+        const quotes = (r.quotes ?? []) as { status: string }[];
+        return {
+          id: r.id,
+          title: r.title,
+          place: [r.postal_code, r.city].filter(Boolean).join(' '),
+          reply_by: r.reply_by,
+          sent_at: r.sent_at,
+          company: (r.company as { name?: string } | null)?.name ?? null,
+          invited: quotes.length,
+          answered: quotes.filter((q) => q.status === 'submitted' || q.status === 'awarded' || q.status === 'not_selected').length,
+        };
+      }),
+      toVerify: review.data ?? [],
+      incomplete: (incomplete.data ?? []).map((s) => ({
+        id: s.id,
+        name: s.name,
+        city: s.city,
+        phone: s.phone,
+        created_at: s.created_at,
+        added_by: ((s.fans ?? []) as { contractor?: { name?: string } | null }[]).map((f) => f.contractor?.name).filter(Boolean),
+      })),
+      recent: recent.data ?? [],
+    });
+  }
+
+  if (body.action === 'suppliers') {
+    let query = admin.from('companies').select(SUPPLIER_FIELDS).eq('kind', 'supplier').order('name').limit(50);
+    const q = text(body.q, 80)?.replace(/[%,()]/g, ' ');
+    if (q) query = query.or(`name.ilike.%${q}%,city.ilike.%${q}%,email.ilike.%${q}%,postal_code.ilike.${q}%`);
+    const { data } = await query;
+    return json({ suppliers: data ?? [] });
+  }
+
+  if (body.action === 'supplier') {
+    if (typeof body.id !== 'string') return json({ error: 'not_found' }, 404);
+    const [{ data: supplier }, { data: coverage }] = await Promise.all([
+      admin.from('companies').select(SUPPLIER_FIELDS).eq('id', body.id).eq('kind', 'supplier').maybeSingle(),
+      admin.from('supplier_coverage').select('category_id').eq('supplier_id', body.id),
+    ]);
+    if (!supplier) return json({ error: 'not_found' }, 404);
+    return json({ supplier: { ...supplier, categories: [...new Set((coverage ?? []).map((c) => c.category_id))] } });
+  }
+
+  if (body.action === 'save_supplier') {
+    const s = body.supplier ?? {};
+    const name = text(s.name, 120);
+    if (!name || name.length < 2) return json({ error: 'invalid_name' }, 400);
+    const vat = text(s.vat_number, 20)?.toUpperCase().replace(/[^A-Z0-9]/g, '') ?? null;
+    if (vat && !/^BE[01][0-9]{9}$/.test(vat)) return json({ error: 'invalid_vat' }, 400);
+    const email = text(s.email, 200)?.toLowerCase() ?? null;
+    const quoteEmail = text(s.quote_email, 200)?.toLowerCase() ?? null;
+    for (const e of [email, quoteEmail]) if (e && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return json({ error: 'invalid_email' }, 400);
+    const phone = text(s.phone, 20);
+    if (phone && !/^\+?[0-9 ./-]{8,20}$/.test(phone)) return json({ error: 'invalid_phone' }, 400);
+    const postal = text(s.postal_code, 4);
+    if (postal && !/^[1-9][0-9]{3}$/.test(postal)) return json({ error: 'invalid_postal_code' }, 400);
+    const regions = (Array.isArray(s.regions) ? s.regions : []).filter((r) => r in REGION_PREFIXES);
+    const categories = (Array.isArray(s.categories) ? s.categories : []).filter((c) => Number.isInteger(c));
+
+    const row = {
+      name,
+      vat_number: vat,
+      email,
+      quote_email: quoteEmail,
+      phone,
+      contact_name: text(s.contact_name, 120),
+      street: text(s.street, 200),
+      postal_code: postal,
+      city: text(s.city, 80),
+      language: s.language === 'nl' ? 'nl' : 'fr',
+      regions,
+    };
+
+    let id = typeof s.id === 'string' ? s.id : null;
+    if (id) {
+      const { data: found } = await admin.from('companies').select('id').eq('id', id).eq('kind', 'supplier').maybeSingle();
+      if (!found) return json({ error: 'not_found' }, 404);
+      const { error } = await admin.from('companies').update(row).eq('id', id);
+      if (error) return json({ error: error.code === '23505' ? 'vat_taken' : 'save_failed', detail: error.message }, 400);
+    } else {
+      const { data: created, error } = await admin.from('companies').insert({ ...row, kind: 'supplier' }).select('id').single();
+      if (error || !created) return json({ error: error?.code === '23505' ? 'vat_taken' : 'save_failed', detail: error?.message }, 400);
+      id = created.id as string;
+    }
+
+    // Coverage: every category in every postal prefix of the chosen provinces.
+    const { data: known } = await admin.from('categories').select('id').in('id', categories.length ? categories : [-1]);
+    const rows = (known ?? []).flatMap((c) =>
+      regions.flatMap((r) => REGION_PREFIXES[r].map((prefix) => ({ supplier_id: id, category_id: c.id, postal_prefix: prefix }))),
+    );
+    await admin.from('supplier_coverage').delete().eq('supplier_id', id);
+    if (rows.length) {
+      const { error } = await admin.from('supplier_coverage').insert(rows);
+      if (error) return json({ error: 'coverage_failed', detail: error.message, id }, 500);
+    }
+    return json({ ok: true, id });
+  }
+
+  if (body.action === 'verify') {
+    const status = body.status;
+    if (typeof body.company_id !== 'string' || !['verified', 'rejected', 'needs_review'].includes(status ?? '')) {
+      return json({ error: 'invalid' }, 400);
+    }
+    const now = new Date().toISOString();
+    const { error } = await admin
+      .from('companies')
+      .update({ verification_status: status, verified_at: status === 'verified' ? now : null, last_checked_at: now })
+      .eq('id', body.company_id);
+    if (error) return json({ error: 'save_failed', detail: error.message }, 500);
+    return json({ ok: true });
+  }
+
+  return json({ error: 'unknown_action' }, 400);
+});

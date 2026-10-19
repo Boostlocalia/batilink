@@ -17,6 +17,11 @@ export default function SettingsScreen() {
   const { session, company } = useSession();
 
   const [news, setNews] = useState<boolean | null>(null);
+  const [platformAdmin, setPlatformAdmin] = useState(false);
+  useEffect(() => {
+    if (!session) return;
+    supabase.rpc('is_platform_admin').then(({ data }) => setPlatformAdmin(data === true));
+  }, [session]);
   useEffect(() => {
     if (company?.kind !== 'contractor') return;
     supabase
@@ -101,6 +106,11 @@ export default function SettingsScreen() {
       ) : company?.kind === 'supplier' ? (
         <View style={{ alignSelf: 'flex-start' }}>
           <Button label={t.growth.supplierSpace.zones} variant="ghost" onPress={() => router.push('/zones')} />
+        </View>
+      ) : null}
+      {platformAdmin && session ? (
+        <View style={{ alignSelf: 'flex-start' }}>
+          <Button label="Admin BatiNode" variant="signal" onPress={() => router.push('/admin')} />
         </View>
       ) : null}
       <Button label={t.settings.signOut} variant="ghost" onPress={() => supabase.auth.signOut()} />
