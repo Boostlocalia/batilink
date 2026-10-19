@@ -1,5 +1,6 @@
 # Deploys the server functions to Supabase on every push that changes them.
-# Needs the repository secret SUPABASE_ACCESS_TOKEN (supabase.com → Account → Access Tokens).
+# Needs the repository secret SUPABASE_ACCESS_TOKEN (supabase.com → Account → Access Tokens);
+# without it the steps are skipped and the functions are deployed by hand.
 name: Deploy Supabase functions
 
 on:
@@ -19,8 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
+        if: env.SUPABASE_ACCESS_TOKEN != ''
         with:
           version: latest
-      - run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF" --use-api
+      - if: env.SUPABASE_ACCESS_TOKEN != ''
+        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF" --use-api
       # Address of the web app, used in the links of the e-mails. Change it when the app moves.
-      - run: supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" APP_URL=https://boostlocalia.github.io/batilink
+      - if: env.SUPABASE_ACCESS_TOKEN != ''
+        run: supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" APP_URL=https://app.batinode.be
