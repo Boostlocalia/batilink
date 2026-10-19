@@ -11,6 +11,10 @@ if (!url || !anonKey) {
   throw new Error('Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env (see .env.example).');
 }
 
+/** Opened from a "forgot password" e-mail: read before the client clears the URL. */
+export const openedFromRecovery =
+  Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash.includes('type=recovery');
+
 export const supabase = createClient(url, anonKey, {
   auth: {
     storage: AsyncStorage,

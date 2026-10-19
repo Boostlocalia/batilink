@@ -2,6 +2,7 @@ import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
+import { NewPassword } from '@/components/new-password';
 import { Colors } from '@/constants/theme';
 import { LanguageProvider } from '@/i18n';
 import { SessionProvider, useSession } from '@/lib/session';
@@ -9,13 +10,14 @@ import { SessionProvider, useSession } from '@/lib/session';
 SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
-  const { ready, session, company } = useSession();
+  const { ready, session, company, recovering } = useSession();
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
 
   if (!ready) return null;
+  if (session && recovering) return <NewPassword />;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

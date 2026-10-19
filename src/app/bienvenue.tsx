@@ -30,7 +30,7 @@ export default function WelcomeScreen() {
 
   const start = async (profile?: Profile) => {
     if (profile) await saveIntent({ profile });
-    router.push('/connexion');
+    router.push({ pathname: '/connexion', params: { mode: 'inscription' } });
   };
 
   return (

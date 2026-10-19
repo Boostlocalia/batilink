@@ -2,7 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { type Plan } from '@/lib/plans';
-import { supabase } from '@/lib/supabase';
+import { openedFromRecovery, supabase } from '@/lib/supabase';
 
 export type Company = {
   id: string;
@@ -27,6 +27,9 @@ type SessionContextValue = {
   /** Whether the company may post and answer in the network (Test contractors 3 times a month, checked by the database). */
   canUseNetwork: boolean;
   refresh: () => Promise<void>;
+  /** Signed in from a reset link: a new password must be chosen first. */
+  recovering: boolean;
+  endRecovery: () => void;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -37,6 +40,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [company, setCompany] = useState<Company | null>(null);
   const [plan, setPlan] = useState<Plan>('free');
   const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
+  const [recovering, setRecovering] = useState(openedFromRecovery);
 
   const loadCompany = useCallback(async (s: Session | null) => {
     if (!s) {
@@ -68,7 +72,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       await loadCompany(data.session);
       setReady(true);
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true);
       setSession(s);
       loadCompany(s);
     });
@@ -81,9 +86,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     (company.kind === 'architect' || company.kind === 'contractor');
 
   const refresh = useCallback(() => loadCompany(session), [loadCompany, session]);
+  const endRecovery = useCallback(() => setRecovering(false), []);
 
   return (
-    <SessionContext.Provider value={{ ready, session, company, plan, trialEndsAt, canUseNetwork, refresh }}>{children}</SessionContext.Provider>
+    <SessionContext.Provider value={{ ready, session, company, plan, trialEndsAt, canUseNetwork, refresh, recovering, endRecovery }}>{children}</SessionContext.Provider>
   );
 }
 
