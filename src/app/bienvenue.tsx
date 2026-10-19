@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { HeroCarousel } from '@/components/hero-carousel';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Screen, Segmented } from '@/components/ui';
 import { APP_NAME } from '@/constants/brand';
@@ -71,6 +72,15 @@ export default function WelcomeScreen() {
           ))}
         </View>
       </View>
+
+      <HeroCarousel
+        height={280}
+        slides={[
+          { key: 'contractor', image: 'site', accent: 'lime', ...t.banners.landing.contractor, onPress: () => start('contractor') },
+          { key: 'supplier', image: 'supplier', accent: 'cyan', ...t.banners.landing.supplier, onPress: () => start('supplier') },
+          { key: 'architect', image: 'architect', accent: 'magenta', ...t.banners.landing.architect, onPress: () => start('architect') },
+        ]}
+      />
 
       <ThemedText type="subtitle">{l.personasTitle}</ThemedText>
       <View style={styles.grid}>

@@ -2,6 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
+import { SupplierBanners } from '@/components/home-banners';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Screen } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
@@ -84,6 +85,14 @@ export function SupplierHome() {
         <ThemedText themeColor="textSecondary">{t.common.loading}</ThemedText>
       ) : (
         <>
+          <SupplierBanners
+            toAnswer={space.quotes.filter((q) => q.status === 'invited').length}
+            won={space.stats.won}
+            onAnswer={() => {
+              const next = space.quotes.find((q) => q.status === 'invited');
+              if (next) open('quote', next.id);
+            }}
+          />
           <View style={styles.stats}>
             <Stat label={s.stats.invited} value={String(space.stats.invited)} />
             <Stat label={s.stats.answered} value={rate === null ? '–' : `${rate} %`} />

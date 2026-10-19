@@ -1,3 +1,4 @@
+import { bannersFr } from './banners.fr';
 import { growthFr } from './growth.fr';
 import { signupFr } from './signup.fr';
 import { APP_NAME } from '@/constants/brand';
@@ -517,6 +518,7 @@ export const fr = {
   },
   signup: signupFr,
   growth: growthFr,
+  banners: bannersFr,
 };
 
 export type Dictionary = typeof fr;

@@ -1,3 +1,4 @@
+import { bannersNl } from './banners.nl';
 import { growthNl } from './growth.nl';
 import { signupNl } from './signup.nl';
 import { APP_NAME } from '@/constants/brand';
@@ -518,4 +519,5 @@ export const nl: Dictionary = {
   },
   signup: signupNl,
   growth: growthNl,
+  banners: bannersNl,
 };
