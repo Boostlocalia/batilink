@@ -3,6 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { ThemedText } from '@/components/themed-text';
 import { UpgradeCard, type UpgradeReason } from '@/components/upgrade-card';
 import { Button, Card, Chip, Field, Screen, Segmented } from '@/components/ui';
@@ -12,6 +13,7 @@ import { useI18n } from '@/i18n';
 import { pickFile, readPickedItems, takePendingItems, uploadCompanyFile } from '@/lib/files';
 import { isBelgianPostalCode, parseAmount, replyDeadline } from '@/lib/format';
 import { canSendPriceRequest, monthStart, PLANS } from '@/lib/plans';
+import { keepPendingRequest, takePendingRequest } from '@/lib/pending-request';
 import { useSession } from '@/lib/session';
 import { UNITS, type ImportedItem, type Unit } from '@/lib/spreadsheet';
 import { supabase } from '@/lib/supabase';
@@ -27,8 +29,8 @@ export default function NewRequestScreen() {
   const { t, language } = useI18n();
   const { company, session, plan } = useSession();
   const theme = useTheme();
-  // Test sees which suppliers would receive the request; Premium sends it.
-  const access = PLANS[plan].suppliers;
+  // Starter has no supplier access; Premium sends. Someone without a company yet fills the form and is asked for it on sending.
+  const access = company ? PLANS[plan].suppliers : 'full';
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [title, setTitle] = useState('');
@@ -40,6 +42,7 @@ export default function NewRequestScreen() {
   const [note, setNote] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [limit, setLimit] = useState<UpgradeReason | null>(null);
+  const [needsProfile, setNeedsProfile] = useState(false);
 
   const [draftId, setDraftId] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[] | null>(null);
@@ -77,6 +80,23 @@ export default function NewRequestScreen() {
     if (company) uploadCompanyFile(company.id, asset).catch(() => {});
   };
 
+  // A request written before the company existed comes back once it does.
+  useEffect(() => {
+    if (!company) return;
+    takePendingRequest().then((pending) => {
+      if (!pending) return;
+      setTitle(pending.title);
+      setCategoryId(pending.categoryId);
+      setPostalCode(pending.postalCode || company.postal_code || '');
+      setCity(pending.city || company.city || '');
+      setFulfilment(pending.fulfilment);
+      setItems(pending.items.map((i) => ({ key: nextKey++, label: i.label, quantity: i.quantity, unit: i.unit as Unit })));
+      setNote(pending.note);
+      setNeedsProfile(false);
+      setImportNotice({ text: t.signup.later.restored, error: false });
+    });
+  }, [company, t]);
+
   useEffect(() => {
     supabase
       .from('categories')
@@ -109,7 +129,19 @@ export default function NewRequestScreen() {
   };
 
   const findSuppliers = async () => {
-    if (!validate() || !company) return;
+    if (!validate()) return;
+    if (!company) {
+      await keepPendingRequest({
+        title,
+        categoryId,
+        postalCode,
+        city,
+        fulfilment,
+        items: items.map(({ label, quantity, unit }) => ({ label, quantity, unit })),
+        note,
+      });
+      return setNeedsProfile(true);
+    }
     setBusy(true);
     const fields = {
       title: title.trim(),
@@ -325,6 +357,7 @@ export default function NewRequestScreen() {
       {suppliers === null ? (
         <>
           {errors.form ? <ThemedText themeColor="danger">{errors.form}</ThemedText> : null}
+          {needsProfile ? <CompleteProfileCard text={t.signup.later.send} /> : null}
           <Button label={t.request.findSuppliers} onPress={findSuppliers} busy={busy} />
         </>
       ) : (

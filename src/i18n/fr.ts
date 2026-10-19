@@ -297,6 +297,8 @@ export const fr = {
     placeholder: 'Votre question…',
     send: 'Envoyer',
     close: 'Fermer',
+    helloTitle: (name: string) => `Bonjour, je suis ${name}, votre assistant IA 👷`,
+    helloText: 'Posez-moi vos questions : je vous guide pour vos demandes de prix, vos fournisseurs, le réseau et votre fiche.',
     thinking: (name: string) => `${name} réfléchit…`,
     unavailable: "L'assistant n'est pas disponible pour le moment. Réessayez plus tard.",
     hello: (name: string) =>

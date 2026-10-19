@@ -123,4 +123,16 @@ export const signupNl: typeof signupFr = {
     vat_taken:
       'Er bestaat al een bedrijf met dit btw-nummer. Vraag uw collega om u uit te nodigen, of schrijf ons als dit een vergissing is.',
   },
+  later: {
+    guideStart: 'Mijn fiche invullen',
+    guideLater: 'Mijn fiche later invullen',
+    title: 'Vul uw bedrijfsfiche in',
+    home: 'Uw fiche is nog niet volledig. Twee minuten volstaan: btw-nummer, adres en vakgebieden. Daarna start uw gratis proefperiode van 7 dagen.',
+    send: 'Vul eerst uw bedrijfsfiche in om uw aanvraag naar de leveranciers te sturen. Uw aanvraag blijft bewaard: u vindt ze meteen daarna terug.',
+    network: 'Vul eerst uw bedrijfsfiche in om zoekertjes te publiceren of erop te reageren.',
+    plans: 'Uw gratis proefperiode van 7 dagen start zodra uw bedrijfsfiche volledig is.',
+    cta: 'Mijn fiche invullen',
+    back: 'Later, ik kijk eerst rond',
+    restored: 'Uw aanvraag is bewaard. Controleer ze en zoek dan de leveranciers.',
+  },
 };

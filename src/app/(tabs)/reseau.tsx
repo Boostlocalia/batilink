@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Agreements } from '@/components/agreements';
+import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { ArchitectBanners } from '@/components/home-banners';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Option, Screen, Segmented } from '@/components/ui';
@@ -35,8 +36,13 @@ export default function NetworkScreen() {
     if (!trades.length) setTrades(await loadTrades());
     if (view === 'agreements') return;
     let query = supabase.from('opportunities').select(OPPORTUNITY_COLUMNS).order('created_at', { ascending: false }).limit(50);
-    if (view === 'mine') query = query.eq('company_id', company!.id);
-    else query = query.eq('status', 'open').neq('company_id', company!.id);
+    if (view === 'mine') {
+      if (!company) return setPosts([]);
+      query = query.eq('company_id', company.id);
+    } else {
+      query = query.eq('status', 'open');
+      if (company) query = query.neq('company_id', company.id);
+    }
     if (tradeFilter !== null) query = query.contains('trade_ids', [tradeFilter]);
     const { data, error } = await query;
     if (error) return setFailed(true);
@@ -89,6 +95,8 @@ export default function NetworkScreen() {
               onPress={() => router.push('/annonce/nouvelle')}
             />
           </View>
+        ) : !company ? (
+          <CompleteProfileCard text={t.signup.later.network} />
         ) : (
           <Card style={{ backgroundColor: theme.warnBackground, borderColor: theme.warnBackground }}>
             <ThemedText type="small" themeColor="warn">

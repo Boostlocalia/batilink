@@ -3,12 +3,14 @@ import { Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
+import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Field, Screen } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { isEmail } from '@/lib/signup';
+import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 
 type Favourite = { supplier_id: string; supplier: { name: string; city: string | null; vat_number: string | null } | null };
@@ -22,6 +24,7 @@ const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCa
 /** A contractor's usual suppliers: picked from the suggestions while typing, or added with their details. */
 export default function FavouriteSuppliersScreen() {
   const { t } = useI18n();
+  const { company } = useSession();
   const f = t.growth.favourites;
   const theme = useTheme();
   const [list, setList] = useState<Favourite[] | null>(null);
@@ -106,6 +109,13 @@ export default function FavouriteSuppliersScreen() {
     reset();
     load();
   };
+
+  if (!company)
+    return (
+      <Screen withTabBar={false}>
+        <CompleteProfileCard text={t.signup.later.home} />
+      </Screen>
+    );
 
   return (
     <Screen withTabBar={false}>

@@ -10,7 +10,7 @@ import { SessionProvider, useSession } from '@/lib/session';
 SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
-  const { ready, session, company, recovering } = useSession();
+  const { ready, session, company, browsing, recovering } = useSession();
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
@@ -21,7 +21,7 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!!session && !!company} redirectTo={session ? '/entreprise' : '/bienvenue'}>
+      <Stack.Protected guard={!!session && (!!company || browsing)} redirectTo={session ? '/entreprise' : '/bienvenue'}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="demande/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
         <Stack.Screen name="annonce/nouvelle" options={{ headerShown: true, headerBackTitle: '', title: '', presentation: 'modal' }} />

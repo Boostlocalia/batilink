@@ -12,7 +12,8 @@ import { APP_NAME } from '@/constants/brand';
 export default function AppTabs() {
   const { t } = useI18n();
   const kind = useSession().company?.kind;
-  const contractor = kind === 'contractor';
+  // Someone still without a company is shown the contractor app.
+  const contractor = kind === 'contractor' || !kind;
   return (
     <Tabs>
       <TabList asChild>

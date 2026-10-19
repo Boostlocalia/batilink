@@ -2,6 +2,7 @@ import { router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Screen } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
@@ -79,6 +80,13 @@ export default function FilesScreen() {
     setPendingItems(res.items);
     router.push('/nouvelle');
   };
+
+  if (!company)
+    return (
+      <Screen withTabBar={false}>
+        <CompleteProfileCard text={t.signup.later.home} />
+      </Screen>
+    );
 
   return (
     <Screen withTabBar={false}>

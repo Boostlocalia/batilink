@@ -29,6 +29,11 @@ Deno.serve(async (req) => {
   } else if (typeof body.token === 'string' && body.token.length >= 20) {
     const { data } = await admin.from('quotes').select('token_expires_at').eq('token_hash', await hashToken(body.token)).maybeSingle();
     if (data && new Date(data.token_expires_at) > new Date()) audience = 'supplier';
+  } else {
+    // Signed in but the company details are not filled in yet: they visit the contractor app.
+    const jwt = req.headers.get('Authorization')?.replace('Bearer ', '');
+    const { data } = jwt ? await admin.auth.getUser(jwt) : { data: { user: null } };
+    if (data.user) audience = 'contractor';
   }
   if (!audience) return json({ error: 'unauthorized' }, 401);
 

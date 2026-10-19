@@ -2,6 +2,7 @@ import { Link, Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { ContractorBanners } from '@/components/home-banners';
 import { NewContractors } from '@/components/new-contractors';
 import { StartChecklist } from '@/components/start-checklist';
@@ -74,9 +75,11 @@ function ContractorHome() {
         <Button label={t.home.newRequest} variant="signal" onPress={() => router.navigate('/nouvelle')} />
       </View>
 
+      {company ? null : <CompleteProfileCard text={t.signup.later.home} />}
+
       <ContractorBanners requests={requests ?? []} />
 
-      <StartChecklist />
+      {company ? <StartChecklist /> : null}
 
       <NewContractors />
 

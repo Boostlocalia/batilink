@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -42,7 +43,7 @@ export default function SignupScreen() {
   const { t, language, locale } = useI18n();
   const s = t.signup;
   const theme = useTheme();
-  const { refresh } = useSession();
+  const { refresh, browsing } = useSession();
 
   const [step, setStep] = useState(1);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -423,6 +424,7 @@ export default function SignupScreen() {
 
       <View style={styles.actions}>
         {step > 1 ? <Button label={s.back} variant="ghost" onPress={() => setStep(step - 1)} /> : null}
+        {step === 1 && browsing ? <Button label={s.later.back} variant="ghost" onPress={() => router.replace('/')} /> : null}
         <View style={{ flex: 1 }}>
           {step < STEPS ? (
             <Button label={s.next} variant="signal" onPress={next} />

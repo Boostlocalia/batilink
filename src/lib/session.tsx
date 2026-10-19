@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { effectivePlan, type Plan } from '@/lib/plans';
+import { readIntent } from '@/lib/signup-intent';
 import { openedFromRecovery, supabase } from '@/lib/supabase';
 
 export type Company = {
@@ -26,6 +27,8 @@ type SessionContextValue = {
   trialEndsAt: string | null;
   /** Whether the company may post and answer in the network (Test contractors 3 times a month, checked by the database). */
   canUseNetwork: boolean;
+  /** Signed in without a company yet: a contractor visiting the app before filling in their company details. */
+  browsing: boolean;
   refresh: () => Promise<void>;
   /** Signed in from a reset link: a new password must be chosen first. */
   recovering: boolean;
@@ -41,18 +44,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [plan, setPlan] = useState<Plan>('free');
   const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
   const [recovering, setRecovering] = useState(openedFromRecovery);
+  const [browsing, setBrowsing] = useState(false);
 
   const loadCompany = useCallback(async (s: Session | null) => {
     if (!s) {
       setCompany(null);
       setPlan('free');
+      setBrowsing(false);
       return;
     }
     const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', s.user.id).maybeSingle();
     if (!profile?.company_id) {
+      // Suppliers and architects invited by a link go straight to their form; everyone else may look around first.
+      const { profile: intended } = await readIntent();
       setCompany(null);
+      setBrowsing(intended !== 'supplier' && intended !== 'architect');
       return;
     }
+    setBrowsing(false);
     const [{ data: c }, { data: sub }] = await Promise.all([
       supabase
         .from('companies')
@@ -89,7 +98,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const endRecovery = useCallback(() => setRecovering(false), []);
 
   return (
-    <SessionContext.Provider value={{ ready, session, company, plan, trialEndsAt, canUseNetwork, refresh, recovering, endRecovery }}>{children}</SessionContext.Provider>
+    <SessionContext.Provider value={{ ready, session, company, plan, trialEndsAt, canUseNetwork, browsing, refresh, recovering, endRecovery }}>{children}</SessionContext.Provider>
   );
 }
 

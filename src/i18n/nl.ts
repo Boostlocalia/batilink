@@ -298,6 +298,8 @@ export const nl: Dictionary = {
     placeholder: 'Uw vraag…',
     send: 'Versturen',
     close: 'Sluiten',
+    helloTitle: (name: string) => `Hallo, ik ben ${name}, uw AI-assistent 👷`,
+    helloText: 'Stel me uw vragen: ik help u met prijsaanvragen, leveranciers, het netwerk en uw fiche.',
     thinking: (name: string) => `${name} denkt na…`,
     unavailable: 'De assistent is nu niet beschikbaar. Probeer het later opnieuw.',
     hello: (name: string) =>

@@ -121,4 +121,16 @@ export const signupFr = {
     vat_taken:
       'Une entreprise avec ce numéro de TVA existe déjà. Demandez à votre collègue de vous inviter, ou écrivez-nous si c’est une erreur.',
   },
+  later: {
+    guideStart: 'Compléter ma fiche',
+    guideLater: 'Compléter ma fiche plus tard',
+    title: 'Complétez votre fiche entreprise',
+    home: 'Votre fiche n’est pas encore complète. Deux minutes suffisent : numéro de TVA, adresse et métiers. Votre essai gratuit de 7 jours démarre ensuite.',
+    send: 'Pour envoyer votre demande aux fournisseurs, complétez d’abord votre fiche entreprise. Votre demande est gardée : vous la retrouvez juste après.',
+    network: 'Pour publier ou répondre aux annonces, complétez d’abord votre fiche entreprise.',
+    plans: 'Votre essai gratuit de 7 jours démarre dès que votre fiche entreprise est complète.',
+    cta: 'Compléter ma fiche',
+    back: 'Plus tard, je visite d’abord',
+    restored: 'Votre demande a été gardée. Vérifiez-la puis cherchez les fournisseurs.',
+  },
 };

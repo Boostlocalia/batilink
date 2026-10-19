@@ -8,7 +8,8 @@ export default function AppTabs() {
   const { t } = useI18n();
   // Architects work in the network only; price requests and plans are for contractors.
   const kind = useSession().company?.kind;
-  const contractor = kind === 'contractor';
+  // Someone still without a company is shown the contractor app.
+  const contractor = kind === 'contractor' || !kind;
 
   return (
     <NativeTabs

@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Image } from 'expo-image';
+import { router, usePathname } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Animated, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -9,11 +11,15 @@ import { APP_NAME, ASSISTANT_NAME } from '@/constants/brand';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
+import { mediaUrl } from '@/lib/banners';
+import { useSession } from '@/lib/session';
 import { anonHeaders, functionsUrl, supabase } from '@/lib/supabase';
 
 export type Audience = 'contractor' | 'architect' | 'supplier';
 
 type Turn = { role: 'user' | 'assistant'; content: string };
+
+const HELLO_KEY = 'batilink.assistant-hello';
 
 /**
  * The assistant: a welcome guide the first time (per audience), then a round
@@ -36,11 +42,43 @@ export function Assistant({ audience, token }: { audience: Audience; token?: str
     setOpen(next);
   };
 
+  // On the home screen the mascot introduces itself, at most once a day.
+  const pathname = usePathname();
+  const [hello, setHello] = useState(false);
+  useEffect(() => {
+    if (pathname !== '/' || open || token) return;
+    const today = new Date().toISOString().slice(0, 10);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    AsyncStorage.getItem(HELLO_KEY)
+      .then((last) => {
+        if (last !== today) timer = setTimeout(() => setHello(true), 1500);
+      })
+      .catch(() => undefined);
+    return () => clearTimeout(timer);
+  }, [pathname, open, token]);
+  const closeHello = () => {
+    setHello(false);
+    AsyncStorage.setItem(HELLO_KEY, new Date().toISOString().slice(0, 10)).catch(() => undefined);
+  };
+  const openChat = () => {
+    closeHello();
+    setOpen('chat');
+  };
+
   return (
     <>
-      <LauncherButton onPress={() => setOpen('chat')} />
+      {hello && pathname === '/' ? <HelloBubble onOpen={openChat} onClose={closeHello} /> : null}
+      <LauncherButton onPress={openChat} />
       <Modal visible={open === 'guide'} transparent animationType="fade" onRequestClose={() => closeGuide(null)}>
-        <Guide audience={audience} onStart={() => closeGuide(null)} onAsk={() => closeGuide('chat')} />
+        <Guide
+          audience={audience}
+          onStart={() => closeGuide(null)}
+          onAsk={() => closeGuide('chat')}
+          onProfile={() => {
+            closeGuide(null);
+            router.push('/entreprise');
+          }}
+        />
       </Modal>
       <Modal visible={open === 'chat'} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(null)}>
         <Chat audience={audience} token={token} onClose={() => setOpen(null)} />
@@ -52,22 +90,72 @@ export function Assistant({ audience, token }: { audience: Audience; token?: str
 function LauncherButton({ onPress }: { onPress: () => void }) {
   const theme = useTheme();
   const { t } = useI18n();
+  // A small hop every few seconds so the mascot catches the eye without getting in the way.
+  const [hop] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    const native = Platform.OS !== 'web';
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(4000),
+        Animated.timing(hop, { toValue: -8, duration: 180, useNativeDriver: native }),
+        Animated.spring(hop, { toValue: 0, friction: 3, useNativeDriver: native }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [hop]);
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={t.assistant.open(ASSISTANT_NAME)}
-      onPress={onPress}
-      style={[styles.launcher, { backgroundColor: theme.signal, shadowColor: theme.signal }]}>
-      <ThemedText type="subtitle" themeColor="onSignal">
-        ?
-      </ThemedText>
-    </Pressable>
+    <Animated.View style={[styles.launcher, { transform: [{ translateY: hop }] }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.assistant.open(ASSISTANT_NAME)}
+        onPress={onPress}
+        style={[styles.launcherButton, { borderColor: theme.signal, shadowColor: theme.signal }, glow(theme.signal)]}>
+        <Image source={{ uri: mediaUrl('assistant.jpg') }} contentFit="cover" style={StyleSheet.absoluteFill} />
+      </Pressable>
+    </Animated.View>
   );
 }
 
-function Guide({ audience, onStart, onAsk }: { audience: Audience; onStart: () => void; onAsk: () => void }) {
+function HelloBubble({ onOpen, onClose }: { onOpen: () => void; onClose: () => void }) {
   const theme = useTheme();
   const { t } = useI18n();
+  const [shown] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    Animated.spring(shown, { toValue: 1, friction: 6, useNativeDriver: Platform.OS !== 'web' }).start();
+  }, [shown]);
+  return (
+    <Animated.View
+      style={[
+        styles.hello,
+        { backgroundColor: theme.backgroundElement, borderColor: theme.signal, opacity: shown, transform: [{ scale: shown }] },
+        glow(theme.signal),
+      ]}>
+      <Pressable accessibilityRole="button" onPress={onOpen} style={{ gap: Spacing.one, paddingRight: Spacing.four }}>
+        <ThemedText type="smallBold" themeColor="signal">
+          {t.assistant.helloTitle(ASSISTANT_NAME)}
+        </ThemedText>
+        <ThemedText type="small">{t.assistant.helloText}</ThemedText>
+      </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={t.assistant.close} hitSlop={10} onPress={onClose} style={styles.helloClose}>
+        <ThemedText type="smallBold" themeColor="textSecondary">
+          ✕
+        </ThemedText>
+      </Pressable>
+      <View style={[styles.helloTail, { backgroundColor: theme.backgroundElement, borderColor: theme.signal }]} />
+    </Animated.View>
+  );
+}
+
+function glow(color: string) {
+  return Platform.OS === 'web' ? ({ boxShadow: `0 0 18px ${color}88` } as object) : {};
+}
+
+function Guide({ audience, onStart, onAsk, onProfile }: { audience: Audience; onStart: () => void; onAsk: () => void; onProfile: () => void }) {
+  const theme = useTheme();
+  const { t } = useI18n();
+  // Without company details yet, the guide offers to fill them in now or to look around first.
+  const { browsing } = useSession();
   return (
     <View style={styles.backdrop}>
       <View style={[styles.sheet, { backgroundColor: theme.backgroundElement }]}>
@@ -91,8 +179,17 @@ function Guide({ audience, onStart, onAsk }: { audience: Audience; onStart: () =
             </View>
           ))}
           <View style={styles.actions}>
-            <Button label={t.guide.start} variant="signal" onPress={onStart} />
-            <Button label={t.guide.ask(ASSISTANT_NAME)} variant="ghost" onPress={onAsk} />
+            {browsing ? (
+              <>
+                <Button label={t.signup.later.guideStart} variant="signal" onPress={onProfile} />
+                <Button label={t.signup.later.guideLater} variant="ghost" onPress={onStart} />
+              </>
+            ) : (
+              <>
+                <Button label={t.guide.start} variant="signal" onPress={onStart} />
+                <Button label={t.guide.ask(ASSISTANT_NAME)} variant="ghost" onPress={onAsk} />
+              </>
+            )}
           </View>
         </ScrollView>
       </View>
@@ -213,31 +310,48 @@ function Bubble({ role, text }: { role: Turn['role']; text: string }) {
 /** The assistant's face: its initial on the brand colour (a proper character comes with the branding). */
 function Avatar({ small }: { small?: boolean }) {
   const theme = useTheme();
-  const size = small ? 32 : 56;
+  const size = small ? 32 : 64;
   return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: theme.brand }]}>
-      <ThemedText type={small ? 'smallBold' : 'subtitle'} themeColor="onBrand">
-        {ASSISTANT_NAME.slice(0, 1)}
-      </ThemedText>
+    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, borderColor: theme.signal }]}>
+      <Image source={{ uri: mediaUrl('assistant.jpg') }} contentFit="cover" style={StyleSheet.absoluteFill} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  launcher: {
-    position: 'absolute',
-    right: Spacing.three,
-    bottom: Platform.OS === 'web' ? Spacing.three : 96,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
+  launcher: { position: 'absolute', right: Spacing.three, bottom: Platform.OS === 'web' ? Spacing.three : 96 },
+  launcherButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    overflow: 'hidden',
+    backgroundColor: '#09090b',
     shadowOpacity: 0.55,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 0 },
     elevation: 4,
+  },
+  hello: {
+    position: 'absolute',
+    right: Spacing.three,
+    bottom: (Platform.OS === 'web' ? Spacing.three : 96) + 74,
+    maxWidth: 280,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: Spacing.three,
+  },
+  helloClose: { position: 'absolute', top: Spacing.two, right: Spacing.two + 2 },
+  helloTail: {
+    position: 'absolute',
+    right: 24,
+    bottom: -7,
+    width: 14,
+    height: 14,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    transform: [{ rotate: '45deg' }],
   },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: Spacing.three },
   sheet: { width: '100%', maxWidth: 520, maxHeight: '90%', borderRadius: 16 },
@@ -259,5 +373,5 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   input: { flex: 1, minHeight: 44, maxHeight: 140, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
-  avatar: { alignItems: 'center', justifyContent: 'center' },
+  avatar: { borderWidth: 2, overflow: 'hidden', backgroundColor: '#09090b' },
 });

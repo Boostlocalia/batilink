@@ -1,7 +1,8 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Screen, Segmented } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
@@ -19,7 +20,7 @@ const ORDER: Plan[] = ['pro', 'full'];
 
 export default function PlansScreen() {
   const { t, locale } = useI18n();
-  const { plan: sessionPlan } = useSession();
+  const { plan: sessionPlan, company } = useSession();
   const g = t.growth.plans;
   const [billing, setBilling] = useState<'month' | 'year'>('year');
   const { onTrial, daysLeft: trialDays, ended: trialOver } = useTrial();
@@ -32,6 +33,8 @@ export default function PlansScreen() {
 
   // Payment happens on Stripe's page; the plan changes once Stripe confirms it.
   const open = async (key: string, body: object) => {
+    // A plan belongs to a company: its details come first.
+    if (!company) return router.push('/entreprise');
     setBusy(key);
     setFailed(null);
     const { data, error } = await supabase.functions.invoke('subscription', { body });
@@ -47,6 +50,7 @@ export default function PlansScreen() {
         <ThemedText type="title">{t.plans.title}</ThemedText>
         <ThemedText themeColor="textSecondary">{t.plans.lead}</ThemedText>
       </View>
+      {!company ? <CompleteProfileCard text={t.signup.later.plans} /> : null}
       {onTrial ? (
         <Card style={{ borderColor: theme.signal }}>
           <ThemedText type="smallBold">{g.trialLeft(trialDays ?? 0)}</ThemedText>
