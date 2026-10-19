@@ -95,7 +95,8 @@ Stripe sert à encaisser les abonnements et les commissions ; les commandes se p
    ```bash
    npx supabase secrets set STRIPE_SECRET_KEY=sk_live_... STRIPE_WEBHOOK_SECRET=whsec_... \
      STRIPE_PRICE_PRO=price_... STRIPE_PRICE_FULL=price_... \
-     STRIPE_PRICE_PRO_YEAR=price_... STRIPE_PRICE_FULL_YEAR=price_... STRIPE_AUTOMATIC_TAX=on
+     STRIPE_PRICE_PRO_YEAR=price_... STRIPE_PRICE_FULL_YEAR=price_... STRIPE_TAX_RATE=txr_...
+   # ou STRIPE_AUTOMATIC_TAX=on avec Stripe Tax (payant, gère l’autoliquidation UE)
    ```
    Commencer avec les clés de test (`sk_test_…`). Sans `STRIPE_SECRET_KEY`, le choix d'un plan indique que le paiement n'est pas encore activé et le lien du relevé de commission ne s'ouvre pas.
 

@@ -55,14 +55,16 @@ Deno.serve(async (req) => {
   };
   const price = body.plan ? prices[body.plan] : undefined;
   if (!price) return json({ error: 'invalid_plan' }, 400);
+  // Belgian VAT: either a fixed Stripe tax rate (21 %), kept on the subscription when the plan
+  // changes, or Stripe Tax, which also handles reverse charge for EU VAT numbers abroad.
+  const taxRate = Deno.env.get('STRIPE_TAX_RATE');
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer,
     locale: company.language === 'nl' ? 'nl' : 'fr',
     line_items: [{ price, quantity: 1 }],
-    subscription_data: { metadata: { company_id: company.id } },
-    // Belgian VAT on the plan; the VAT number is checked by Stripe for reverse charge abroad.
-    automatic_tax: { enabled: Deno.env.get('STRIPE_AUTOMATIC_TAX') === 'on' },
+    subscription_data: { metadata: { company_id: company.id }, ...(taxRate ? { default_tax_rates: [taxRate] } : {}) },
+    automatic_tax: { enabled: !taxRate && Deno.env.get('STRIPE_AUTOMATIC_TAX') === 'on' },
     customer_update: { address: 'auto', name: 'auto' },
     billing_address_collection: 'required',
     success_url: `${back}?paiement=ok`,
