@@ -91,13 +91,16 @@ function itemLines(d: InvitationData): { html: string; text: string } {
   };
 }
 
+/** Hours a supplier has to answer a price request, from the moment it is sent. */
+export const REPLY_HOURS = 48;
+
 export function invitationMail(d: InvitationData, reminder = false): Mail {
   const place = `${d.postalCode}${d.city ? ` ${d.city}` : ''}`;
   const items = itemLines(d);
   if (d.lang === 'nl') {
     const who = `${d.contractor}${d.contractorVerified ? ' (geverifieerd bedrijf)' : ''}`;
     const when = d.neededBy ? `${d.delivery ? 'levering op de werf' : 'afhaling'} op ${dateFmt(d.neededBy, 'nl')}` : d.delivery ? 'levering op de werf' : 'afhaling';
-    const intro = `${esc(who)} vraagt u een prijs voor ${d.items.length} product(en) in ${esc(place)}, ${when}. Antwoord gewenst voor ${dateFmt(d.replyBy, 'nl')}.`;
+    const intro = `${esc(who)} vraagt u een prijs voor ${d.items.length} product(en) in ${esc(place)}, ${when}. U hebt 48 uur om uw offerte in te dienen (tot ${dateFmt(d.replyBy, 'nl')}).`;
     const subject = `${reminder ? 'Herinnering: ' : ''}Nieuwe prijsaanvraag: ${d.title} (${place})`;
     const ask = 'Een vraag over de aanvraag? Beantwoord gewoon deze e-mail: we sturen uw vraag door naar de aannemer en bezorgen u zijn antwoord.';
     const footer = `Antwoorden is gratis en zonder account. Wordt uw offerte gekozen, dan factureert ${APP_NAME} een commissie van ${pct(d.commissionRate, 'nl')} excl. btw op het bedrag van de offerte. U krijgt deze e-mail omdat uw handel deze categorie en regio bedient op ${APP_NAME}.`;
@@ -111,7 +114,7 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
   }
   const who = `${d.contractor}${d.contractorVerified ? ' (entreprise vérifiée)' : ''}`;
   const when = d.neededBy ? `${d.delivery ? 'livraison sur chantier' : 'enlèvement'} le ${dateFmt(d.neededBy, 'fr')}` : d.delivery ? 'livraison sur chantier' : 'enlèvement';
-  const intro = `${esc(who)} vous demande un prix pour ${d.items.length} produit(s) à ${esc(place)}, ${when}. Réponse souhaitée avant le ${dateFmt(d.replyBy, 'fr')}.`;
+  const intro = `${esc(who)} vous demande un prix pour ${d.items.length} produit(s) à ${esc(place)}, ${when}. Vous avez 48 heures pour remettre votre offre (jusqu'au ${dateFmt(d.replyBy, 'fr')}).`;
   const subject = `${reminder ? 'Rappel : ' : ''}Nouvelle demande de prix : ${d.title} (${place})`;
   const ask = "Une question sur la demande ? Répondez simplement à cet e-mail : nous transmettons votre question à l'entrepreneur et vous renvoyons sa réponse.";
   const footer = `Répondre est gratuit et ne demande pas de compte. Si votre offre est retenue, ${APP_NAME} facture une commission de ${pct(d.commissionRate, 'fr')} HTVA sur le montant de l'offre. Vous recevez cet e-mail parce que votre négoce couvre cette catégorie et cette zone sur ${APP_NAME}.`;

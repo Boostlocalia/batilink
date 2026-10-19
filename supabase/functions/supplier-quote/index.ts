@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const [{ data: request }, { data: items }, { data: supplier }, { data: prices }, { data: messages }] = await Promise.all([
       admin
         .from('price_requests')
-        .select('title, postal_code, city, needed_by, reply_by, fulfilment, note, status, company:companies(name, verified_at)')
+        .select('title, postal_code, city, needed_by, reply_by, sent_at, fulfilment, note, status, company:companies(name, verified_at)')
         .eq('id', quote.request_id)
         .single(),
       admin.from('request_items').select('id, label, quantity, unit').eq('request_id', quote.request_id).order('position'),

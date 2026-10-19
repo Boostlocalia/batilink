@@ -19,7 +19,7 @@ export function assistantSystemPrompt(): string {
 
 # Screens (contractors and architects)
 - Accueil / Start: the contractor's price requests and their status.
-- Demande / Aanvraag: create a price request (title, category, items with quantity and unit, delivery or pick-up, date needed, reply date). Matching suppliers in the area are suggested; choose them and send. Suppliers get an e-mail.
+- Demande / Aanvraag: create a price request (title, category, items with quantity and unit, delivery or pick-up). No dates to fill in: the request is dated the day it is sent, and suppliers have 48 hours to submit their offer. Matching suppliers in the area are suggested; choose them and send. Suppliers get an e-mail.
 - Comparing offers: open a request to see each supplier's prices side by side, best price and fastest delivery highlighted, totals excl. and incl. 21 % VAT. "Choisir cette offre" awards one; the others are told automatically. Suppliers who have not answered after 24 h get one reminder.
 - Supplier questions: a supplier can reply to the request e-mail with a question. ${APP_NAME} reads it, passes it on to the contractor in their language (e-mail and the "Questions des fournisseurs" block on the request), and sends the contractor's answer back. Neither side sees the other's e-mail address before an award.
 - Réseau / Netwerk: posts to subcontract work (contractors) and architects' projects. Starter and Premium contractors publish and answer without limit; Test contractors have 3 exchanges (posts or answers) per calendar month. The author of a post sees the answers, keeps or sets aside candidates, and proposes an agreement ("Proposer l'accord", or for architects "Mettre en relation").

@@ -1,7 +1,7 @@
 // Sends a draft price request to the chosen suppliers: one quote row and one
 // e-mail with a personal reply link per supplier.
 
-import { invitationMail, sendMail, type Lang } from '../_shared/email.ts';
+import { invitationMail, REPLY_HOURS, sendMail, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
 import { relayAddress } from '../_shared/relay-address.ts';
 import { canSendPriceRequest, monthStart, type Plan } from '../_shared/plans.ts';
@@ -57,10 +57,12 @@ Deno.serve(async (req) => {
   ]);
   if (allowed.size !== uniqueSuppliers.length) return json({ error: 'supplier_not_covering' }, 400);
 
-  // Flip to `sent` first so a double tap cannot send twice.
+  // Flip to `sent` first so a double tap cannot send twice. Suppliers get 48 hours from now.
+  const sentAt = new Date();
+  const replyBy = new Date(sentAt.getTime() + REPLY_HOURS * 3_600_000).toISOString().slice(0, 10);
   const { data: flipped } = await admin
     .from('price_requests')
-    .update({ status: 'sent', sent_at: new Date().toISOString() })
+    .update({ status: 'sent', sent_at: sentAt.toISOString(), reply_by: replyBy })
     .eq('id', request.id)
     .eq('status', 'draft')
     .select('id');
@@ -101,7 +103,7 @@ Deno.serve(async (req) => {
           city: request.city,
           items: items ?? [],
           neededBy: request.needed_by,
-          replyBy: request.reply_by,
+          replyBy,
           delivery: request.fulfilment === 'delivery',
           url: `${appUrl()}/offre/${token}`,
           commissionRate: Number(supplier.commission_rate),

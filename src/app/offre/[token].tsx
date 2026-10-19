@@ -35,6 +35,7 @@ type Payload = {
     city: string | null;
     needed_by: string | null;
     reply_by: string;
+    sent_at: string | null;
     fulfilment: "delivery" | "pickup";
     note: string | null;
     status: string;
@@ -260,6 +261,9 @@ export default function SupplierQuoteScreen() {
             />
             {request.needed_by ? (
               <Chip label={formatDate(request.needed_by, locale)} />
+            ) : null}
+            {request.sent_at ? (
+              <Chip label={t.supplier.sentOn(formatDate(request.sent_at.slice(0, 10), locale))} />
             ) : null}
             <Chip
               label={t.supplier.replyBy(formatDate(request.reply_by, locale))}

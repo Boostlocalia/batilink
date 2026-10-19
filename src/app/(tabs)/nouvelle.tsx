@@ -10,7 +10,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { pickFile, readPickedItems, takePendingItems, uploadCompanyFile } from '@/lib/files';
-import { isBelgianPostalCode, parseAmount, parseBelgianDate } from '@/lib/format';
+import { isBelgianPostalCode, parseAmount, replyDeadline } from '@/lib/format';
 import { canSendPriceRequest, monthStart, PLANS } from '@/lib/plans';
 import { useSession } from '@/lib/session';
 import { UNITS, type ImportedItem, type Unit } from '@/lib/spreadsheet';
@@ -35,8 +35,6 @@ export default function NewRequestScreen() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [postalCode, setPostalCode] = useState(company?.postal_code ?? '');
   const [city, setCity] = useState(company?.city ?? '');
-  const [neededBy, setNeededBy] = useState('');
-  const [replyBy, setReplyBy] = useState('');
   const [fulfilment, setFulfilment] = useState<'delivery' | 'pickup'>('delivery');
   const [items, setItems] = useState<ItemDraft[]>([emptyItem()]);
   const [note, setNote] = useState('');
@@ -90,8 +88,6 @@ export default function NewRequestScreen() {
   const reset = () => {
     setTitle('');
     setCategoryId(null);
-    setNeededBy('');
-    setReplyBy('');
     setItems([emptyItem()]);
     setNote('');
     setDraftId(null);
@@ -104,10 +100,6 @@ export default function NewRequestScreen() {
     if (title.trim().length < 3) next.title = t.request.errors.name;
     if (categoryId === null) next.category = t.request.errors.category;
     if (!isBelgianPostalCode(postalCode)) next.postalCode = t.request.errors.postalCode;
-    if (neededBy.trim() && !parseBelgianDate(neededBy)) next.neededBy = t.request.errors.date;
-    const reply = parseBelgianDate(replyBy);
-    if (!reply) next.replyBy = t.request.errors.date;
-    else if (reply < new Date().toISOString().slice(0, 10)) next.replyBy = t.request.errors.replyBy;
     const filled = items.filter((i) => i.label.trim() || i.quantity.trim());
     if (!filled.length || filled.some((i) => i.label.trim().length < 2 || !(parseAmount(i.quantity) ?? 0))) {
       next.items = t.request.errors.items;
@@ -124,8 +116,8 @@ export default function NewRequestScreen() {
       category_id: categoryId!,
       postal_code: postalCode.trim(),
       city: city.trim() || null,
-      needed_by: neededBy.trim() ? parseBelgianDate(neededBy) : null,
-      reply_by: parseBelgianDate(replyBy)!,
+      // Suppliers get 48 hours from the moment the request is sent; the server sets the final date.
+      reply_by: replyDeadline(new Date()),
       fulfilment,
       note: note.trim() || null,
     };
@@ -261,10 +253,9 @@ export default function NewRequestScreen() {
           <Field label={t.request.postalCode} value={postalCode} onChangeText={setPostalCode} keyboardType="number-pad" maxLength={4} error={errors.postalCode} />
           <Field label={t.request.city} value={city} onChangeText={setCity} />
         </View>
-        <View style={styles.wrap}>
-          <Field label={t.request.neededBy} value={neededBy} onChangeText={setNeededBy} placeholder="28/10/2026" error={errors.neededBy} />
-          <Field label={t.request.replyBy} value={replyBy} onChangeText={setReplyBy} placeholder="22/10/2026" error={errors.replyBy} />
-        </View>
+        <ThemedText type="small" themeColor="textSecondary">
+          {t.request.replyWindow}
+        </ThemedText>
         <View style={{ gap: Spacing.one }}>
           <ThemedText type="smallBold">{t.request.fulfilment}</ThemedText>
           <Segmented
