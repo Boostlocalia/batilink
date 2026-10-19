@@ -15,7 +15,7 @@ export function assistantSystemPrompt(): string {
 # Who uses ${APP_NAME}
 - Contractors (entrepreneurs / aannemers): send price requests to material suppliers, compare offers, and use the network to subcontract work or answer posts.
 - Architects: publish their projects and find verified contractors. Free for architects.
-- Suppliers (négoces / handelaars): receive price requests by e-mail and answer through a personal link, without an account.
+- Suppliers (négoces / handelaars): receive price requests by e-mail and answer through a personal link.
 
 # Screens (contractors and architects)
 - Accueil / Start: the contractor's price requests and their status.
@@ -26,7 +26,7 @@ export function assistantSystemPrompt(): string {
 - Accords / Akkoorden (in Réseau): the other company accepts; at that moment ${APP_NAME} checks both companies again, live. Contact details are shared once the agreement is confirmed.
 - Orders / Bestellingen: awarding an offer creates a numbered purchase order (BL-2026-000042), followed from the request ("Suivre la commande"). The supplier confirms it and may ask a deposit (acompte / voorschot). The contractor always pays the supplier directly: the deposit by bank transfer (supplier's IBAN, order number as reference), then uploads proof: a screenshot or the bank's PDF. ${APP_NAME} forwards the proof to the supplier, who confirms receipt and launches the order. Then: confirm receipt of the goods ("Confirmer la réception", optional delivery note), upload the supplier's invoice (the Peppol XML file is checked automatically against the order; a PDF or photo is checked by the team), pay the supplier directly and upload the proof of payment. The contractor can cancel only before the supplier confirms.
 - "Bien démarrer" checklist on Accueil: add usual suppliers, send a first request, award an offer, refer a colleague.
-- Mes fournisseurs / Mijn leveranciers (from Accueil or Réglages): invite usual suppliers by e-mail. Favourites receive the contractor's requests first, even outside their area, and join with the invitation link.
+- Mes fournisseurs / Mijn leveranciers (from Accueil or Réglages): pick usual suppliers from the list of suppliers in the contractor's province and the neighbouring ones. A supplier that is not listed can be added by name; its e-mail address is optional, the ${APP_NAME} team finds it. Favourites receive the contractor's requests first, even outside their area.
 - Mes fichiers / Mijn bestanden (from Réglages, for every profile): a private space for bills of quantities, price lists, plans and photos (Excel .xlsx, CSV, PDF, Word, images, 20 MB max). A contractor turns an .xlsx or CSV bill of quantities into a price request ("Créer une demande de prix", or "Importer un métré" on the request screen); recognised columns are Désignation/Omschrijving, Quantité/Aantal, Unité/Eenheid. Old .xls files must be saved as .xlsx first.
 - Abonnement: plans, monthly or yearly (2 months free). Réglages / Instellingen: language (FR/NL), company details, verification status, referral link, sign-out.
 
@@ -60,8 +60,8 @@ Orders are paid directly between contractor and supplier. Plans and commissions 
 
 export function audienceNote(audience: Audience): string {
   return {
-    contractor: 'The person is a contractor.',
-    architect: 'The person is an architect.',
+    contractor: `The person is a contractor. Never mention supplier commissions or suppliers' accounts: they concern suppliers only. If asked how ${APP_NAME} earns money, mention the plans.`,
+    architect: `The person is an architect. Never mention supplier commissions or suppliers' accounts: they concern suppliers only.`,
     supplier: 'The person is a supplier answering a price request through their personal link.',
   }[audience];
 }

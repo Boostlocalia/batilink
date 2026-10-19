@@ -61,7 +61,7 @@ export const fr = {
   },
   request: {
     title: 'Nouvelle demande de prix',
-    lead: 'Décrivez ce dont vous avez besoin. Les fournisseurs de votre zone reçoivent un e-mail et répondent sans créer de compte.',
+    lead: 'Décrivez ce dont vous avez besoin. Les fournisseurs de votre zone la reçoivent et vous envoient leur prix.',
     name: 'Titre de la demande',
     namePlaceholder: 'Chape et isolation, chantier Waterloo',
     category: 'Catégorie',
@@ -306,7 +306,7 @@ export const fr = {
     steps: {
       contractor: [
         ['Votre entreprise est vérifiée', 'Nous contrôlons la TVA, la BCE et les dettes sociales et fiscales (30bis). Le résultat est dans Réglages.'],
-        ['Demandez des prix', "Dans « Demande », listez vos matériaux. Les fournisseurs de votre zone reçoivent un e-mail et répondent sans compte."],
+        ['Demandez des prix', "Dans « Demande », listez vos matériaux. Les fournisseurs de votre zone la reçoivent et vous envoient leur prix."],
         ['Comparez et choisissez', 'Les offres arrivent côte à côte : meilleur prix et délai le plus court sont mis en avant. Un clic pour retenir.'],
         ['Travaillez en réseau', 'Dans « Réseau », sous-traitez ou répondez aux annonces et aux projets d’architectes. Chaque accord est revérifié avant confirmation.'],
       ],

@@ -1,10 +1,12 @@
-// A contractor adds its usual supplier by e-mail. The supplier becomes a favourite:
-// it is offered on every request, even before it signs up, and it is invited to
-// create its free space (with the contractor's referral code).
-// POST { email, name }    DELETE { supplier_id } removes a favourite.
+// A contractor adds a usual supplier. The supplier becomes a favourite: it is offered on
+// every request, even before it signs up.
+// POST { supplier_id }            picks a supplier already on the platform.
+// POST { name, city?, email? }    adds one that is not; without an e-mail, the team finds it.
+// POST { remove: supplier_id }    (or DELETE { supplier_id }) removes a favourite.
 
 import { supplierInviteMail } from '../_shared/growth-mail.ts';
 import { sendMail, type Lang } from '../_shared/email.ts';
+import { logEvent } from '../_shared/events.ts';
 import { adminClient, appUrl, callerCompanyId, corsHeaders, json } from '../_shared/supabase.ts';
 
 const MAX_INVITES_PER_DAY = 20;
@@ -16,23 +18,50 @@ Deno.serve(async (req) => {
   if (!companyId) return json({ error: 'unauthorized' }, 401);
   const { data: me } = await admin.from('companies').select('id, kind, name, language, referral_code').eq('id', companyId).single();
   if (me?.kind !== 'contractor') return json({ error: 'contractors_only' }, 403);
-  const body = (await req.json().catch(() => ({}))) as { email?: string; name?: string; supplier_id?: string };
+  const body = (await req.json().catch(() => ({}))) as { email?: string; name?: string; city?: string; supplier_id?: string; remove?: string };
 
-  if (req.method === 'DELETE') {
-    if (typeof body.supplier_id !== 'string') return json({ error: 'not_found' }, 404);
-    await admin.from('preferred_suppliers').delete().eq('contractor_id', companyId).eq('supplier_id', body.supplier_id);
+  // Browsers only send POST to the functions; DELETE stays for older apps.
+  const removing = req.method === 'DELETE' ? body.supplier_id : body.remove;
+  if (req.method === 'DELETE' || body.remove !== undefined) {
+    if (typeof removing !== 'string') return json({ error: 'not_found' }, 404);
+    await admin.from('preferred_suppliers').delete().eq('contractor_id', companyId).eq('supplier_id', removing);
     return json({ ok: true });
   }
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
+  // Picked from the list of suppliers on the platform.
+  if (typeof body.supplier_id === 'string') {
+    const { data: picked } = await admin.from('companies').select('id, name').eq('id', body.supplier_id).eq('kind', 'supplier').maybeSingle();
+    if (!picked) return json({ error: 'not_found' }, 404);
+    await admin.from('preferred_suppliers').upsert({ contractor_id: companyId, supplier_id: picked.id });
+    return json({ ok: true, supplier: picked, invited: false });
+  }
+
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
   const name = typeof body.name === 'string' ? body.name.trim().slice(0, 120) : '';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) return json({ error: 'invalid_email' }, 400);
+  const city = typeof body.city === 'string' ? body.city.trim().slice(0, 80) : '';
+  if (email && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200)) return json({ error: 'invalid_email' }, 400);
   if (name.length < 2) return json({ error: 'invalid_name' }, 400);
 
   const since = new Date(Date.now() - 86_400_000).toISOString();
-  const { count } = await admin.from('supplier_invitations').select('id', { count: 'exact', head: true }).eq('contractor_id', companyId).gte('sent_at', since);
-  if ((count ?? 0) >= MAX_INVITES_PER_DAY) return json({ error: 'too_many' }, 429);
+  const [{ count: invited }, { count: requested }] = await Promise.all([
+    admin.from('supplier_invitations').select('id', { count: 'exact', head: true }).eq('contractor_id', companyId).gte('sent_at', since),
+    admin.from('events').select('id', { count: 'exact', head: true }).eq('kind', 'supplier_requested').eq('company_id', companyId).gte('occurred_at', since),
+  ]);
+  if ((invited ?? 0) + (requested ?? 0) >= MAX_INVITES_PER_DAY) return json({ error: 'too_many' }, 429);
+
+  // No e-mail: the supplier is added under its name and the team looks up its address.
+  if (!email) {
+    const { data: placeholder, error } = await admin
+      .from('companies')
+      .insert({ kind: 'supplier', name, city: city || null, language: me.language })
+      .select('id, name')
+      .single();
+    if (error || !placeholder) return json({ error: 'save_failed' }, 500);
+    await admin.from('preferred_suppliers').upsert({ contractor_id: companyId, supplier_id: placeholder.id });
+    await logEvent(admin, { kind: 'supplier_requested', company_id: companyId, data: { supplier_id: placeholder.id, name, city: city || null } });
+    return json({ ok: true, supplier: placeholder, invited: false });
+  }
 
   // Already on the platform: just keep it as a favourite.
   const [{ data: byEmail }, { data: byQuoteEmail }] = await Promise.all([
@@ -55,7 +84,7 @@ Deno.serve(async (req) => {
   if (error) return json({ error: 'already_invited' }, 409);
   const { data: placeholder } = await admin
     .from('companies')
-    .insert({ kind: 'supplier', name, email, language: me.language })
+    .insert({ kind: 'supplier', name, email, city: city || null, language: me.language })
     .select('id, name')
     .single();
   if (placeholder) {

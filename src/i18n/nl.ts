@@ -63,7 +63,7 @@ export const nl: Dictionary = {
   },
   request: {
     title: 'Nieuwe prijsaanvraag',
-    lead: 'Beschrijf wat u nodig heeft. Leveranciers in uw regio krijgen een e-mail en antwoorden zonder account.',
+    lead: 'Beschrijf wat u nodig heeft. Leveranciers in uw regio ontvangen ze en sturen u hun prijs.',
     name: 'Titel van de aanvraag',
     namePlaceholder: 'Chape en isolatie, werf Waterloo',
     category: 'Categorie',
@@ -307,7 +307,7 @@ export const nl: Dictionary = {
     steps: {
       contractor: [
         ['Uw bedrijf wordt gecontroleerd', 'We controleren btw, KBO en sociale en fiscale schulden (30bis). Het resultaat staat in Instellingen.'],
-        ['Vraag prijzen', 'In « Aanvraag » lijst u uw materialen op. Leveranciers uit uw regio krijgen een e-mail en antwoorden zonder account.'],
+        ['Vraag prijzen', 'In « Aanvraag » lijst u uw materialen op. Leveranciers uit uw regio ontvangen ze en sturen u hun prijs.'],
         ['Vergelijk en kies', 'De offertes komen naast elkaar: beste prijs en snelste levering worden uitgelicht. Eén klik om te kiezen.'],
         ['Werk in netwerk', 'In « Netwerk » besteedt u werk uit of reageert u op zoekertjes en projecten van architecten. Elk akkoord wordt vóór bevestiging opnieuw gecontroleerd.'],
       ],
