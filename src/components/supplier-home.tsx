@@ -166,24 +166,27 @@ export function SupplierHome() {
             )}
           </Card>
 
-          <Card>
-            <ThemedText type="subtitle">{s.bills}</ThemedText>
-            {space.bills.length === 0 ? (
-              <ThemedText themeColor="textSecondary">{s.noBills}</ThemedText>
-            ) : (
-              space.bills.map((b, i) => (
-                <View key={b.id} style={[styles.row, i > 0 && { borderTopWidth: 1, borderTopColor: theme.line }]}>
-                  <View style={styles.rowText}>
-                    <ThemedText type="smallBold">{b.number}</ThemedText>
-                    <ThemedText type="small" themeColor="textSecondary">
-                      {b.month.slice(0, 7)} · {eur(Number(b.amount_inc_vat))}
-                    </ThemedText>
+          {/* Commission statements only once supplier commission starts. */}
+          {SUPPLIER_COMMISSION_ACTIVE || space.bills.length > 0 ? (
+            <Card>
+              <ThemedText type="subtitle">{s.bills}</ThemedText>
+              {space.bills.length === 0 ? (
+                <ThemedText themeColor="textSecondary">{s.noBills}</ThemedText>
+              ) : (
+                space.bills.map((b, i) => (
+                  <View key={b.id} style={[styles.row, i > 0 && { borderTopWidth: 1, borderTopColor: theme.line }]}>
+                    <View style={styles.rowText}>
+                      <ThemedText type="smallBold">{b.number}</ThemedText>
+                      <ThemedText type="small" themeColor="textSecondary">
+                        {b.month.slice(0, 7)} · {eur(Number(b.amount_inc_vat))}
+                      </ThemedText>
+                    </View>
+                    <Chip label={b.status === 'paid' ? s.billPaid : s.billOpen} tone={b.status === 'paid' ? 'good' : 'warn'} />
                   </View>
-                  <Chip label={b.status === 'paid' ? s.billPaid : s.billOpen} tone={b.status === 'paid' ? 'good' : 'warn'} />
-                </View>
-              ))
-            )}
-          </Card>
+                ))
+              )}
+            </Card>
+          ) : null}
 
           <View style={{ alignSelf: 'flex-start' }}>
             <Button label={s.zones} variant="ghost" onPress={() => router.push('/zones')} />

@@ -32,7 +32,7 @@ export type MessageContext = {
   history: { author: Author; text: string }[];
 };
 
-const SYSTEM = `You relay messages on Batinode, a Belgian platform where building contractors ask building-material suppliers for prices. A supplier who needs details about a price request writes to the contractor through the platform, and the contractor answers the same way. Each side reads the other's message in their own language (French or Dutch).
+const SYSTEM = `You relay messages on BatiNode, a Belgian platform where building contractors ask building-material suppliers for prices. A supplier who needs details about a price request writes to the contractor through the platform, and the contractor answers the same way. Each side reads the other's message in their own language (French or Dutch).
 
 For each message you receive:
 1. Decide what it is (question, answer, info, auto_reply or off_topic).

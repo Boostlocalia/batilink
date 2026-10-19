@@ -110,7 +110,8 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
   const stopUrl = `${d.url}?stop=1`;
   if (d.lang === 'nl') {
     const client = [d.contractor, d.contractorVat ? `btw ${d.contractorVat}` : null, d.contractorAddress].filter(Boolean).join(' · ');
-    const when = d.neededBy ? `${d.delivery ? 'levering op de werf' : 'afhaling'} op ${dateFmt(d.neededBy, 'nl')}` : d.delivery ? 'levering op de werf' : 'afhaling';
+    // Only the 48-hour deadline is given, not the contractor's wished date.
+    const when = d.delivery ? 'levering op de werf' : 'afhaling';
     const intro = `Uw klant <b>${esc(d.contractor)}</b>${d.contractorVerified ? ' (geverifieerd bedrijf)' : ''} vraagt u via ${APP_NAME} een offerte voor ${d.items.length} product(en), werf in ${esc(place)}, ${when}.`;
     const deadline = `U hebt 48 uur om uw offerte in te dienen (tot ${dateFmt(d.replyBy, 'nl')}). Wij bezorgen ze meteen aan de klant.`;
     const subject = `${reminder ? 'Herinnering: ' : ''}Prijsaanvraag van ${d.contractor}: ${d.title} (${place})`;
@@ -118,7 +119,7 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
     const terms = d.commissionRate
       ? `Wordt uw offerte gekozen, dan factureert ${APP_NAME} een commissie van ${pct(d.commissionRate, 'nl')} excl. btw op het bedrag van de offerte.`
       : 'Antwoorden is gratis, zonder account en zonder verplichting.';
-    const footer = `${terms} Geen aanvragen meer ontvangen via ${APP_NAME}? <a href="${stopUrl}">Afmelden</a>.`;
+    const footer = `${terms} Geen aanvragen meer ontvangen via ${APP_NAME}? <a href="${stopUrl}" style="color:#9b9ba6;text-decoration:underline">Afmelden</a>.`;
     return {
       to: d.to,
       subject,
@@ -128,7 +129,7 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
     };
   }
   const client = [d.contractor, d.contractorVat ? `TVA ${d.contractorVat}` : null, d.contractorAddress].filter(Boolean).join(' · ');
-  const when = d.neededBy ? `${d.delivery ? 'livraison sur chantier' : 'enlèvement'} le ${dateFmt(d.neededBy, 'fr')}` : d.delivery ? 'livraison sur chantier' : 'enlèvement';
+  const when = d.delivery ? 'livraison sur chantier' : 'enlèvement';
   const intro = `Votre client <b>${esc(d.contractor)}</b>${d.contractorVerified ? ' (entreprise vérifiée)' : ''} vous demande, via ${APP_NAME}, une offre pour ${d.items.length} produit(s), chantier à ${esc(place)}, ${when}.`;
   const deadline = `Vous avez 48 heures pour remettre votre offre (jusqu'au ${dateFmt(d.replyBy, 'fr')}). Nous la transmettons aussitôt au client.`;
   const subject = `${reminder ? 'Rappel : ' : ''}Demande de prix de ${d.contractor} : ${d.title} (${place})`;
@@ -136,7 +137,7 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
   const terms = d.commissionRate
     ? `Si votre offre est retenue, ${APP_NAME} facture une commission de ${pct(d.commissionRate, 'fr')} HTVA sur le montant de l'offre.`
     : 'Répondre est gratuit, sans compte et sans engagement.';
-  const footer = `${terms} Vous ne souhaitez plus recevoir de demandes via ${APP_NAME} ? <a href="${stopUrl}">Se désinscrire</a>.`;
+  const footer = `${terms} Vous ne souhaitez plus recevoir de demandes via ${APP_NAME} ? <a href="${stopUrl}" style="color:#9b9ba6;text-decoration:underline">Se désinscrire</a>.`;
   return {
     to: d.to,
     subject,
