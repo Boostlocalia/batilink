@@ -1,5 +1,5 @@
 # Builds the web app and publishes it on the gh-pages branch (GitHub Pages:
-# https://boostlocalia.github.io/batilink). The Supabase URL and anon key are public.
+# https://app.batinode.be). The Supabase URL and anon key are public.
 name: Deploy web app
 
 on:
@@ -14,10 +14,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      EXPO_BASE_URL: /batilink
       EXPO_PUBLIC_SUPABASE_URL: https://bkmzstdviytslegbxsax.supabase.co
       EXPO_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbXpzdGR2aXl0c2xlZ2J4c2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzMjU1NTYsImV4cCI6MjEwNzkwMTU1Nn0.ktDieGxIQz9w5zCcGlAYO_AwRHln_mkJHx9U9aAGEcI
-      EXPO_PUBLIC_APP_URL: https://boostlocalia.github.io/batilink
+      EXPO_PUBLIC_APP_URL: https://app.batinode.be
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,3 +33,4 @@ jobs:
           publish_dir: ./dist
           publish_branch: gh-pages
           force_orphan: true
+          cname: app.batinode.be
