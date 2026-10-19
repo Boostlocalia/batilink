@@ -17,8 +17,8 @@ export type Slide = {
   kicker: string;
   title: string;
   text: string;
-  cta: string;
-  onPress: () => void;
+  cta?: string;
+  onPress?: () => void;
 };
 
 const ROTATE_MS = 6500;
@@ -65,7 +65,7 @@ export function HeroCarousel({ slides, height = 240 }: { slides: Slide[]; height
   const accent = ACCENTS[current.accent];
 
   return (
-    <Pressable accessibilityRole="link" onPress={current.onPress} style={[styles.frame, { minHeight: narrow ? height + 120 : height, borderColor: accent, justifyContent: narrow ? 'flex-end' : 'center' }, glow(accent)]}>
+    <Pressable accessibilityRole={current.onPress ? 'link' : undefined} disabled={!current.onPress} onPress={current.onPress} style={[styles.frame, { minHeight: narrow ? height + 120 : height, borderColor: accent, justifyContent: narrow ? 'flex-end' : 'center' }, glow(accent)]}>
       {/* Every photo stays mounted so the next one is already loaded when it fades in. */}
       {slides.map((s, i) => (
         <Image
@@ -87,11 +87,13 @@ export function HeroCarousel({ slides, height = 240 }: { slides: Slide[]; height
           {current.title}
         </ThemedText>
         <ThemedText style={styles.text}>{current.text}</ThemedText>
-        <View style={[styles.cta, { backgroundColor: accent }, glow(accent)]}>
-          <ThemedText type="smallBold" style={styles.ctaText}>
-            {current.cta} →
-          </ThemedText>
-        </View>
+        {current.cta ? (
+          <View style={[styles.cta, { backgroundColor: accent }, glow(accent)]}>
+            <ThemedText type="smallBold" style={styles.ctaText}>
+              {current.cta} →
+            </ThemedText>
+          </View>
+        ) : null}
       </Animated.View>
       {count > 1 ? (
         <View style={styles.dots}>
