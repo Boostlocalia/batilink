@@ -125,7 +125,7 @@ export const growthNl: typeof growthFr = {
     personas: {
       contractor: {
         title: 'Aannemers',
-        points: ['Eén aanvraag, meerdere offertes', 'Vergelijking regel per regel', 'Geverifieerde onderaannemers (30bis)', 'Aankoopbewijs en gecontroleerde factuur'],
+        points: ['Eén aanvraag, meerdere offertes', 'Vergelijking regel per regel', 'Geverifieerde bedrijven (btw, KBO)', 'Aankoopbewijs en gecontroleerde factuur'],
         cta: 'Ik ben aannemer',
       },
       supplier: {
@@ -152,7 +152,7 @@ export const growthNl: typeof growthFr = {
     faq: [
       { q: 'Moeten leveranciers zich inschrijven?', a: 'Nee. Ze krijgen een e-mail en antwoorden via een persoonlijke link. Met een inschrijving ontvangen ze bovendien de aanvragen uit hun hele regio.' },
       { q: 'Wie betaalt de bestelling?', a: 'U betaalt de leverancier rechtstreeks, zoals altijd. ' + APP_NAME + ' bewaart de bewijzen: bestelbon, voorschot, levering en factuur.' },
-      { q: 'Hoe controleert u de bedrijven?', a: 'We controleren het btw-nummer, de inschrijving in de KBO en de RSZ- en fiscale schulden (inhoudingsplicht 30bis), en controleren elke maand opnieuw.' },
+      { q: 'Hoe controleert u de bedrijven?', a: 'We controleren of het btw-nummer geldig is en of het bedrijf actief is in de KBO, en controleren elke maand en vóór elk akkoord opnieuw.' },
       { q: 'Kan ik stoppen wanneer ik wil?', a: 'Ja. De plannen zijn maandelijks of jaarlijks, zonder verbintenis, en online opzegbaar.' },
     ],
     finalTitle: 'Uw volgende werf verdient drie offertes.',

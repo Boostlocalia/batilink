@@ -244,19 +244,12 @@ export const fr = {
     with: (name: string) => `Avec ${name}`,
     status: {
       proposed: 'En attente d’acceptation',
-      awaiting_retention_ack: 'Retenue à confirmer',
       confirmed: 'Confirmé',
       blocked: 'Bloqué par la vérification',
       cancelled: 'Annulé',
     },
     accept: 'Accepter (vérification immédiate)',
-    checking: 'Vérification BCE, TVA et 30bis en cours…',
-    retentionLead: (social: string, tax: string) =>
-      `Ce sous-traitant a des dettes sociales ou fiscales. La loi (art. 30bis) vous oblige à retenir ${social} (social) et ${tax} (fiscal) de chaque facture HTVA et à les verser à l'ONSS et au SPF Finances.`,
-    retentionAck: 'Je confirme que je ferai ces retenues',
-    confirmRetention: "Confirmer l'accord",
-    referralDebts: (social: string, tax: string) =>
-      `Attention : cette entreprise a des dettes. Le maître d'ouvrage devra retenir ${social} (social) et ${tax} (fiscal) sur chaque facture.`,
+    checking: 'Vérification BCE et TVA en cours…',
     blockedLead: "L'accord ne peut pas être confirmé pour l'instant :",
     contacts: 'Coordonnées',
     cancel: "Annuler l'accord",
@@ -266,7 +259,7 @@ export const fr = {
   },
   verification: {
     title: 'Vérification de l’entreprise',
-    lead: 'Nous vérifions votre entreprise auprès de la BCE, du registre TVA européen et de l’ONSS/SPF Finances (30bis), puis chaque mois et avant chaque accord.',
+    lead: 'Nous vérifions votre entreprise auprès de la BCE et du registre TVA européen, puis chaque mois et avant chaque accord.',
     status: {
       pending: 'Vérification en cours',
       verified: 'Entreprise vérifiée',
@@ -276,7 +269,7 @@ export const fr = {
     recheck: 'Relancer la vérification',
     tooSoon: 'Une vérification vient d’avoir lieu. Réessayez dans quelques minutes.',
     lastChecked: (date: string) => `Dernière vérification le ${date}`,
-    kinds: { vat: 'Numéro de TVA', kbo: 'Banque-Carrefour des Entreprises', retention: 'Dettes sociales et fiscales (30bis)' },
+    kinds: { vat: 'Numéro de TVA', kbo: 'Banque-Carrefour des Entreprises' },
     outcomes: { ok: 'Conforme', warning: 'À vérifier', failed: 'Non conforme', unavailable: 'Registre indisponible' },
     findings: {
       vat_invalid: 'Numéro de TVA inactif',
@@ -289,12 +282,6 @@ export const fr = {
       kbo_no_architecture_activity: "Aucune activité d'architecture déclarée à la BCE",
       kbo_not_imported: 'Données BCE pas encore chargées',
       kbo_unavailable: 'BCE injoignable',
-      retention_social: 'Dettes sociales (retenue obligatoire)',
-      retention_tax: 'Dettes fiscales (retenue obligatoire)',
-      retention_not_configured: 'Contrôle 30bis pas encore activé',
-      retention_unreadable: 'Réponse 30bis illisible',
-      retention_register_unavailable: 'Service 30bis injoignable',
-      retention_unavailable: 'Contrôle 30bis indisponible',
     } as Record<string, string>,
     client: 'Donneur d’ordre',
     subcontractor: 'Sous-traitant',
@@ -310,7 +297,7 @@ export const fr = {
     hello: (name: string) =>
       `Bonjour, je suis ${name}. Je vous explique comment fonctionne l'application et je réponds à vos questions. Que puis-je faire pour vous ?`,
     suggestions: {
-      contractor: ['Comment envoyer une demande de prix ?', 'Comment fonctionne la vérification 30bis ?', 'Que comprend le plan Premium ?'],
+      contractor: ['Comment envoyer une demande de prix ?', 'Comment vérifiez-vous les entreprises ?', 'Que comprend le plan Premium ?'],
       architect: ['Comment publier un projet ?', 'Comment les entrepreneurs sont-ils vérifiés ?', 'Que se passe-t-il quand je mets en relation ?'],
       supplier: ['Comment remettre mon prix ?', "Comment poser une question à l'entrepreneur ?", 'Comment fonctionne la commission ?'],
     },
@@ -322,7 +309,7 @@ export const fr = {
     ask: (name: string) => `Poser une question à ${name}`,
     steps: {
       contractor: [
-        ['Votre entreprise est vérifiée', 'Nous contrôlons la TVA, la BCE et les dettes sociales et fiscales (30bis). Le résultat est dans Réglages.'],
+        ['Votre entreprise est vérifiée', 'Nous contrôlons le numéro de TVA et l’inscription active à la BCE. Le résultat est dans Réglages.'],
         ['Demandez des prix', "Dans « Demande », listez vos matériaux. Les fournisseurs de votre zone la reçoivent et vous envoient leur prix."],
         ['Comparez et choisissez', 'Les offres arrivent côte à côte : meilleur prix et délai le plus court sont mis en avant. Un clic pour retenir.'],
         ['Travaillez en réseau', 'Dans « Réseau », sous-traitez ou répondez aux annonces et aux projets d’architectes. Chaque accord est revérifié avant confirmation.'],
@@ -331,7 +318,7 @@ export const fr = {
         ['Votre bureau est vérifié', 'Nous contrôlons la TVA et la BCE. Le résultat est dans Réglages.'],
         ['Publiez vos projets', 'Dans « Réseau », décrivez le projet, les métiers recherchés et la commune.'],
         ['Recevez des entrepreneurs vérifiés', 'Les entrepreneurs intéressés répondent. Gardez ou écartez les candidats.'],
-        ['Mettez en relation', 'Proposez la mise en relation : l’entrepreneur est revérifié (TVA, BCE, 30bis) avant que les coordonnées soient partagées.'],
+        ['Mettez en relation', 'Proposez la mise en relation : l’entrepreneur est revérifié (TVA, BCE) avant que les coordonnées soient partagées.'],
       ],
       supplier: [
         ['Indiquez vos prix', 'Un prix unitaire HTVA par produit, les frais de livraison et votre délai.'],

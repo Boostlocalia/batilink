@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseRetention } from './checks-parse.ts';
 import {
   decide,
   decideAgreement,
@@ -35,45 +34,27 @@ describe('KBO', () => {
 
 describe('verification decision', () => {
   it('verifies only when every required register answered ok', () => {
-    expect(decide([ok('vat'), ok('kbo'), ok('retention')])).toBe('verified');
+    expect(decide([ok('vat'), ok('kbo')])).toBe('verified');
     expect(decide([ok('vat'), ok('kbo')], requiredChecks('architect'))).toBe('verified');
-    expect(decide([ok('vat'), ok('kbo')], requiredChecks('contractor'))).toBe('needs_review');
-    expect(decide([ok('vat'), ok('kbo'), { ...ok('retention'), outcome: 'unavailable' }])).toBe('needs_review');
-    expect(decide([ok('vat'), ok('kbo'), { ...ok('retention'), outcome: 'warning' }])).toBe('needs_review');
-    expect(decide([{ ...ok('vat'), outcome: 'failed', findings: ['vat_invalid'] }, ok('kbo'), ok('retention')])).toBe('rejected');
+    expect(decide([ok('vat'), ok('kbo')], requiredChecks('contractor'))).toBe('verified');
+    expect(decide([ok('vat'), { ...ok('kbo'), outcome: 'unavailable' }])).toBe('needs_review');
+    expect(decide([ok('vat'), { ...ok('kbo'), outcome: 'warning' }])).toBe('needs_review');
+    expect(decide([{ ...ok('vat'), outcome: 'failed', findings: ['vat_invalid'] }, ok('kbo')])).toBe('rejected');
   });
 });
 
 describe('agreement decision', () => {
-  const clean = { socialPct: 0, taxPct: 0 };
-  const debts = { socialPct: 35, taxPct: 15 };
-  const all = [ok('vat'), ok('kbo'), ok('retention')];
+  const all = [ok('vat'), ok('kbo')];
 
-  it('confirms when both sides are clean', () => {
-    expect(decideAgreement([ok('vat'), ok('kbo')], all, clean, false)).toEqual({ status: 'confirmed', retention: clean });
+  it('confirms when both companies are in good standing', () => {
+    expect(decideAgreement(all, all)).toEqual({ status: 'confirmed' });
+    expect(decideAgreement(all, [ok('vat'), { ...ok('kbo'), outcome: 'warning' as const, findings: ['kbo_no_construction_activity'] }])).toEqual({ status: 'confirmed' });
   });
 
-  it('asks the client to acknowledge withholding when the subcontractor has debts', () => {
-    expect(decideAgreement(all, all, debts, false).status).toBe('awaiting_retention_ack');
-    expect(decideAgreement(all, all, debts, true).status).toBe('confirmed');
-    expect(decideAgreement(all, all, debts, false, 'referral')).toEqual({ status: 'confirmed', retention: debts });
-  });
-
-  it('blocks when a register says no or the 30bis answer is missing', () => {
-    const bad = [ok('vat'), { ...ok('kbo'), outcome: 'failed' as const, findings: ['kbo_not_active'] }, ok('retention')];
-    expect(decideAgreement(all, bad, clean, true)).toEqual({ status: 'blocked', findings: ['subcontractor:kbo_not_active'] });
-    expect(decideAgreement(all, all, null, true)).toEqual({ status: 'blocked', findings: ['subcontractor:retention_unavailable'] });
+  it('blocks when a register says no or cannot answer', () => {
+    const bad = [ok('vat'), { ...ok('kbo'), outcome: 'failed' as const, findings: ['kbo_not_active'] }];
+    expect(decideAgreement(all, bad)).toEqual({ status: 'blocked', findings: ['subcontractor:kbo_not_active'] });
     const vatDown = [{ ...ok('vat'), outcome: 'unavailable' as const, findings: ['vat_register_unavailable'] }, ok('kbo')];
-    expect(decideAgreement(vatDown, all, clean, true)).toEqual({ status: 'blocked', findings: ['client:vat_register_unavailable'] });
-  });
-});
-
-describe('30bis answer', () => {
-  it('reads both percentages and refuses anything it does not understand', () => {
-    expect(parseRetention({ socialSecurity: { retainmentObligation: false }, tax: { retainmentObligation: false } })).toEqual({ socialPct: 0, taxPct: 0 });
-    expect(parseRetention({ social: { retainmentObligation: true, percentage: 35 }, fiscal: { retainmentObligation: true, percentage: 15 } })).toEqual({ socialPct: 35, taxPct: 15 });
-    expect(parseRetention({ social: { retainmentObligation: true } , tax: { retainmentObligation: false } })).toBeNull();
-    expect(parseRetention({})).toBeNull();
-    expect(parseRetention(null)).toBeNull();
+    expect(decideAgreement(vatDown, all)).toEqual({ status: 'blocked', findings: ['client:vat_register_unavailable'] });
   });
 });

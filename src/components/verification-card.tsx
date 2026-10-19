@@ -10,7 +10,7 @@ import { formatDate } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 
-type Check = { kind: 'vat' | 'kbo' | 'retention'; outcome: 'ok' | 'warning' | 'failed' | 'unavailable'; findings: string[]; checked_at: string };
+type Check = { kind: 'vat' | 'kbo'; outcome: 'ok' | 'warning' | 'failed' | 'unavailable'; findings: string[]; checked_at: string };
 
 const STATUS_TONE = { pending: 'neutral', verified: 'good', needs_review: 'warn', rejected: 'neutral' } as const;
 const OUTCOME_TONE = { ok: 'good', warning: 'warn', failed: 'neutral', unavailable: 'neutral' } as const;
@@ -24,7 +24,7 @@ export function VerificationCard() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const { data } = await supabase.from('company_checks').select('kind, outcome, findings, checked_at').order('checked_at', { ascending: false }).limit(20);
+    const { data } = await supabase.from('company_checks').select('kind, outcome, findings, checked_at').in('kind', ['vat', 'kbo']).order('checked_at', { ascending: false }).limit(20);
     // Latest result per register.
     const latest = new Map<string, Check>();
     for (const c of (data ?? []) as Check[]) if (!latest.has(c.kind)) latest.set(c.kind, c);

@@ -123,7 +123,7 @@ export const growthFr = {
     personas: {
       contractor: {
         title: 'Entrepreneurs',
-        points: ['Une demande, plusieurs offres', 'Comparateur ligne par ligne', 'Sous-traitants vérifiés (30bis)', 'Preuve d’achat et facture contrôlée'],
+        points: ['Une demande, plusieurs offres', 'Comparateur ligne par ligne', 'Entreprises vérifiées (TVA, BCE)', 'Preuve d’achat et facture contrôlée'],
         cta: 'Je suis entrepreneur',
       },
       supplier: {
@@ -150,7 +150,7 @@ export const growthFr = {
     faq: [
       { q: 'Les fournisseurs doivent-ils s’inscrire ?', a: 'Non. Ils reçoivent un e-mail et répondent via un lien personnel. S’inscrire leur permet en plus de recevoir les demandes de toute leur zone.' },
       { q: 'Qui paie la commande ?', a: 'Vous payez le fournisseur directement, comme d’habitude. ' + APP_NAME + ' garde les preuves : bon de commande, acompte, livraison et facture.' },
-      { q: 'Comment vérifiez-vous les entreprises ?', a: 'Nous contrôlons le numéro de TVA, l’inscription à la BCE et les dettes ONSS et fiscales (obligation de retenue 30bis), puis nous recontrôlons chaque mois.' },
+      { q: 'Comment vérifiez-vous les entreprises ?', a: 'Nous contrôlons que le numéro de TVA est valide et que l’entreprise est active à la BCE, puis nous recontrôlons chaque mois et avant chaque accord.' },
       { q: 'Puis-je arrêter quand je veux ?', a: 'Oui. Les plans sont mensuels ou annuels, sans engagement, et se résilient en ligne.' },
     ],
     finalTitle: 'Votre prochain chantier mérite trois offres.',

@@ -196,7 +196,7 @@ export default function SignupScreen() {
       return setErrors({ form: t.common.error });
     }
     await clearIntent();
-    // Checks VAT, BCE/KBO and 30bis; the result shows in Réglages.
+    // Checks VAT and BCE/KBO; the result shows in Réglages.
     await supabase.functions.invoke('verify-company', { body: {} }).catch(() => undefined);
     // Trial, welcome e-mail and referral reward.
     await supabase.functions.invoke('welcome', { body: {} }).catch(() => undefined);

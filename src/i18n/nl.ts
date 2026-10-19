@@ -245,19 +245,12 @@ export const nl: Dictionary = {
     with: (name: string) => `Met ${name}`,
     status: {
       proposed: 'Wacht op aanvaarding',
-      awaiting_retention_ack: 'Inhouding te bevestigen',
       confirmed: 'Bevestigd',
       blocked: 'Geblokkeerd door de controle',
       cancelled: 'Geannuleerd',
     },
     accept: 'Aanvaarden (onmiddellijke controle)',
-    checking: 'Controle KBO, btw en 30bis bezig…',
-    retentionLead: (social: string, tax: string) =>
-      `Deze onderaannemer heeft sociale of fiscale schulden. De wet (art. 30bis) verplicht u ${social} (sociaal) en ${tax} (fiscaal) van elke factuur excl. btw in te houden en door te storten aan de RSZ en de FOD Financiën.`,
-    retentionAck: 'Ik bevestig dat ik deze inhoudingen zal doen',
-    confirmRetention: 'Akkoord bevestigen',
-    referralDebts: (social: string, tax: string) =>
-      `Opgelet: dit bedrijf heeft schulden. De bouwheer zal ${social} (sociaal) en ${tax} (fiscaal) van elke factuur moeten inhouden.`,
+    checking: 'Controle KBO en btw bezig…',
     blockedLead: 'Het akkoord kan nu niet bevestigd worden:',
     contacts: 'Contactgegevens',
     cancel: 'Akkoord annuleren',
@@ -267,7 +260,7 @@ export const nl: Dictionary = {
   },
   verification: {
     title: 'Controle van het bedrijf',
-    lead: 'We controleren uw bedrijf bij de KBO, het Europese btw-register en de RSZ/FOD Financiën (30bis), daarna elke maand en vóór elk akkoord.',
+    lead: 'We controleren uw bedrijf bij de KBO en het Europese btw-register, daarna elke maand en vóór elk akkoord.',
     status: {
       pending: 'Controle bezig',
       verified: 'Gecontroleerd bedrijf',
@@ -277,7 +270,7 @@ export const nl: Dictionary = {
     recheck: 'Controle opnieuw starten',
     tooSoon: 'Er was net een controle. Probeer het over enkele minuten opnieuw.',
     lastChecked: (date: string) => `Laatste controle op ${date}`,
-    kinds: { vat: 'Btw-nummer', kbo: 'Kruispuntbank van Ondernemingen', retention: 'Sociale en fiscale schulden (30bis)' },
+    kinds: { vat: 'Btw-nummer', kbo: 'Kruispuntbank van Ondernemingen' },
     outcomes: { ok: 'In orde', warning: 'Na te kijken', failed: 'Niet in orde', unavailable: 'Register niet bereikbaar' },
     findings: {
       vat_invalid: 'Btw-nummer niet actief',
@@ -290,12 +283,6 @@ export const nl: Dictionary = {
       kbo_no_architecture_activity: 'Geen architectuuractiviteit aangegeven in de KBO',
       kbo_not_imported: 'KBO-gegevens nog niet geladen',
       kbo_unavailable: 'KBO niet bereikbaar',
-      retention_social: 'Sociale schulden (inhouding verplicht)',
-      retention_tax: 'Fiscale schulden (inhouding verplicht)',
-      retention_not_configured: '30bis-controle nog niet geactiveerd',
-      retention_unreadable: '30bis-antwoord onleesbaar',
-      retention_register_unavailable: '30bis-dienst niet bereikbaar',
-      retention_unavailable: '30bis-controle niet beschikbaar',
     } as Record<string, string>,
     client: 'Opdrachtgever',
     subcontractor: 'Onderaannemer',
@@ -311,7 +298,7 @@ export const nl: Dictionary = {
     hello: (name: string) =>
       `Goedendag, ik ben ${name}. Ik leg uit hoe de app werkt en beantwoord uw vragen. Wat kan ik voor u doen?`,
     suggestions: {
-      contractor: ['Hoe verstuur ik een prijsaanvraag?', 'Hoe werkt de 30bis-controle?', 'Wat houdt het Premium-plan in?'],
+      contractor: ['Hoe verstuur ik een prijsaanvraag?', 'Hoe controleert u de bedrijven?', 'Wat houdt het Premium-plan in?'],
       architect: ['Hoe plaats ik een project?', 'Hoe worden aannemers gecontroleerd?', 'Wat gebeurt er als ik in contact breng?'],
       supplier: ['Hoe geef ik mijn prijs door?', 'Hoe stel ik een vraag aan de aannemer?', 'Hoe werkt de commissie?'],
     },
@@ -323,7 +310,7 @@ export const nl: Dictionary = {
     ask: (name: string) => `Een vraag stellen aan ${name}`,
     steps: {
       contractor: [
-        ['Uw bedrijf wordt gecontroleerd', 'We controleren btw, KBO en sociale en fiscale schulden (30bis). Het resultaat staat in Instellingen.'],
+        ['Uw bedrijf wordt gecontroleerd', 'We controleren het btw-nummer en de actieve inschrijving in de KBO. Het resultaat staat in Instellingen.'],
         ['Vraag prijzen', 'In « Aanvraag » lijst u uw materialen op. Leveranciers uit uw regio ontvangen ze en sturen u hun prijs.'],
         ['Vergelijk en kies', 'De offertes komen naast elkaar: beste prijs en snelste levering worden uitgelicht. Eén klik om te kiezen.'],
         ['Werk in netwerk', 'In « Netwerk » besteedt u werk uit of reageert u op zoekertjes en projecten van architecten. Elk akkoord wordt vóór bevestiging opnieuw gecontroleerd.'],
@@ -332,7 +319,7 @@ export const nl: Dictionary = {
         ['Uw bureau wordt gecontroleerd', 'We controleren btw en KBO. Het resultaat staat in Instellingen.'],
         ['Plaats uw projecten', 'In « Netwerk » beschrijft u het project, de gezochte vakgebieden en de gemeente.'],
         ['Ontvang gecontroleerde aannemers', 'Geïnteresseerde aannemers reageren. Bewaar of wijs kandidaten af.'],
-        ['Breng in contact', 'Stel het contact voor: de aannemer wordt opnieuw gecontroleerd (btw, KBO, 30bis) voordat de gegevens gedeeld worden.'],
+        ['Breng in contact', 'Stel het contact voor: de aannemer wordt opnieuw gecontroleerd (btw, KBO) voordat de gegevens gedeeld worden.'],
       ],
       supplier: [
         ['Geef uw prijzen', 'Een eenheidsprijs excl. btw per product, de leveringskosten en uw termijn.'],

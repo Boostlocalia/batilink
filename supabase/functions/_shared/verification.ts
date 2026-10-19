@@ -1,7 +1,7 @@
 // Rules that turn register answers into a verification decision. Import-free so
 // the app's tests run them; the register clients live in checks.ts.
 
-export type CheckKind = 'vat' | 'kbo' | 'retention';
+export type CheckKind = 'vat' | 'kbo';
 export type Outcome = 'ok' | 'warning' | 'failed' | 'unavailable';
 export type CheckResult = { kind: CheckKind; outcome: Outcome; findings: string[]; evidence: Record<string, unknown> };
 
@@ -45,18 +45,9 @@ export function kboOutcome(
   return { outcome: 'ok', findings: [] };
 }
 
-/** Which checks a company must pass. 30bis applies to whoever works on a building site. */
-export function requiredChecks(kind: CompanyKind): CheckKind[] {
-  return kind === 'contractor' ? ['vat', 'kbo', 'retention'] : ['vat', 'kbo'];
-}
-
-export type Retention = { socialPct: number; taxPct: number };
-
-export function retentionOutcome(r: Retention): Pick<CheckResult, 'outcome' | 'findings'> {
-  const findings = [r.socialPct > 0 ? 'retention_social' : null, r.taxPct > 0 ? 'retention_tax' : null].filter(
-    (f): f is string => f !== null,
-  );
-  return { outcome: findings.length ? 'warning' : 'ok', findings };
+/** Every company must have a valid VAT number and an active enterprise at the BCE/KBO. */
+export function requiredChecks(_kind: CompanyKind): CheckKind[] {
+  return ['vat', 'kbo'];
 }
 
 /**
@@ -64,40 +55,26 @@ export function retentionOutcome(r: Retention): Pick<CheckResult, 'outcome' | 'f
  * A failed check rejects it; anything else (a warning, a register that did not
  * answer) leaves it for a person to review, never silently verified.
  */
-export function decide(results: CheckResult[], required: CheckKind[] = ['vat', 'kbo', 'retention']): VerificationStatus {
+export function decide(results: CheckResult[], required: CheckKind[] = ['vat', 'kbo']): VerificationStatus {
   if (results.some((r) => r.outcome === 'failed')) return 'rejected';
   const byKind = new Map(results.map((r) => [r.kind, r]));
   if (required.every((k) => byKind.get(k)?.outcome === 'ok')) return 'verified';
   return 'needs_review';
 }
 
-export type AgreementDecision =
-  | { status: 'blocked'; findings: string[] }
-  | { status: 'awaiting_retention_ack'; retention: Retention }
-  | { status: 'confirmed'; retention: Retention };
+export type AgreementDecision = { status: 'blocked'; findings: string[] } | { status: 'confirmed' };
 
 /**
- * Right before an agreement is confirmed. Both companies must pass VAT and KBO;
- * the subcontractor's 30bis answer is required. Debts do not forbid working
- * together, but on a subcontract the client must confirm they will withhold the
- * legal share. On an architect's referral the debts are shown, not acknowledged:
- * the withholding falls on the architect's client, who pays the contractor.
+ * Right before an agreement is confirmed. Both companies must be in good
+ * standing: a valid VAT number and an active enterprise at the BCE/KBO, checked
+ * now. A register that says no, or does not answer, blocks the agreement.
  */
-export function decideAgreement(
-  client: CheckResult[],
-  subcontractor: CheckResult[],
-  retention: Retention | null,
-  retentionAcknowledged: boolean,
-  kind: 'subcontract' | 'referral' = 'subcontract',
-): AgreementDecision {
+export function decideAgreement(client: CheckResult[], subcontractor: CheckResult[]): AgreementDecision {
   const blocking = [
-    ...client.filter((r) => r.kind !== 'retention' && r.outcome !== 'ok' && r.outcome !== 'warning').flatMap((r) => tag('client', r)),
+    ...client.filter((r) => r.outcome === 'failed' || r.outcome === 'unavailable').flatMap((r) => tag('client', r)),
     ...subcontractor.filter((r) => r.outcome === 'failed' || r.outcome === 'unavailable').flatMap((r) => tag('subcontractor', r)),
   ];
-  if (blocking.length || !retention) return { status: 'blocked', findings: blocking.length ? blocking : ['subcontractor:retention_unavailable'] };
-  const debts = retention.socialPct > 0 || retention.taxPct > 0;
-  if (kind === 'subcontract' && debts && !retentionAcknowledged) return { status: 'awaiting_retention_ack', retention };
-  return { status: 'confirmed', retention };
+  return blocking.length ? { status: 'blocked', findings: blocking } : { status: 'confirmed' };
 }
 
 function tag(side: 'client' | 'subcontractor', r: CheckResult): string[] {

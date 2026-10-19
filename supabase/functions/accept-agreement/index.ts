@@ -1,11 +1,9 @@
 // Moves an agreement forward (a subcontract between contractors, or an architect
 // putting a contractor forward for a project).
-// - The subcontractor accepts a proposed agreement.
-// - The client confirms they will withhold the legal share (when the
-//   subcontractor has social or tax debts).
-// Each time, both companies are checked again against the registers, right now,
-// before anything is confirmed. A confirmed architect's project records the
-// project commission when the contractor is subscribed.
+// The subcontractor accepts a proposed agreement. Both companies are checked
+// again against the registers (VAT, BCE/KBO), right now, before it is
+// confirmed. A confirmed architect's project records the project commission
+// when the contractor is subscribed.
 
 import { logEvent } from '../_shared/events.ts';
 import { PROJECT_COMMISSION_PAYER, PROJECT_COMMISSION_RATE, projectCommission, SUBSCRIBED_PLANS } from '../_shared/project-commission.ts';
@@ -21,20 +19,14 @@ Deno.serve(async (req) => {
   const companyId = await callerCompanyId(req, admin);
   if (!companyId) return json({ error: 'unauthorized' }, 401);
 
-  const { agreement_id: agreementId, acknowledge_retention: acknowledge } = (await req.json()) as {
-    agreement_id: string;
-    acknowledge_retention?: boolean;
-  };
+  const { agreement_id: agreementId } = (await req.json()) as { agreement_id: string };
   const { data: agreement } = await admin
     .from('agreements')
-    .select('id, kind, client_id, subcontractor_id, opportunity_id, response_id, amount_ex_vat, status, subcontractor_accepted_at, retention_acknowledged_at')
+    .select('id, kind, client_id, subcontractor_id, opportunity_id, response_id, amount_ex_vat, status')
     .eq('id', agreementId)
     .maybeSingle();
   if (!agreement || ![agreement.client_id, agreement.subcontractor_id].includes(companyId)) return json({ error: 'not_found' }, 404);
-
-  const isSub = companyId === agreement.subcontractor_id;
-  if (isSub && agreement.status !== 'proposed') return json({ error: 'not_open' }, 409);
-  if (!isSub && (agreement.status !== 'awaiting_retention_ack' || acknowledge !== true)) return json({ error: 'not_open' }, 409);
+  if (companyId !== agreement.subcontractor_id || agreement.status !== 'proposed') return json({ error: 'not_open' }, 409);
 
   // Fresh checks on both sides, now.
   const [client, sub] = await Promise.all([
@@ -43,19 +35,11 @@ Deno.serve(async (req) => {
   ]);
   if (!client || !sub) return json({ error: 'not_found' }, 404);
 
-  const acknowledged = !isSub || Boolean(agreement.retention_acknowledged_at);
-  const decision = decideAgreement(client.results, sub.results, sub.retention, acknowledged, agreement.kind);
+  const decision = decideAgreement(client.results, sub.results);
   const now = new Date().toISOString();
-  const update: Record<string, unknown> = { status: decision.status, checked_at: now };
-  if (isSub) update.subcontractor_accepted_at = now;
-  else update.retention_acknowledged_at = now;
+  const update: Record<string, unknown> = { status: decision.status, checked_at: now, subcontractor_accepted_at: now };
   if (decision.status === 'blocked') update.blocked_findings = decision.findings;
-  else {
-    update.blocked_findings = [];
-    update.retention_social_pct = decision.retention.socialPct;
-    update.retention_tax_pct = decision.retention.taxPct;
-    if (decision.status === 'confirmed') update.confirmed_at = now;
-  }
+  else Object.assign(update, { blocked_findings: [], confirmed_at: now });
 
   // Only move on from the state we read, so two taps cannot both apply.
   const { data: moved } = await admin.from('agreements').update(update).eq('id', agreement.id).eq('status', agreement.status).select('id');

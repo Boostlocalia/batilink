@@ -1,4 +1,4 @@
-// Checks a company against the Belgian registers (VAT, BCE/KBO, 30bis debts).
+// Checks a company against the Belgian registers (VAT, BCE/KBO).
 // - Signed-in user: checks their own company (after sign-up, or on demand).
 // - Cron (x-cron-secret): re-checks companies whose last check is over 30 days old.
 
