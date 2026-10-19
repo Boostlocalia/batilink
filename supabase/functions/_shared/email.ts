@@ -15,7 +15,7 @@ export type Mail = {
 
 export async function sendMail(mail: Mail): Promise<void> {
   const apiKey = Deno.env.get('BREVO_API_KEY');
-  const from = Deno.env.get('EMAIL_FROM') ?? 'demandes@batinode.be';
+  const from = Deno.env.get('EMAIL_FROM') ?? 'support@batinode.be';
   if (!apiKey) {
     // Local development: log instead of sending.
     console.log(`[mail] to=${mail.to} reply-to=${mail.replyTo ?? '-'} subject=${mail.subject}\n${mail.text}`);
