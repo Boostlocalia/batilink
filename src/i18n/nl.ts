@@ -69,6 +69,11 @@ export const nl: Dictionary = {
       open === 0 ? 'Geen lopende prijsaanvragen.' : `${open} lopende prijsaanvra${open > 1 ? 'gen' : 'ag'}.`,
     newRequest: 'Nieuwe prijsaanvraag',
     myRequests: 'Mijn aanvragen',
+    newcomers: {
+      title: 'Nieuw op Batinode',
+      lead: 'Geverifieerde aannemers die de voorbije 30 dagen aansloten, die uit uw regio eerst.',
+      since: (date: string) => `geverifieerd op ${date}`,
+    },
     empty: 'Maak uw eerste aanvraag: leveranciers in uw regio krijgen een e-mail en sturen u hun prijzen.',
     offers: (submitted: number, invited: number) => `${submitted} van ${invited} offertes`,
     status: {
@@ -356,6 +361,10 @@ export const nl: Dictionary = {
     title: 'Instellingen',
     language: 'Taal',
     company: 'Bedrijf',
+    news: 'Nieuwe aannemers',
+    newsLead: 'Elke maandag een e-mail met de geverifieerde aannemers die vorige week bij Batinode aansloten.',
+    on: 'Aan',
+    off: 'Uit',
     signOut: 'Afmelden',
   },
   orders: {

@@ -2,6 +2,7 @@
 // - Signed-in user: checks their own company (after sign-up, or on demand).
 // - Cron (x-cron-secret): re-checks companies whose last check is over 30 days old.
 
+import { isCron } from '../_shared/cron.ts';
 import { adminClient, callerCompanyId, corsHeaders, json } from '../_shared/supabase.ts';
 import { verifyCompany } from '../_shared/verify.ts';
 
@@ -14,8 +15,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   const admin = adminClient();
 
-  const secret = Deno.env.get('CRON_SECRET');
-  if (secret && req.headers.get('x-cron-secret') === secret) {
+  if (await isCron(req, admin)) {
     const before = new Date(Date.now() - RECHECK_AFTER_DAYS * 86_400_000).toISOString();
     const { data: due } = await admin
       .from('companies')

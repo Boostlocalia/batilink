@@ -67,6 +67,11 @@ export const fr = {
       open === 0 ? 'Aucune demande de prix en cours.' : `${open} demande${open > 1 ? 's' : ''} de prix en cours.`,
     newRequest: 'Nouvelle demande de prix',
     myRequests: 'Mes demandes',
+    newcomers: {
+      title: 'Nouveaux sur Batinode',
+      lead: 'Entrepreneurs vérifiés arrivés ces 30 derniers jours, ceux de votre région d’abord.',
+      since: (date: string) => `vérifié le ${date}`,
+    },
     empty: 'Créez votre première demande : les fournisseurs de votre zone reçoivent un e-mail et vous envoient leurs prix.',
     offers: (submitted: number, invited: number) => `${submitted} offre${submitted > 1 ? 's' : ''} sur ${invited}`,
     status: {
@@ -355,6 +360,10 @@ export const fr = {
     title: 'Réglages',
     language: 'Langue',
     company: 'Entreprise',
+    news: 'Nouveaux entrepreneurs',
+    newsLead: 'Un e-mail le lundi avec les entrepreneurs vérifiés arrivés sur Batinode la semaine passée.',
+    on: 'Activé',
+    off: 'Désactivé',
     signOut: 'Se déconnecter',
   },
   orders: {

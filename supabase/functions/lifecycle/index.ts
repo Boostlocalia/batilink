@@ -2,9 +2,11 @@
 // e-mails, and grants referral rewards once the referred company is verified.
 // Each e-mail goes once per company (lifecycle_messages), so reruns are safe.
 
+import { isCron } from '../_shared/cron.ts';
 import { sendMail, type Lang } from '../_shared/email.ts';
 import {
   activationMail,
+  newcomersMail,
   referralRewardMail,
   trialEndedMail,
   trialEndingMail,
@@ -123,6 +125,51 @@ async function winback(admin: Admin, now: Date) {
   return sent;
 }
 
+/** Mondays: each contractor hears about the verified contractors who joined last week. */
+async function newcomers(admin: Admin, now: Date) {
+  if (now.getUTCDay() !== 1) return 0;
+  const { data: joined } = await admin
+    .from('companies')
+    .select('id, name, postal_code, city, company_trades(trade_id)')
+    .eq('kind', 'contractor')
+    .eq('verification_status', 'verified')
+    .gte('created_at', new Date(now.getTime() - 7 * DAY).toISOString())
+    .limit(50);
+  if (!joined?.length) return 0;
+  const { data: trades } = await admin.from('trades').select('id, label_fr, label_nl');
+  const label = new Map((trades ?? []).map((t) => [t.id, t]));
+  const { data: readers } = await admin
+    .from('companies')
+    .select('id, email, language, postal_code')
+    .eq('kind', 'contractor')
+    .eq('news_emails', true)
+    .not('email', 'is', null)
+    .limit(5000);
+  const week = now.toISOString().slice(0, 10);
+  let sent = 0;
+  for (const r of readers ?? []) {
+    const lang = r.language as Lang;
+    const others = joined
+      .filter((j) => j.id !== r.id)
+      .sort((a, b) => Number(b.postal_code?.[0] === r.postal_code?.[0]) - Number(a.postal_code?.[0] === r.postal_code?.[0]))
+      .slice(0, 10)
+      .map((j) => ({
+        name: j.name,
+        trades: ((j.company_trades as { trade_id: number }[] | null) ?? [])
+          .map((ct) => label.get(ct.trade_id))
+          .filter(Boolean)
+          .slice(0, 3)
+          .map((t) => (lang === 'nl' ? t!.label_nl : t!.label_fr))
+          .join(', '),
+        place: [j.postal_code, j.city].filter(Boolean).join(' '),
+      }));
+    if (!others.length || !(await once(admin, r.id, `newcomers:${week}`))) continue;
+    await sendMail(newcomersMail(lang, r.email!, others, `${appUrl()}/reseau`)).catch(console.error);
+    sent++;
+  }
+  return sent;
+}
+
 /** The referrer gets its reward once the company it brought in is verified. */
 async function referrals(admin: Admin, now: Date) {
   let granted = 0;
@@ -185,13 +232,13 @@ async function referrals(admin: Admin, now: Date) {
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
-  const secret = Deno.env.get('CRON_SECRET');
-  if (!secret || req.headers.get('x-cron-secret') !== secret) return json({ error: 'unauthorized' }, 401);
   const admin = adminClient();
+  if (!(await isCron(req, admin))) return json({ error: 'unauthorized' }, 401);
   const now = new Date();
   const trials = await endTrials(admin, now);
   const activated = await activation(admin, now);
   const won = await winback(admin, now);
   const rewarded = await referrals(admin, now);
-  return json({ trials, activation: activated, winback: won, referrals: rewarded });
+  const news = await newcomers(admin, now);
+  return json({ trials, activation: activated, winback: won, referrals: rewarded, newcomers: news });
 });

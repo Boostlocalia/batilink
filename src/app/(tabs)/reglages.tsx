@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -13,6 +14,23 @@ import { supabase } from '@/lib/supabase';
 export default function SettingsScreen() {
   const { t, language, setLanguage } = useI18n();
   const { session, company } = useSession();
+
+  const [news, setNews] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (company?.kind !== 'contractor') return;
+    supabase
+      .from('companies')
+      .select('news_emails')
+      .eq('id', company.id)
+      .single()
+      .then(({ data }) => setNews(data?.news_emails ?? true));
+  }, [company?.id, company?.kind]);
+
+  const changeNews = (next: 'on' | 'off') => {
+    if (!company) return;
+    setNews(next === 'on');
+    supabase.from('companies').update({ news_emails: next === 'on' }).eq('id', company.id).then(() => {});
+  };
 
   const changeLanguage = (next: Language) => {
     setLanguage(next);
@@ -49,6 +67,22 @@ export default function SettingsScreen() {
               {session?.user.email}
             </ThemedText>
           </View>
+        </Card>
+      ) : null}
+      {company?.kind === 'contractor' && news !== null ? (
+        <Card>
+          <ThemedText type="smallBold">{t.settings.news}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {t.settings.newsLead}
+          </ThemedText>
+          <Segmented<'on' | 'off'>
+            value={news ? 'on' : 'off'}
+            onChange={changeNews}
+            options={[
+              { value: 'on', label: t.settings.on },
+              { value: 'off', label: t.settings.off },
+            ]}
+          />
         </Card>
       ) : null}
       <VerificationCard />

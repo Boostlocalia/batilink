@@ -186,3 +186,33 @@ export function winbackMail(lang: Lang, to: string, url: string): Mail {
     },
   });
 }
+
+export type Newcomer = { name: string; trades: string; place: string };
+
+/** Monday digest: verified contractors who joined last week, the reader's region first. */
+export function newcomersMail(lang: Lang, to: string, newcomers: Newcomer[], url: string): Mail {
+  const line = (n: Newcomer) => `• ${[n.name, n.trades, n.place].filter(Boolean).join(' · ')}`;
+  const count = newcomers.length;
+  return notice(lang, to, {
+    fr: {
+      subject: `${count} nouvel${count > 1 ? 'les' : 'le'} entreprise${count > 1 ? 's' : ''} sur ${APP_NAME} cette semaine`,
+      paragraphs: [
+        `Cette semaine, ${count > 1 ? `${count} entrepreneurs vérifiés ont` : 'un entrepreneur vérifié a'} rejoint ${APP_NAME} :`,
+        ...newcomers.map(line),
+        'Besoin d’un sous-traitant ou d’un coup de main sur un chantier ? Publiez une annonce dans Réseau.',
+        'Vous ne voulez plus recevoir ce récapitulatif ? Désactivez-le dans Réglages.',
+      ],
+      cta: { label: 'Voir le réseau', url },
+    },
+    nl: {
+      subject: `${count} nieuw${count > 1 ? 'e bedrijven' : ' bedrijf'} op ${APP_NAME} deze week`,
+      paragraphs: [
+        `Deze week ${count > 1 ? `sloten ${count} geverifieerde aannemers` : 'sloot een geverifieerde aannemer'} aan bij ${APP_NAME}:`,
+        ...newcomers.map(line),
+        'Een onderaannemer of extra hulp nodig op een werf? Plaats een oproep in Netwerk.',
+        'Wilt u dit overzicht niet meer ontvangen? Zet het uit in Instellingen.',
+      ],
+      cta: { label: 'Netwerk bekijken', url },
+    },
+  });
+}

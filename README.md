@@ -129,34 +129,7 @@ Stripe sert à encaisser les abonnements et les commissions ; les commandes se p
    npx supabase functions deploy
    ```
    Sans `BREVO_API_KEY`, les e-mails sont écrits dans les journaux au lieu d'être envoyés.
-5. Programmer les relances toutes les heures (SQL editor de Supabase, extensions `pg_cron` et `pg_net` activées) :
-   ```sql
-   select cron.schedule('remind-suppliers', '0 * * * *', $$
-     select net.http_post(
-       url := 'https://<ref>.supabase.co/functions/v1/remind-suppliers',
-       headers := jsonb_build_object('x-cron-secret', '<CRON_SECRET>')
-     )
-   $$);
-   select cron.schedule('verify-companies', '15 3 * * *', $$
-     select net.http_post(
-       url := 'https://<ref>.supabase.co/functions/v1/verify-company',
-       headers := jsonb_build_object('x-cron-secret', '<CRON_SECRET>')
-     )
-   $$);
-   select cron.schedule('lifecycle', '0 8 * * *', $$
-     select net.http_post(
-       url := 'https://<ref>.supabase.co/functions/v1/lifecycle',
-       headers := jsonb_build_object('x-cron-secret', '<CRON_SECRET>')
-     )
-   $$);
-   select cron.schedule('bill-commissions', '0 6 2 * *', $$
-     select net.http_post(
-       url := 'https://<ref>.supabase.co/functions/v1/bill-commissions',
-       headers := jsonb_build_object('x-cron-secret', '<CRON_SECRET>')
-     )
-   $$);
-   ```
-   La deuxième tâche recontrôle chaque nuit les entreprises dont la dernière vérification date de plus de 30 jours. La troisième gère chaque matin les essais, les e-mails d'activation et les parrainages. La quatrième envoie le 2 de chaque mois les relevés de commission du mois précédent.
+5. Les tâches planifiées sont créées par la migration `20261019120000_weekly_news_and_cron.sql` (`pg_cron`) : relances toutes les heures (`remind-suppliers`), recontrôle des entreprises chaque nuit (`verify-company`), essais, e-mails d'activation, parrainages et récapitulatif hebdomadaire des nouveaux entrepreneurs chaque matin à 7 h UTC (`lifecycle`, le récap part le lundi), relevés de commission le 2 du mois (`bill-commissions`). Le secret `x-cron-secret` est généré dans Vault (`cron_secret`) et vérifié par `check_cron_secret()` ; `CRON_SECRET` en variable reste accepté pour un appel manuel.
 6. Copier `.env.example` en `.env` et le remplir (`EXPO_PUBLIC_SUPABASE_URL=https://bkmzstdviytslegbxsax.supabase.co`, et la clé publique du projet, Supabase → Project Settings → API Keys, `sb_publishable_…`), puis lancer l'app : `npm run web`, `npm run ios` ou `npm run android`.
 7. Dans Supabase → Authentication → Email templates, mettre `{{ .Token }}` dans le modèle « Magic link » pour que l'e-mail de connexion contienne le code à 6 chiffres.
 

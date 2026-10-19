@@ -9,6 +9,7 @@
 // GET ?pay=<token> is the link in that e-mail: it opens a fresh Stripe payment
 // page for the bill (Stripe pages expire, the e-mail link does not).
 
+import { isCron } from '../_shared/cron.ts';
 import { commissionBillMail, sendMail, type BillLine, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
 import { orderAmounts, toCents } from '../_shared/orders.ts';
@@ -54,7 +55,7 @@ Deno.serve(async (req) => {
   const admin = adminClient();
   if (req.method === 'GET') return payLink(admin, new URL(req.url).searchParams.get('pay'));
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
-  if (req.headers.get('x-cron-secret') !== Deno.env.get('CRON_SECRET') || !Deno.env.get('CRON_SECRET')) return json({ error: 'unauthorized' }, 401);
+  if (!(await isCron(req, admin))) return json({ error: 'unauthorized' }, 401);
 
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));

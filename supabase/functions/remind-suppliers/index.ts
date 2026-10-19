@@ -2,6 +2,7 @@
 // 24 h after the invitation, once, and closes requests past their reply date.
 // Only the stored hash of a reply link is known, so a reminder carries a fresh link.
 
+import { isCron } from '../_shared/cron.ts';
 import { SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
 import { contractorAddress, invitationMail, sendMail, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
@@ -10,10 +11,8 @@ import { adminClient, appUrl, json } from '../_shared/supabase.ts';
 import { hashToken, newToken, tokenExpiry } from '../_shared/tokens.ts';
 
 Deno.serve(async (req) => {
-  const secret = Deno.env.get('CRON_SECRET');
-  if (!secret || req.headers.get('x-cron-secret') !== secret) return json({ error: 'unauthorized' }, 401);
-
   const admin = adminClient();
+  if (!(await isCron(req, admin))) return json({ error: 'unauthorized' }, 401);
   const today = new Date().toISOString().slice(0, 10);
 
   const { data: closed } = await admin

@@ -2,6 +2,7 @@ import { Link, Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { NewContractors } from '@/components/new-contractors';
 import { StartChecklist } from '@/components/start-checklist';
 import { SupplierHome } from '@/components/supplier-home';
 import { ThemedText } from '@/components/themed-text';
@@ -83,6 +84,8 @@ function ContractorHome() {
       ) : null}
 
       <StartChecklist />
+
+      <NewContractors />
 
       <Card>
         <ThemedText type="subtitle">{t.home.myRequests}</ThemedText>
