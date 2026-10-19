@@ -2,9 +2,9 @@ import { Image } from 'expo-image';
 
 import { APP_NAME } from '@/constants/brand';
 
-// The wordmark on a transparent background, 1355 x 310, cut out of the chosen logo.
+// The wordmark on a transparent background, 1957 x 455, rebuilt in Poppins Bold from the chosen logo.
 const SOURCE = require('../../assets/brand/batinode-logo.png');
-const RATIO = 1355 / 310;
+const RATIO = 1957 / 455;
 
 /** "batinode" written out, its "o" drawn as a network node. `size` is the height of the letters' line. */
 export function Logo({ size = 22 }: { size?: number }) {
