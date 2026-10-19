@@ -368,6 +368,12 @@ export const nl: Dictionary = {
     newsLead: 'Elke maandag een e-mail met de geverifieerde aannemers die vorige week bij BatiNode aansloten.',
     on: 'Aan',
     off: 'Uit',
+    logo: 'Foto of logo',
+    logoLead: 'Getoond naast de naam van uw bedrijf. JPG, PNG of WEBP, maximaal 5 MB. De afbeelding wordt vierkant bijgesneden.',
+    logoPick: 'Foto of logo toevoegen',
+    logoChange: 'Wijzigen',
+    logoRemove: 'Verwijderen',
+    logoErrors: { type: 'Kies een JPG-, PNG- of WEBP-afbeelding.', size: 'De afbeelding is groter dan 5 MB.', error: 'Uploaden mislukt. Probeer opnieuw.' },
     signOut: 'Afmelden',
   },
   orders: {

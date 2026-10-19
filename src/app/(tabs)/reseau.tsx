@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Agreements } from '@/components/agreements';
 import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { ArchitectBanners, NetworkBanners } from '@/components/home-banners';
+import { CompanyAvatar } from '@/components/company-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Option, Screen, Segmented } from '@/components/ui';
 import { UpgradeCard } from '@/components/upgrade-card';
@@ -158,6 +159,7 @@ export default function NetworkScreen() {
                 </ThemedText>
                 {view === 'posts' && p.company ? (
                   <View style={styles.wrap}>
+                    <CompanyAvatar name={p.company.name} url={p.company.logo_url} size={28} />
                     <ThemedText type="smallBold">{p.company.name}</ThemedText>
                     {p.company.verification_status === 'verified' ? <Chip label={t.verification.status.verified} tone="good" /> : null}
                   </View>

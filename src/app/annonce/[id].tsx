@@ -2,6 +2,7 @@ import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { CompanyAvatar } from '@/components/company-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Field, Screen } from '@/components/ui';
 import { UpgradeCard } from '@/components/upgrade-card';
@@ -18,7 +19,7 @@ type Response = {
   message: string;
   status: 'sent' | 'shortlisted' | 'declined' | 'selected';
   created_at: string;
-  company: { name: string; verification_status: string; city: string | null } | null;
+  company: { name: string; verification_status: string; city: string | null; logo_url: string | null } | null;
 };
 
 const RESPONSE_TONE = { sent: 'neutral', shortlisted: 'warn', declined: 'neutral', selected: 'good' } as const;
@@ -44,7 +45,7 @@ export default function PostScreen() {
       supabase.from('opportunities').select(OPPORTUNITY_COLUMNS).eq('id', id).single(),
       supabase
         .from('opportunity_responses')
-        .select('id, company_id, message, status, created_at, company:companies(name, verification_status, city)')
+        .select('id, company_id, message, status, created_at, company:companies(name, verification_status, city, logo_url)')
         .eq('opportunity_id', id)
         .order('created_at'),
       supabase.from('agreements').select('response_id').eq('opportunity_id', id).neq('status', 'cancelled'),
@@ -171,6 +172,7 @@ export default function PostScreen() {
           {responses.map((r) => (
             <View key={r.id} style={styles.response}>
               <View style={styles.wrap}>
+                {r.company ? <CompanyAvatar name={r.company.name} url={r.company.logo_url} size={28} /> : null}
                 <ThemedText type="smallBold" style={{ flexShrink: 1 }}>
                   {r.company?.name}
                 </ThemedText>

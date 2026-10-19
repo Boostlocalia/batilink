@@ -367,6 +367,12 @@ export const fr = {
     newsLead: 'Un e-mail le lundi avec les entrepreneurs vérifiés arrivés sur BatiNode la semaine passée.',
     on: 'Activé',
     off: 'Désactivé',
+    logo: 'Photo ou logo',
+    logoLead: 'Affiché à côté du nom de votre entreprise. JPG, PNG ou WEBP, 5 Mo maximum. L’image est recadrée en carré.',
+    logoPick: 'Ajouter une photo ou un logo',
+    logoChange: 'Changer',
+    logoRemove: 'Retirer',
+    logoErrors: { type: 'Choisissez une image JPG, PNG ou WEBP.', size: 'L’image dépasse 5 Mo.', error: 'L’envoi a échoué. Réessayez.' },
     signOut: 'Se déconnecter',
   },
   orders: {

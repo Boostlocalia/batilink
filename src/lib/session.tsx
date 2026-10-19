@@ -15,6 +15,7 @@ export type Company = {
   kind: 'contractor' | 'architect' | 'supplier';
   verification_status: 'pending' | 'verified' | 'needs_review' | 'rejected';
   last_checked_at: string | null;
+  logo_url: string | null;
 };
 
 type SessionContextValue = {
@@ -65,7 +66,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const [{ data: c }, { data: sub }] = await Promise.all([
       supabase
         .from('companies')
-        .select('id, name, vat_number, postal_code, city, verified_at, kind, verification_status, last_checked_at')
+        .select('id, name, vat_number, postal_code, city, verified_at, kind, verification_status, last_checked_at, logo_url')
         .eq('id', profile.company_id)
         .single(),
       supabase.from('subscriptions').select('plan, status, trial_ends_at, provider_subscription_id').eq('company_id', profile.company_id).maybeSingle(),

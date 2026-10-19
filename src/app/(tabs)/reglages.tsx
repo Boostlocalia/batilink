@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { LogoCard } from '@/components/logo-card';
 import { ReferralCard } from '@/components/referral-card';
 import { VerificationCard } from '@/components/verification-card';
 import { router } from 'expo-router';
@@ -51,6 +52,7 @@ export default function SettingsScreen() {
     <Screen>
       <ThemedText type="title">{t.settings.title}</ThemedText>
       {company ? <SettingsBanner /> : null}
+      <LogoCard />
       <Card>
         <ThemedText type="smallBold">{t.settings.language}</ThemedText>
         <Segmented<Language>
