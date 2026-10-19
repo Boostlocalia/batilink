@@ -372,6 +372,6 @@ const styles = StyleSheet.create({
     maxWidth: MaxContentWidth,
     alignSelf: 'center',
   },
-  input: { flex: 1, minHeight: 44, maxHeight: 140, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
+  input: { flex: 1, minHeight: 44, maxHeight: 140, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
   avatar: { borderWidth: 2, overflow: 'hidden', backgroundColor: '#09090b' },
 });

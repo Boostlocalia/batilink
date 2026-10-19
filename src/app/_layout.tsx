@@ -1,6 +1,7 @@
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 
 import { NewPassword } from '@/components/new-password';
 import { Colors } from '@/constants/theme';
@@ -8,6 +9,15 @@ import { LanguageProvider } from '@/i18n';
 import { SessionProvider, useSession } from '@/lib/session';
 
 SplashScreen.preventAutoHideAsync();
+
+// The web app behaves like a native one: no pinch zoom, no zoom when a field gets the focus.
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  document
+    .querySelector('meta[name="viewport"]')
+    ?.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
+  // iOS Safari ignores user-scalable for pinches: stop its gesture events instead.
+  for (const type of ['gesturestart', 'gesturechange']) document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+}
 
 function RootNavigator() {
   const { ready, session, company, browsing, recovering } = useSession();
