@@ -91,36 +91,8 @@ export async function inviteSuppliers(admin: SupabaseClient, request: SentReques
  */
 export async function pickSuppliers(admin: SupabaseClient, request: SentRequest, count: number): Promise<string[]> {
   if (count < 1) return [];
-  // Suppliers of the category within 50 km of the site, nearest first (public.nearby_suppliers).
-  const { data: near } = await admin.rpc('nearby_suppliers', { p_postal: request.postal_code, p_category: request.category_id });
-  const distance = new Map(((near ?? []) as { id: string; km: number | null }[]).map((n) => [n.id, n.km ?? 999]));
-  if (!distance.size) return [];
-  const ids = [...distance.keys()];
-  const [{ data: reachable }, { data: invited }, { data: recent }, { data: coverage }] = await Promise.all([
-    admin.from('companies').select('id, email, quote_email, verified_at').in('id', ids).eq('kind', 'supplier').is('requests_stopped_at', null),
-    admin.from('quotes').select('supplier_id').eq('request_id', request.id),
-    admin.from('quotes').select('supplier_id, created_at').in('supplier_id', ids).order('created_at', { ascending: false }).limit(1000),
-    admin.from('supplier_coverage').select('supplier_id, category_id').in('supplier_id', ids),
-  ]);
-  const already = new Set((invited ?? []).map((q) => q.supplier_id));
-  const lastAsked = new Map<string, string>();
-  for (const q of recent ?? []) if (!lastAsked.has(q.supplier_id)) lastAsked.set(q.supplier_id, q.created_at);
-  // Without a category, general merchants (many categories) come before specialists.
-  const breadth = new Map<string, Set<number>>();
-  for (const c of coverage ?? []) breadth.set(c.supplier_id, (breadth.get(c.supplier_id) ?? new Set()).add(c.category_id));
-  const shuffle = new Map(ids.map((id) => [id, Math.random()]));
-  // Within 10 km of each other, suppliers count as equally close.
-  const band = (id: string) => Math.floor(distance.get(id)! / 10);
-  return (reachable ?? [])
-    .filter((s) => (s.quote_email ?? s.email) && !already.has(s.id))
-    .sort(
-      (a, b) =>
-        band(a.id) - band(b.id) ||
-        (request.category_id === null ? (breadth.get(b.id)?.size ?? 0) - (breadth.get(a.id)?.size ?? 0) : 0) ||
-        (lastAsked.get(a.id) ?? '').localeCompare(lastAsked.get(b.id) ?? '') ||
-        Number(Boolean(b.verified_at)) - Number(Boolean(a.verified_at)) ||
-        shuffle.get(a.id)! - shuffle.get(b.id)!,
-    )
-    .map((s) => s.id)
-    .slice(0, count);
+  // Suppliers of the category within 50 km of the site, nearest first, ranked in the database (public.pick_suppliers).
+  const { data, error } = await admin.rpc('pick_suppliers', { p_request_id: request.id, p_count: count });
+  if (error) console.error('pick_suppliers', error.message);
+  return ((data ?? []) as string[]).filter((id) => typeof id === 'string');
 }
