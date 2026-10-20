@@ -92,6 +92,7 @@ function RootNavigator() {
       <Stack.Screen name="offre/[token]" />
       <Stack.Screen name="bon/[token]" />
       <Stack.Screen name="legal/[page]" />
+      <Stack.Screen name="fondateurs" />
     </Stack>
   );
 }

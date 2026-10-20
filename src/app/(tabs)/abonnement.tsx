@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { CompleteProfileCard } from '@/components/complete-profile-card';
+import { FounderCounter } from '@/components/founder-counter';
+import { FounderStatus } from '@/components/founder-status';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Screen, Segmented } from '@/components/ui';
 import { PlansBanner } from '@/components/home-banners';
@@ -70,6 +72,7 @@ export default function PlansScreen() {
       </View>
       <PlansBanner />
       {!company ? <CompleteProfileCard text={t.signup.later.plans} /> : null}
+      <FounderStatus fallback={<FounderCounter cta="page" />} />
       {onTrial ? (
         <Card style={{ borderColor: theme.signal }}>
           <ThemedText type="smallBold">{g.trialLeft(trialDays ?? 0)}</ThemedText>

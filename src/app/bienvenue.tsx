@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
+import { FounderCounter } from "@/components/founder-counter";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { ThemedText } from "@/components/themed-text";
 import { LegalLinks } from "@/components/legal-links";
@@ -163,6 +164,7 @@ export default function WelcomeScreen() {
             <ThemedText type="subtitle">{l.pricingTitle}</ThemedText>
             <ThemedText themeColor="textSecondary">{l.pricingLead}</ThemedText>
           </View>
+          <FounderCounter cta="page" />
           <View style={styles.grid}>
             {(["pro", "full"] as const).map((id) => (
               <Card
