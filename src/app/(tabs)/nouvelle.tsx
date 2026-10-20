@@ -50,6 +50,8 @@ export default function NewRequestScreen() {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[] | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  // Suppliers the contractor found by typing their name: always listed and ticked.
+  const [known, setKnown] = useState<Supplier[]>([]);
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importNotice, setImportNotice] = useState<{ text: string; error: boolean } | null>(null);
@@ -121,7 +123,6 @@ export default function NewRequestScreen() {
   const validate = () => {
     const next: Record<string, string> = {};
     if (title.trim().length < 3) next.title = t.request.errors.name;
-    if (categoryId === null) next.category = t.request.errors.category;
     if (!isBelgianPostalCode(postalCode)) next.postalCode = t.request.errors.postalCode;
     const filled = items.filter((i) => i.label.trim() || i.quantity.trim());
     if (!filled.length || filled.some((i) => i.label.trim().length < 2 || !(parseAmount(i.quantity) ?? 0))) {
@@ -150,7 +151,7 @@ export default function NewRequestScreen() {
     setBusy(true);
     const fields = {
       title: title.trim(),
-      category_id: categoryId!,
+      category_id: categoryId,
       postal_code: postalCode.trim(),
       city: city.trim() || null,
       // Suppliers get 48 hours from the moment the request is sent; the server sets the final date.
@@ -198,10 +199,13 @@ export default function NewRequestScreen() {
     if (match.error) return setErrors({ form: t.common.error });
 
     const found = (match.data ?? []) as Supplier[];
-    setSuppliers(found);
+    const knownIds = new Set(known.map((k) => k.id));
+    setSuppliers([...known, ...found.filter((s) => !knownIds.has(s.id))]);
     const max = PLANS[plan].suppliersPerRequest;
     // Mixed: the contractor ticks the one or two suppliers they know, BatiNode adds the rest.
-    setPicked(choice === 'mix' ? new Set() : new Set(found.slice(0, Number.isFinite(max) ? max : found.length).map((s) => s.id)));
+    const preset = choice === 'mix' ? [] : found.filter((s) => !knownIds.has(s.id)).map((s) => s.id);
+    const all = [...knownIds, ...preset];
+    setPicked(new Set(all.slice(0, Number.isFinite(max) ? max : all.length)));
   };
 
   const sendToBatinode = async () => {
@@ -251,6 +255,28 @@ export default function NewRequestScreen() {
   const updateItem = (key: number, patch: Partial<ItemDraft>) =>
     setItems((list) => list.map((i) => (i.key === key ? { ...i, ...patch } : i)));
 
+  const changeChoice = (next: 'batinode' | 'own' | 'mix') => {
+    setChoice(next);
+    setErrors({});
+    // Back to the first step, where "Envoyer la demande" lets BatiNode pick.
+    if (next === 'batinode') return setSuppliers(null);
+    // Mixed keeps at most 4 of the contractor's own suppliers.
+    if (next === 'mix') setPicked((current) => new Set([...current].slice(0, AUTO_SUPPLIERS - 1)));
+  };
+
+  // A supplier typed by name joins the contractor's favourites, so it may receive this request.
+  const addKnown = async (s: Supplier) => {
+    if (access !== 'full') return setLimit('suppliers');
+    if (choice === 'mix' && picked.size >= AUTO_SUPPLIERS - 1 && !picked.has(s.id)) return;
+    if (company) {
+      const { error } = await supabase.from('preferred_suppliers').insert({ contractor_id: company.id, supplier_id: s.id });
+      if (error && error.code !== '23505') return setErrors({ form: t.common.error });
+    }
+    setKnown((list) => (list.some((k) => k.id === s.id) ? list : [...list, s]));
+    setSuppliers((list) => (list === null || list.some((k) => k.id === s.id) ? list : [s, ...list]));
+    setPicked((current) => new Set(current).add(s.id));
+  };
+
   const togglePick = (id: string) =>
     setPicked((current) => {
       const next = new Set(current);
@@ -291,7 +317,7 @@ export default function NewRequestScreen() {
                   key={c.id}
                   accessibilityRole="button"
                   accessibilityState={{ selected }}
-                  onPress={() => setCategoryId(c.id)}
+                  onPress={() => setCategoryId(selected ? null : c.id)}
                   style={[
                     styles.option,
                     { borderColor: selected ? theme.brand : theme.line, backgroundColor: selected ? theme.brand : 'transparent' },
@@ -403,12 +429,32 @@ export default function NewRequestScreen() {
               <Button label={t.request.sendBatinode} variant="signal" onPress={sendToBatinode} busy={busy} />
             </>
           ) : (
-            <Button label={t.request.findSuppliers} onPress={findSuppliers} busy={busy} />
+            <>
+              <SupplierSearch onPick={addKnown} chosen={picked} />
+              {known.map((k) => (
+                <Pressable key={k.id} accessibilityRole="checkbox" accessibilityState={{ checked: picked.has(k.id) }} onPress={() => togglePick(k.id)} style={styles.supplier}>
+                  <View style={[styles.box, { borderColor: picked.has(k.id) ? theme.signal : theme.line, backgroundColor: picked.has(k.id) ? theme.signal : 'transparent' }]}>
+                    {picked.has(k.id) ? <ThemedText type="smallBold" themeColor="onSignal">✓</ThemedText> : null}
+                  </View>
+                  <ThemedText type="smallBold" style={{ flex: 1 }}>
+                    {[k.name, k.city].filter(Boolean).join(' · ')}
+                  </ThemedText>
+                </Pressable>
+              ))}
+              <Button label={t.request.findSuppliers} onPress={findSuppliers} busy={busy} />
+            </>
           )}
         </Card>
       ) : (
         <Card>
+          {/* The contractor can still change their mind, e.g. let BatiNode find the suppliers after all. */}
+          <View style={styles.wrap}>
+            <Option label={t.request.choiceBatinode} selected={false} onPress={() => changeChoice('batinode')} />
+            <Option label={t.request.choiceOwn} selected={choice === 'own'} onPress={() => changeChoice('own')} />
+            <Option label={t.request.choiceMix} selected={choice === 'mix'} onPress={() => changeChoice('mix')} />
+          </View>
           <ThemedText type="subtitle">{t.request.suppliers}</ThemedText>
+          <SupplierSearch onPick={addKnown} chosen={picked} />
           {suppliers.length === 0 ? (
             <ThemedText themeColor="textSecondary">{t.request.noSuppliers}</ThemedText>
           ) : (
@@ -467,7 +513,66 @@ export default function NewRequestScreen() {
   );
 }
 
+/** Type a supplier's name (or town) to find them in the directory and add them. */
+function SupplierSearch({ onPick, chosen }: { onPick: (s: Supplier) => void; chosen: Set<string> }) {
+  const { t } = useI18n();
+  const theme = useTheme();
+  const [query, setQuery] = useState('');
+  const [matches, setMatches] = useState<Supplier[]>([]);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) return;
+    let live = true;
+    const timer = setTimeout(async () => {
+      const { data } = await supabase.rpc('search_suppliers', { p_query: q });
+      if (live) setMatches((data as Supplier[] | null) ?? []);
+    }, 250);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  const shown = query.trim().length >= 2 ? matches : [];
+  return (
+    <View style={{ gap: Spacing.one }}>
+      <Field label={t.request.searchSupplier} placeholder={t.request.searchSupplierPlaceholder} value={query} onChangeText={setQuery} autoCapitalize="words" />
+      {shown.map((s) => (
+        <Pressable
+          key={s.id}
+          accessibilityRole="button"
+          onPress={() => {
+            onPick(s);
+            setQuery('');
+          }}
+          style={[styles.match, { borderColor: theme.line, backgroundColor: theme.backgroundSelected }]}>
+          <View style={{ flex: 1 }}>
+            <ThemedText type="smallBold">{s.name}</ThemedText>
+            {s.city ? (
+              <ThemedText type="small" themeColor="textSecondary">
+                {s.city}
+              </ThemedText>
+            ) : null}
+          </View>
+          <ThemedText type="smallBold" themeColor={chosen.has(s.id) ? 'good' : 'signal'}>
+            {chosen.has(s.id) ? '✓' : t.request.addSupplier}
+          </ThemedText>
+        </Pressable>
+      ))}
+      {query.trim().length >= 2 && !matches.length ? (
+        <Pressable accessibilityRole="link" onPress={() => router.push('/fournisseurs')}>
+          <ThemedText type="small" themeColor="signal">
+            {t.request.supplierNotListed}
+          </ThemedText>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  match: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, borderWidth: 1, borderRadius: Radius, padding: Spacing.two },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   option: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   item: { gap: Spacing.two, paddingTop: Spacing.two },

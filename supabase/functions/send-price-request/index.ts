@@ -48,11 +48,10 @@ Deno.serve(async (req) => {
   if (uniqueSuppliers.length) {
     // Only suppliers that really cover this category and postal code, or the contractor's favourites.
     const [{ data: coverage }, { data: favourites }] = await Promise.all([
-      admin
-        .from('supplier_coverage')
-        .select('supplier_id, postal_prefix')
-        .eq('category_id', request.category_id)
-        .in('supplier_id', uniqueSuppliers),
+      (request.category_id === null
+        ? admin.from('supplier_coverage').select('supplier_id, postal_prefix')
+        : admin.from('supplier_coverage').select('supplier_id, postal_prefix').eq('category_id', request.category_id)
+      ).in('supplier_id', uniqueSuppliers),
       admin.from('preferred_suppliers').select('supplier_id').eq('contractor_id', companyId).in('supplier_id', uniqueSuppliers),
     ]);
     const allowed = new Set([

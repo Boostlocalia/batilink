@@ -8,6 +8,7 @@ import { SUPPLIER_COMMISSION_ACTIVE } from './commission.ts';
 import { contractorAddress, invitationMail, sendMail, type Lang } from './email.ts';
 import { relayAddress } from './relay-address.ts';
 import { appUrl } from './supabase.ts';
+import { isTestCompany, testMail } from './test-mode.ts';
 import { hashToken, newToken, tokenExpiry } from './tokens.ts';
 
 export { AUTO_SUPPLIERS } from './plans.ts';
@@ -16,7 +17,7 @@ export type SentRequest = {
   id: string;
   company_id: string;
   title: string;
-  category_id: number;
+  category_id: number | null;
   postal_code: string;
   city: string | null;
   needed_by: string | null;
@@ -33,6 +34,7 @@ export async function inviteSuppliers(admin: SupabaseClient, request: SentReques
     admin.from('companies').select('id, email, quote_email, language, commission_rate').in('id', supplierIds).eq('kind', 'supplier').is('requests_stopped_at', null),
   ]);
 
+  const test = await isTestCompany(admin, request.company_id);
   const sent: string[] = [];
   const failed: string[] = [];
   for (const supplier of suppliers ?? []) {
@@ -52,8 +54,7 @@ export async function inviteSuppliers(admin: SupabaseClient, request: SentReques
       continue;
     }
     try {
-      await sendMail(
-        invitationMail({
+      const mail = invitationMail({
           lang: supplier.language as Lang,
           to,
           contractor: contractor?.name ?? '',
@@ -71,8 +72,8 @@ export async function inviteSuppliers(admin: SupabaseClient, request: SentReques
           unsubscribeUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/supplier-quote?token=${token}&unsubscribe=1`,
           commissionRate: SUPPLIER_COMMISSION_ACTIVE ? Number(supplier.commission_rate) : null,
           replyTo: relayAddress('supplier', quote.reply_key, Deno.env.get('RELAY_EMAIL_DOMAIN') ?? undefined),
-        }),
-      );
+      });
+      await sendMail(test ? testMail(mail) : mail);
       sent.push(supplier.id);
     } catch (e) {
       console.error(e);
@@ -92,7 +93,9 @@ export async function inviteSuppliers(admin: SupabaseClient, request: SentReques
  */
 export async function pickSuppliers(admin: SupabaseClient, request: SentRequest, count: number): Promise<string[]> {
   if (count < 1) return [];
-  const { data: coverage } = await admin.from('supplier_coverage').select('supplier_id, postal_prefix').eq('category_id', request.category_id);
+  // Without a category, every supplier serving the postal code qualifies.
+  const query = admin.from('supplier_coverage').select('supplier_id, postal_prefix');
+  const { data: coverage } = await (request.category_id === null ? query : query.eq('category_id', request.category_id));
   const closeness = new Map<string, number>();
   const category = new Set<string>();
   for (const c of coverage ?? []) {

@@ -5,6 +5,7 @@
 import { isCron } from '../_shared/cron.ts';
 import { SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
 import { contractorAddress, invitationMail, sendMail, type Lang } from '../_shared/email.ts';
+import { isTestCompany, testMail } from '../_shared/test-mode.ts';
 import { logEvent } from '../_shared/events.ts';
 import { relayAddress } from '../_shared/relay-address.ts';
 import { adminClient, appUrl, json } from '../_shared/supabase.ts';
@@ -26,7 +27,7 @@ Deno.serve(async (req) => {
   const { data: due } = await admin
     .from('quotes')
     .select(
-      'id, reply_key, supplier:companies(email, quote_email, language, commission_rate, requests_stopped_at), request:price_requests!inner(id, title, postal_code, city, needed_by, reply_by, fulfilment, status, company:companies(name, verified_at, vat_number, street, postal_code, city))',
+      'id, reply_key, supplier:companies(email, quote_email, language, commission_rate, requests_stopped_at), request:price_requests!inner(id, company_id, title, postal_code, city, needed_by, reply_by, fulfilment, status, company:companies(name, verified_at, vat_number, street, postal_code, city))',
     )
     .eq('status', 'invited')
     .is('reminded_at', null)
@@ -44,6 +45,7 @@ Deno.serve(async (req) => {
     } | null;
     const request = q.request as unknown as {
       id: string;
+      company_id: string;
       title: string;
       postal_code: string;
       city: string | null;
@@ -70,8 +72,7 @@ Deno.serve(async (req) => {
       .select('label, quantity, unit')
       .eq('request_id', request.id)
       .order('position');
-    await sendMail(
-      invitationMail(
+    const mail = invitationMail(
         {
           lang: supplier.language,
           to: supplier.quote_email ?? supplier.email,
@@ -92,8 +93,8 @@ Deno.serve(async (req) => {
           replyTo: relayAddress('supplier', q.reply_key, Deno.env.get('RELAY_EMAIL_DOMAIN') ?? undefined),
         },
         true,
-      ),
-    )
+      );
+    await sendMail((await isTestCompany(admin, request.company_id)) ? testMail(mail) : mail)
       .then(() => reminded++)
       .catch(console.error);
   }
