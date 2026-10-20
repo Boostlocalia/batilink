@@ -24,7 +24,32 @@ const policy = [
 
 const html = fs.readFileSync(file, 'utf8');
 if (html.includes('Content-Security-Policy')) process.exit(0);
-const meta = `<meta http-equiv="Content-Security-Policy" content="${policy}" />\n    <meta name="referrer" content="strict-origin-when-cross-origin" />\n    `;
+// Link previews (WhatsApp, iMessage, LinkedIn…), home-screen icon and installable app.
+const site = 'https://app.batinode.be';
+const title = 'BatiNode · Une demande de prix, tous vos négoces';
+const description = 'Envoyez une demande de prix aux négoces autour de votre chantier et comparez les offres ligne par ligne. Entreprises vérifiées, en français et en néerlandais.';
+const share = [
+  `<meta name="description" content="${description}" />`,
+  '<meta name="theme-color" content="#09090b" />',
+  '<meta name="apple-mobile-web-app-title" content="BatiNode" />',
+  '<link rel="apple-touch-icon" href="/apple-touch-icon.png" />',
+  '<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />',
+  '<link rel="manifest" href="/manifest.webmanifest" />',
+  '<meta property="og:type" content="website" />',
+  '<meta property="og:site_name" content="BatiNode" />',
+  `<meta property="og:url" content="${site}/" />`,
+  `<meta property="og:title" content="${title}" />`,
+  `<meta property="og:description" content="${description}" />`,
+  `<meta property="og:image" content="${site}/og-image.png" />`,
+  '<meta property="og:image:width" content="1200" />',
+  '<meta property="og:image:height" content="630" />',
+  '<meta property="og:image:alt" content="Logo BatiNode : une demande de prix, tous vos négoces" />',
+  '<meta property="og:locale" content="fr_BE" />',
+  '<meta property="og:locale:alternate" content="nl_BE" />',
+  '<meta name="twitter:card" content="summary_large_image" />',
+  `<meta name="twitter:image" content="${site}/og-image.png" />`,
+].join('\n    ');
+const meta = `<meta http-equiv="Content-Security-Policy" content="${policy}" />\n    <meta name="referrer" content="strict-origin-when-cross-origin" />\n    ${share}\n    `;
 // The app opens in French; Dutch speakers switch in the app.
 fs.writeFileSync(file, html.replace('<html lang="en">', '<html lang="fr">').replace('<meta charset="utf-8" />\n    ', `<meta charset="utf-8" />\n    ${meta}`));
 console.log('CSP added to', file);
