@@ -193,6 +193,10 @@ export const fr = {
     lead: 'Prix HTVA, sans engagement.',
     perMonth: '/ mois HTVA',
     current: 'Plan actuel',
+    store: {
+      none: 'Aucun abonnement actif pour votre entreprise.',
+      lead: 'L’abonnement ne se gère pas dans cette application. Les fonctions incluses dans l’abonnement de votre entreprise s’activent automatiquement lorsque vous êtes connecté.',
+    },
     choose: 'Choisir ce plan',
     secure: 'Paiement sécurisé par Stripe (carte, Bancontact, domiciliation). Sans engagement, résiliable à tout moment.',
     manage: 'Gérer mon abonnement',
@@ -248,6 +252,12 @@ export const fr = {
       },
     },
     detail: {
+      report: {
+        open: 'Signaler cette annonce',
+        confirm: 'Signaler cette annonce à l’équipe BatiNode ?',
+        send: 'Signaler',
+        done: 'Merci, l’équipe BatiNode va vérifier cette annonce.',
+      },
       answer: 'Répondre à cette annonce',
       answerPlaceholder: 'Vos disponibilités, références, questions…',
       send: 'Envoyer ma réponse',
@@ -395,6 +405,15 @@ export const fr = {
     logoRemove: 'Retirer',
     logoErrors: { type: 'Choisissez une image JPG, PNG ou WEBP.', size: 'L’image dépasse 5 Mo.', error: 'L’envoi a échoué. Réessayez.' },
     signOut: 'Se déconnecter',
+    deleteAccount: {
+      title: 'Supprimer mon compte',
+      lead: 'Votre accès est supprimé définitivement. Si vous êtes le dernier utilisateur de l’entreprise, son abonnement est arrêté et ses données sont effacées, sauf les commandes et pièces que la loi oblige à garder.',
+      open: 'Supprimer mon compte',
+      warning: 'C’est définitif : vous ne pourrez plus vous connecter et vos données seront effacées. Confirmez-vous ?',
+      confirm: 'Oui, supprimer définitivement',
+      cancel: 'Annuler',
+      error: 'La suppression n’a pas abouti. Réessayez ou écrivez à support@batinode.be.',
+    },
   },
   orders: {
     title: (n: string) => `Commande ${n}`,

@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
     request_id?: string;
     supplier_id?: string;
     hidden?: boolean;
+    withdraw?: boolean;
   };
 
   if (body.action === 'overview') {
@@ -136,6 +137,12 @@ Deno.serve(async (req) => {
         .limit(30),
     ]);
     const name = (x: unknown) => (x as { name?: string } | null)?.name ?? '';
+    const { data: postReports } = await admin
+      .from('opportunity_reports')
+      .select('id, reason, created_at, reporter:companies(name), post:opportunities(id, title, status, author:companies(name))')
+      .is('handled_at', null)
+      .order('created_at', { ascending: false })
+      .limit(30);
     const contacts = {
       requested,
       accepted,
@@ -144,6 +151,10 @@ Deno.serve(async (req) => {
       conversion: accepted ? Math.round((deals / accepted) * 100) : 0,
       amount: (dealRows.data ?? []).reduce((sum, d) => sum + Number(d.deal_amount_ex_vat ?? 0), 0),
       recentDeals: (dealRows.data ?? []).map((d) => ({ id: d.id, kind: d.deal_kind, amount: d.deal_amount_ex_vat === null ? null : Number(d.deal_amount_ex_vat), at: d.deal_confirmed_at, between: [name(d.a), name(d.b)] })),
+      postReports: (postReports ?? []).map((r) => {
+        const post = r.post as unknown as { id: string; title: string; status: string; author: unknown } | null;
+        return { id: r.id, reason: r.reason, at: r.created_at, reporter: name(r.reporter), postId: post?.id ?? null, title: post?.title ?? '', author: name(post?.author), open: post?.status === 'open' };
+      }),
       reports: (reports.data ?? []).map((r) => {
         const c = r.conversation as unknown as { a: unknown; b: unknown } | null;
         return { id: r.id, reason: r.reason, at: r.created_at, reporter: name(r.reporter), between: c ? [name(c.a), name(c.b)] : [] };
@@ -290,6 +301,16 @@ Deno.serve(async (req) => {
   if (body.action === 'news_hide') {
     if (typeof body.id !== 'string') return json({ error: 'not_found' }, 404);
     await admin.from('news_items').update({ hidden: body.hidden === true }).eq('id', body.id);
+    return json({ ok: true });
+  }
+
+  // A reported network post: mark the report handled, and withdraw the post if asked.
+  if (body.action === 'post_report_handled') {
+    if (typeof body.id !== 'string') return json({ error: 'not_found' }, 404);
+    const { data: report } = await admin.from('opportunity_reports').select('opportunity_id').eq('id', body.id).maybeSingle();
+    if (!report) return json({ error: 'not_found' }, 404);
+    if (body.withdraw === true) await admin.from('opportunities').update({ status: 'closed' }).eq('id', report.opportunity_id);
+    await admin.from('opportunity_reports').update({ handled_at: new Date().toISOString() }).eq('opportunity_id', report.opportunity_id).is('handled_at', null);
     return json({ ok: true });
   }
 

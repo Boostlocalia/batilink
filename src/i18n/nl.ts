@@ -194,6 +194,10 @@ export const nl: Dictionary = {
     lead: 'Prijzen excl. btw, zonder verbintenis.',
     perMonth: '/ maand excl. btw',
     current: 'Huidig plan',
+    store: {
+      none: 'Geen actief abonnement voor uw bedrijf.',
+      lead: 'Het abonnement wordt niet in deze app beheerd. De functies uit het abonnement van uw bedrijf worden automatisch geactiveerd wanneer u aangemeld bent.',
+    },
     choose: 'Dit plan kiezen',
     secure: 'Veilige betaling via Stripe (kaart, Bancontact, domiciliëring). Zonder verbintenis, altijd opzegbaar.',
     manage: 'Mijn abonnement beheren',
@@ -249,6 +253,12 @@ export const nl: Dictionary = {
       },
     },
     detail: {
+      report: {
+        open: 'Deze oproep melden',
+        confirm: 'Deze oproep melden aan het BatiNode-team?',
+        send: 'Melden',
+        done: 'Bedankt, het BatiNode-team bekijkt deze oproep.',
+      },
       answer: 'Op dit zoekertje reageren',
       answerPlaceholder: 'Uw beschikbaarheid, referenties, vragen…',
       send: 'Mijn antwoord versturen',
@@ -396,6 +406,15 @@ export const nl: Dictionary = {
     logoRemove: 'Verwijderen',
     logoErrors: { type: 'Kies een JPG-, PNG- of WEBP-afbeelding.', size: 'De afbeelding is groter dan 5 MB.', error: 'Uploaden mislukt. Probeer opnieuw.' },
     signOut: 'Afmelden',
+    deleteAccount: {
+      title: 'Mijn account verwijderen',
+      lead: 'Uw toegang wordt definitief verwijderd. Bent u de laatste gebruiker van het bedrijf, dan wordt het abonnement stopgezet en worden de gegevens gewist, behalve de bestellingen en stukken die de wet ons verplicht te bewaren.',
+      open: 'Mijn account verwijderen',
+      warning: 'Dit is definitief: u kunt zich niet meer aanmelden en uw gegevens worden gewist. Bevestigt u?',
+      confirm: 'Ja, definitief verwijderen',
+      cancel: 'Annuleren',
+      error: 'De verwijdering is mislukt. Probeer opnieuw of schrijf naar support@batinode.be.',
+    },
   },
   orders: {
     title: (n: string) => `Bestelling ${n}`,

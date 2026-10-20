@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { LogoCard } from '@/components/logo-card';
+import { DeleteAccountCard } from '@/components/delete-account-card';
 import { LegalLinks } from '@/components/legal-links';
 import { ReferralCard } from '@/components/referral-card';
 import { VerificationCard } from '@/components/verification-card';
@@ -117,6 +118,7 @@ export default function SettingsScreen() {
         </View>
       ) : null}
       <Button label={t.settings.signOut} variant="ghost" onPress={() => supabase.auth.signOut()} />
+      {session ? <DeleteAccountCard /> : null}
       <LegalLinks />
     </Screen>
   );

@@ -31,7 +31,8 @@ type Event = {
     | 'contact_requested'
     | 'contact_accepted'
     | 'network_deal'
-    | 'news_published';
+    | 'news_published'
+    | 'account_deleted';
   company_id?: string | null;
   request_id?: string | null;
   quote_id?: string | null;

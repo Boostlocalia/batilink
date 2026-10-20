@@ -6,6 +6,7 @@ import { Button, Card } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
+import { SELLS_PLANS } from '@/lib/store';
 
 export type UpgradeReason = 'suppliers' | 'network';
 
@@ -22,9 +23,11 @@ export function UpgradeCard({ reason }: { reason: UpgradeReason }) {
           {c.text}
         </ThemedText>
       </View>
-      <View style={{ alignSelf: 'flex-start' }}>
-        <Button label={c.cta} variant="signal" small onPress={() => router.push('/abonnement')} />
-      </View>
+      {SELLS_PLANS ? (
+        <View style={{ alignSelf: 'flex-start' }}>
+          <Button label={c.cta} variant="signal" small onPress={() => router.push('/abonnement')} />
+        </View>
+      ) : null}
     </Card>
   );
 }

@@ -1,28 +1,48 @@
-import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import {
+  router,
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+} from "expo-router";
+import { useCallback, useState } from "react";
+import { StyleSheet, View } from "react-native";
 
-import { CompanyAvatar } from '@/components/company-avatar';
-import { ThemedText } from '@/components/themed-text';
-import { Button, Card, Chip, Field, Screen } from '@/components/ui';
-import { UpgradeCard } from '@/components/upgrade-card';
-import { Spacing } from '@/constants/theme';
-import { useI18n } from '@/i18n';
-import { formatDate, formatEuro } from '@/lib/format';
-import { loadTrades, OPPORTUNITY_COLUMNS, type Opportunity, type Trade } from '@/lib/network';
-import { useSession } from '@/lib/session';
-import { supabase } from '@/lib/supabase';
+import { CompanyAvatar } from "@/components/company-avatar";
+import { ThemedText } from "@/components/themed-text";
+import { Button, Card, Chip, Field, Screen } from "@/components/ui";
+import { UpgradeCard } from "@/components/upgrade-card";
+import { Spacing } from "@/constants/theme";
+import { useI18n } from "@/i18n";
+import { formatDate, formatEuro } from "@/lib/format";
+import {
+  loadTrades,
+  OPPORTUNITY_COLUMNS,
+  type Opportunity,
+  type Trade,
+} from "@/lib/network";
+import { useSession } from "@/lib/session";
+import { supabase } from "@/lib/supabase";
 
 type Response = {
   id: string;
   company_id: string;
   message: string;
-  status: 'sent' | 'shortlisted' | 'declined' | 'selected';
+  status: "sent" | "shortlisted" | "declined" | "selected";
   created_at: string;
-  company: { name: string; verification_status: string; city: string | null; logo_url: string | null } | null;
+  company: {
+    name: string;
+    verification_status: string;
+    city: string | null;
+    logo_url: string | null;
+  } | null;
 };
 
-const RESPONSE_TONE = { sent: 'neutral', shortlisted: 'warn', declined: 'neutral', selected: 'good' } as const;
+const RESPONSE_TONE = {
+  sent: "neutral",
+  shortlisted: "warn",
+  declined: "neutral",
+  selected: "good",
+} as const;
 
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,7 +53,7 @@ export default function PostScreen() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [responses, setResponses] = useState<Response[]>([]);
   const [proposed, setProposed] = useState<Set<string>>(new Set());
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -42,13 +62,23 @@ export default function PostScreen() {
 
   const load = useCallback(async () => {
     const [p, r, a, tr] = await Promise.all([
-      supabase.from('opportunities').select(OPPORTUNITY_COLUMNS).eq('id', id).single(),
       supabase
-        .from('opportunity_responses')
-        .select('id, company_id, message, status, created_at, company:companies(name, verification_status, city, logo_url)')
-        .eq('opportunity_id', id)
-        .order('created_at'),
-      supabase.from('agreements').select('response_id').eq('opportunity_id', id).neq('status', 'cancelled'),
+        .from("opportunities")
+        .select(OPPORTUNITY_COLUMNS)
+        .eq("id", id)
+        .single(),
+      supabase
+        .from("opportunity_responses")
+        .select(
+          "id, company_id, message, status, created_at, company:companies(name, verification_status, city, logo_url)",
+        )
+        .eq("opportunity_id", id)
+        .order("created_at"),
+      supabase
+        .from("agreements")
+        .select("response_id")
+        .eq("opportunity_id", id)
+        .neq("status", "cancelled"),
       loadTrades(),
     ]);
     if (p.error) return setFailed(true);
@@ -67,17 +97,30 @@ export default function PostScreen() {
 
   const answer = async () => {
     if (!company || message.trim().length < 10) return;
-    setBusy('answer');
-    const { error } = await supabase.from('opportunity_responses').insert({ opportunity_id: id, company_id: company.id, message: message.trim() });
+    setBusy("answer");
+    const { error } = await supabase
+      .from("opportunity_responses")
+      .insert({
+        opportunity_id: id,
+        company_id: company.id,
+        message: message.trim(),
+      });
     setBusy(null);
-    if (error) return plan === 'free' ? setCapped(true) : setNotice(t.common.error);
-    setMessage('');
+    if (error)
+      return plan === "free" ? setCapped(true) : setNotice(t.common.error);
+    setMessage("");
     load();
   };
 
-  const sort = async (responseId: string, status: 'shortlisted' | 'declined') => {
+  const sort = async (
+    responseId: string,
+    status: "shortlisted" | "declined",
+  ) => {
     setBusy(responseId);
-    await supabase.from('opportunity_responses').update({ status }).eq('id', responseId);
+    await supabase
+      .from("opportunity_responses")
+      .update({ status })
+      .eq("id", responseId);
     setBusy(null);
     load();
   };
@@ -85,11 +128,11 @@ export default function PostScreen() {
   const propose = async (r: Response) => {
     if (!post || !company) return;
     setBusy(r.id);
-    const { error } = await supabase.from('agreements').insert({
+    const { error } = await supabase.from("agreements").insert({
       client_id: company.id,
       subcontractor_id: r.company_id,
       title: post.title,
-      kind: post.kind === 'architect_project' ? 'referral' : 'subcontract',
+      kind: post.kind === "architect_project" ? "referral" : "subcontract",
       opportunity_id: post.id,
       response_id: r.id,
       amount_ex_vat: post.budget_ex_vat,
@@ -101,8 +144,11 @@ export default function PostScreen() {
   };
 
   const close = async () => {
-    setBusy('close');
-    await supabase.from('opportunities').update({ status: 'closed' }).eq('id', id);
+    setBusy("close");
+    await supabase
+      .from("opportunities")
+      .update({ status: "closed" })
+      .eq("id", id);
     setBusy(null);
     load();
   };
@@ -124,11 +170,18 @@ export default function PostScreen() {
     );
 
   const myResponse = responses.find((r) => r.company_id === company?.id);
-  const writeTo = (companyId: string, name: string | undefined, postId: string) =>
-    router.push({ pathname: '/discussion/nouvelle', params: { company: companyId, name: name ?? '', post: postId } });
+  const writeTo = (
+    companyId: string,
+    name: string | undefined,
+    postId: string,
+  ) =>
+    router.push({
+      pathname: "/discussion/nouvelle",
+      params: { company: companyId, name: name ?? "", post: postId },
+    });
   const tradeLabel = (tid: number) => {
     const trade = trades.find((x) => x.id === tid);
-    return trade ? (language === 'fr' ? trade.label_fr : trade.label_nl) : '';
+    return trade ? (language === "fr" ? trade.label_fr : trade.label_nl) : "";
   };
 
   return (
@@ -136,19 +189,32 @@ export default function PostScreen() {
       <Stack.Screen options={{ title: post.title }} />
       <View style={{ gap: Spacing.one }}>
         <View style={styles.wrap}>
-          <Chip label={post.kind === 'architect_project' ? t.network.project : t.network.subcontract} tone="brand" />
-          {post.status !== 'open' ? <Chip label={t.network.detail.closed} /> : null}
+          <Chip
+            label={
+              post.kind === "architect_project"
+                ? t.network.project
+                : t.network.subcontract
+            }
+            tone="brand"
+          />
+          {post.status !== "open" ? (
+            <Chip label={t.network.detail.closed} />
+          ) : null}
         </View>
         <ThemedText type="title">{post.title}</ThemedText>
         <ThemedText themeColor="textSecondary">
           {[
             post.company?.name,
-            `${post.postal_code} ${post.city ?? ''}`.trim(),
-            post.starts_on ? t.network.startsOn(formatDate(post.starts_on, locale)) : null,
-            post.budget_ex_vat !== null ? t.network.budget(formatEuro(Number(post.budget_ex_vat), locale)) : null,
+            `${post.postal_code} ${post.city ?? ""}`.trim(),
+            post.starts_on
+              ? t.network.startsOn(formatDate(post.starts_on, locale))
+              : null,
+            post.budget_ex_vat !== null
+              ? t.network.budget(formatEuro(Number(post.budget_ex_vat), locale))
+              : null,
           ]
             .filter(Boolean)
-            .join(' · ')}
+            .join(" · ")}
         </ThemedText>
       </View>
 
@@ -170,61 +236,123 @@ export default function PostScreen() {
       {mine ? (
         <Card>
           <ThemedText type="subtitle">{t.network.detail.answers}</ThemedText>
-          {responses.length === 0 ? <ThemedText themeColor="textSecondary">{t.network.detail.noAnswers}</ThemedText> : null}
+          {responses.length === 0 ? (
+            <ThemedText themeColor="textSecondary">
+              {t.network.detail.noAnswers}
+            </ThemedText>
+          ) : null}
           {responses.map((r) => (
             <View key={r.id} style={styles.response}>
               <View style={styles.wrap}>
-                {r.company ? <CompanyAvatar name={r.company.name} url={r.company.logo_url} size={28} /> : null}
+                {r.company ? (
+                  <CompanyAvatar
+                    name={r.company.name}
+                    url={r.company.logo_url}
+                    size={28}
+                  />
+                ) : null}
                 <ThemedText type="smallBold" style={{ flexShrink: 1 }}>
                   {r.company?.name}
                 </ThemedText>
-                {r.company?.verification_status === 'verified' ? <Chip label={t.verification.status.verified} tone="good" /> : null}
-                <Chip label={t.network.detail.responseStatus[r.status]} tone={RESPONSE_TONE[r.status]} />
+                {r.company?.verification_status === "verified" ? (
+                  <Chip label={t.verification.status.verified} tone="good" />
+                ) : null}
+                <Chip
+                  label={t.network.detail.responseStatus[r.status]}
+                  tone={RESPONSE_TONE[r.status]}
+                />
               </View>
               <ThemedText type="small">{r.message}</ThemedText>
-              <View style={{ alignSelf: 'flex-start' }}>
-                <Button label={t.chat.write} variant="ghost" small onPress={() => writeTo(r.company_id, r.company?.name, post.id)} />
+              <View style={{ alignSelf: "flex-start" }}>
+                <Button
+                  label={t.chat.write}
+                  variant="ghost"
+                  small
+                  onPress={() =>
+                    writeTo(r.company_id, r.company?.name, post.id)
+                  }
+                />
               </View>
-              {post.status === 'open' && r.status !== 'selected' && r.status !== 'declined' ? (
+              {post.status === "open" &&
+              r.status !== "selected" &&
+              r.status !== "declined" ? (
                 <View style={styles.wrap}>
                   {proposed.has(r.id) ? (
                     <Chip label={t.agreements.status.proposed} tone="warn" />
                   ) : (
                     <Button
-                      label={post.kind === 'architect_project' ? t.network.detail.refer : t.network.detail.propose}
+                      label={
+                        post.kind === "architect_project"
+                          ? t.network.detail.refer
+                          : t.network.detail.propose
+                      }
                       small
                       busy={busy === r.id}
                       onPress={() => propose(r)}
                     />
                   )}
-                  {r.status === 'sent' ? <Button label={t.network.detail.shortlist} variant="ghost" small onPress={() => sort(r.id, 'shortlisted')} /> : null}
-                  {!proposed.has(r.id) ? <Button label={t.network.detail.decline} variant="ghost" small onPress={() => sort(r.id, 'declined')} /> : null}
+                  {r.status === "sent" ? (
+                    <Button
+                      label={t.network.detail.shortlist}
+                      variant="ghost"
+                      small
+                      onPress={() => sort(r.id, "shortlisted")}
+                    />
+                  ) : null}
+                  {!proposed.has(r.id) ? (
+                    <Button
+                      label={t.network.detail.decline}
+                      variant="ghost"
+                      small
+                      onPress={() => sort(r.id, "declined")}
+                    />
+                  ) : null}
                 </View>
               ) : null}
             </View>
           ))}
-          {post.status === 'open' ? (
-            <View style={{ alignSelf: 'flex-start' }}>
-              <Button label={t.network.detail.close} variant="ghost" small busy={busy === 'close'} onPress={close} />
+          {post.status === "open" ? (
+            <View style={{ alignSelf: "flex-start" }}>
+              <Button
+                label={t.network.detail.close}
+                variant="ghost"
+                small
+                busy={busy === "close"}
+                onPress={close}
+              />
             </View>
           ) : null}
         </Card>
       ) : myResponse ? (
         <Card>
           <View style={styles.wrap}>
-            <ThemedText type="smallBold">{t.network.detail.answered}</ThemedText>
-            <Chip label={t.network.detail.responseStatus[myResponse.status]} tone={RESPONSE_TONE[myResponse.status]} />
+            <ThemedText type="smallBold">
+              {t.network.detail.answered}
+            </ThemedText>
+            <Chip
+              label={t.network.detail.responseStatus[myResponse.status]}
+              tone={RESPONSE_TONE[myResponse.status]}
+            />
           </View>
           <ThemedText type="small">{myResponse.message}</ThemedText>
-          <View style={{ alignSelf: 'flex-start' }}>
-            <Button label={t.chat.writeTo(post.company?.name ?? '')} variant="ghost" small onPress={() => writeTo(post.company_id, post.company?.name, post.id)} />
+          <View style={{ alignSelf: "flex-start" }}>
+            <Button
+              label={t.chat.writeTo(post.company?.name ?? "")}
+              variant="ghost"
+              small
+              onPress={() =>
+                writeTo(post.company_id, post.company?.name, post.id)
+              }
+            />
           </View>
         </Card>
-      ) : post.status === 'open' ? (
+      ) : post.status === "open" ? (
         <Card>
           <ThemedText type="subtitle">{t.network.detail.answer}</ThemedText>
-          {company?.kind !== 'contractor' ? (
-            <ThemedText themeColor="textSecondary">{t.network.detail.onlyContractors}</ThemedText>
+          {company?.kind !== "contractor" ? (
+            <ThemedText themeColor="textSecondary">
+              {t.network.detail.onlyContractors}
+            </ThemedText>
           ) : !canUseNetwork ? (
             <ThemedText themeColor="warn">{t.network.upgrade}</ThemedText>
           ) : capped ? (
@@ -237,21 +365,97 @@ export default function PostScreen() {
                 value={message}
                 onChangeText={setMessage}
                 multiline
-                style={{ minHeight: 100, textAlignVertical: 'top' }}
+                style={{ minHeight: 100, textAlignVertical: "top" }}
               />
               <View style={styles.wrap}>
-                <Button label={t.network.detail.send} variant="signal" busy={busy === 'answer'} disabled={message.trim().length < 10} onPress={answer} />
-                <Button label={t.chat.writeTo(post.company?.name ?? '')} variant="ghost" small onPress={() => writeTo(post.company_id, post.company?.name, post.id)} />
+                <Button
+                  label={t.network.detail.send}
+                  variant="signal"
+                  busy={busy === "answer"}
+                  disabled={message.trim().length < 10}
+                  onPress={answer}
+                />
+                <Button
+                  label={t.chat.writeTo(post.company?.name ?? "")}
+                  variant="ghost"
+                  small
+                  onPress={() =>
+                    writeTo(post.company_id, post.company?.name, post.id)
+                  }
+                />
               </View>
             </>
           )}
         </Card>
       ) : null}
+      {!mine && company ? <ReportPost postId={post.id} /> : null}
     </Screen>
   );
 }
 
+/** Reports someone else's post to the BatiNode team (the app stores require it for user content). */
+function ReportPost({ postId }: { postId: string }) {
+  const { t } = useI18n();
+  const r = t.network.detail.report;
+  const [step, setStep] = useState<
+    "idle" | "asking" | "busy" | "done" | "error"
+  >("idle");
+  const send = async () => {
+    setStep("busy");
+    const { error } = await supabase
+      .from("opportunity_reports")
+      .insert({ opportunity_id: postId });
+    // 23505: already reported by this company.
+    setStep(!error || error.code === "23505" ? "done" : "error");
+  };
+  if (step === "done")
+    return (
+      <ThemedText type="small" themeColor="textSecondary">
+        {r.done}
+      </ThemedText>
+    );
+  return (
+    <View style={styles.wrap}>
+      {step === "idle" ? (
+        <Button
+          label={r.open}
+          variant="ghost"
+          small
+          onPress={() => setStep("asking")}
+        />
+      ) : (
+        <>
+          <ThemedText type="small">{r.confirm}</ThemedText>
+          <Button
+            label={r.send}
+            variant="primary"
+            small
+            busy={step === "busy"}
+            onPress={send}
+          />
+          <Button
+            label={t.settings.deleteAccount.cancel}
+            variant="ghost"
+            small
+            onPress={() => setStep("idle")}
+          />
+          {step === "error" ? (
+            <ThemedText type="small" themeColor="danger">
+              {t.common.error}
+            </ThemedText>
+          ) : null}
+        </>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one, alignItems: 'center' },
+  wrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.one,
+    alignItems: "center",
+  },
   response: { gap: Spacing.one, paddingTop: Spacing.two },
 });

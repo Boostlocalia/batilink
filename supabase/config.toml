@@ -5,7 +5,7 @@ schemas = ["public"]
 
 [auth]
 site_url = "http://localhost:8081"
-additional_redirect_urls = ["batilink://"]
+additional_redirect_urls = ["batinode://", "batilink://"]
 
 [auth.email]
 enable_signup = true

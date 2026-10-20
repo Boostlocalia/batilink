@@ -1,5 +1,5 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
-import { Stack, useFocusEffect } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
@@ -49,6 +49,7 @@ type Contacts = {
   amount: number;
   recentDeals: { id: string; kind: string | null; amount: number | null; at: string; between: string[] }[];
   reports: { id: string; reason: string | null; at: string; reporter: string; between: string[] }[];
+  postReports: { id: string; reason: string | null; at: string; reporter: string; postId: string | null; title: string; author: string; open: boolean }[];
 };
 type Overview = { figures: Figures; waiting: Waiting[]; toVerify: ToVerify[]; incomplete: Incomplete[]; recent: Recent[]; contacts: Contacts };
 
@@ -299,6 +300,20 @@ export default function AdminScreen() {
             <ThemedText type="small" themeColor="textSecondary">
               {[DEAL_KIND[d.kind ?? 'other'], d.amount !== null ? `${d.amount.toLocaleString('fr-BE')} € HTVA` : null, day(d.at)].filter(Boolean).join(' · ')}
             </ThemedText>
+          </Row>
+        ))}
+        {overview.contacts.postReports?.length ? <ThemedText type="smallBold">Annonces signalées ({overview.contacts.postReports.length})</ThemedText> : null}
+        {(overview.contacts.postReports ?? []).map((r) => (
+          <Row key={r.id}>
+            <ThemedText type="small">
+              {`${r.reporter} a signalé l’annonce « ${r.title} » de ${r.author} le ${day(r.at)}`}
+              {r.reason ? ` : ${r.reason}` : ''}
+            </ThemedText>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {r.postId ? <Button label="Voir l’annonce" variant="ghost" small onPress={() => router.push(`/annonce/${r.postId}`)} /> : null}
+              {r.open ? <Button label="Retirer l’annonce" variant="signal" small onPress={() => call({ action: 'post_report_handled', id: r.id, withdraw: true }).then(load)} /> : null}
+              <Button label="Rien à faire" variant="ghost" small onPress={() => call({ action: 'post_report_handled', id: r.id }).then(load)} />
+            </View>
           </Row>
         ))}
         {overview.contacts.reports.length ? <ThemedText type="smallBold">Conversations signalées ({overview.contacts.reports.length})</ThemedText> : null}

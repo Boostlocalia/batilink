@@ -13,6 +13,7 @@ import { formatEuro } from '@/lib/format';
 import { openPaymentPage } from '@/lib/orders';
 import { PLANS, type Plan } from '@/lib/plans';
 import { useSession } from '@/lib/session';
+import { SELLS_PLANS } from '@/lib/store';
 import { useTrial } from '@/lib/trial';
 import { supabase } from '@/lib/supabase';
 
@@ -44,6 +45,22 @@ export default function PlansScreen() {
     if (error || !url) return setFailed(t.plans.unavailable);
     await openPaymentPage(url);
   };
+
+  if (!SELLS_PLANS) {
+    return (
+      <Screen>
+        <ThemedText type="title">{t.plans.title}</ThemedText>
+        <Card>
+          <ThemedText type="smallBold">
+            {onTrial ? g.trialLeft(trialDays ?? 0) : current && current !== 'free' ? `${t.plans.current} : ${t.plans.names[current]}` : t.plans.store.none}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {t.plans.store.lead}
+          </ThemedText>
+        </Card>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
