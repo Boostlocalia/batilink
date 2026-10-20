@@ -31,10 +31,10 @@ export const bannersNl: typeof bannersFr = {
       cta: 'Aanvraag starten',
     },
     network: {
-      kicker: 'Partners',
+      kicker: 'Ondernemersnetwerk',
       title: (n: number) => (n > 0 ? `${n} ${s(n, 'nieuwe aannemer', 'nieuwe aannemers')} deze week` : 'Uw volgende onderaannemer is er al'),
       text: 'Publiceer een opdracht of reageer op zoekertjes in uw regio. Enkel geverifieerde bedrijven.',
-      cta: 'Partners bekijken',
+      cta: 'Netwerk bekijken',
     },
     delivery: {
       kicker: 'Bestellingen',
@@ -86,7 +86,7 @@ export const bannersNl: typeof bannersFr = {
       kicker: 'Geverifieerd',
       title: 'Enkel bedrijven die in orde zijn',
       text: 'Btw en KBO live gecontroleerd, bij elke samenwerking.',
-      cta: 'Partners bekijken',
+      cta: 'Netwerk bekijken',
     },
   },
   landing: {
@@ -112,12 +112,12 @@ export const bannersNl: typeof bannersFr = {
   pages: {
     signin: [
       { kicker: 'Materialen', title: 'Uw leveranciersprijzen binnen 48 u ⚡', text: 'Eén aanvraag, meerdere offertes, u kiest de beste.' },
-      { kicker: 'Partners', title: 'Enkel bedrijven die in orde zijn', text: 'Btw en KBO gecontroleerd voor elke aannemer, leverancier en architect.' },
+      { kicker: 'Ondernemersnetwerk', title: 'Enkel bedrijven die in orde zijn', text: 'Btw en KBO gecontroleerd voor elke aannemer, leverancier en architect.' },
       { kicker: 'Proef', title: '7 dagen gratis, zonder bankkaart', text: 'Maak uw account aan en test vandaag nog alles van Premium.' },
     ],
     request: { kicker: 'Prijsaanvraag', title: 'Oplijsten, versturen, vergelijken', text: 'De leveranciers in uw regio hebben 48 u om te antwoorden. U kiest de offerte die u past.' },
     network: [
-      { kicker: 'Onderaanneming', title: 'Vind versterking voor uw werven', text: 'Publiceer een opdracht: geverifieerde aannemers uit uw regio reageren.' },
+      { kicker: 'Onderaanneming en partnerschappen', title: 'Vind versterking voor uw werven', text: 'Publiceer een opdracht: geverifieerde aannemers uit uw regio reageren.' },
       { kicker: 'Projecten', title: 'Architecten zoeken aannemers', text: 'Reageer op hun projecten en haal nieuwe werven binnen.' },
     ],
     plans: { kicker: 'Premium', title: 'Terugverdiend vanaf de eerste bestelling', text: 'Drie offertes vergelijken op één werf levert vaak meer op dan de prijs van een maand.' },

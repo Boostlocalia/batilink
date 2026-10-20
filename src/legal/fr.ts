@@ -66,7 +66,7 @@ export const legalFr: LegalTexts = {
         {
           title: "3. Les services",
           body: [
-            "BatiNode permet notamment : d’envoyer des demandes de prix à des fournisseurs et de comparer leurs offres, d’émettre des bons de commande, d’échanger avec d’autres entreprises dans l’espace Partenaires, de gérer des fichiers, et d’être aidé par Nodi, l’assistant de BatiNode.",
+            "BatiNode permet notamment : d’envoyer des demandes de prix à des fournisseurs et de comparer leurs offres, d’émettre des bons de commande, d’échanger avec d’autres entreprises dans le Réseau d’entrepreneurs (sous-traitance et partenariats), de gérer des fichiers, et d’être aidé par Nodi, l’assistant de BatiNode.",
             "Les fonctions disponibles dépendent de l’abonnement choisi, comme indiqué sur la page Abonnement de l’application.",
           ],
         },
@@ -170,7 +170,7 @@ export const legalFr: LegalTexts = {
           body: [
             "Compte : nom, adresse e-mail, téléphone, langue et mot de passe (conservé uniquement sous forme chiffrée).",
             "Entreprise : nom, numéro de TVA, adresse, données publiques de la Banque-Carrefour des Entreprises, logo, métiers, zones d’activité, taille et informations données à l’inscription.",
-            "Activité : demandes de prix, offres, bons de commande, documents, fichiers, messages, publications dans l’espace Partenaires et questions posées à Nodi.",
+            "Activité : demandes de prix, offres, bons de commande, documents, fichiers, messages, publications dans le Réseau d’entrepreneurs et questions posées à Nodi.",
             "Paiement : l’abonnement et son état. Les données de carte sont traitées directement par Stripe ; nous n’y avons pas accès.",
             "Technique : journaux de connexion et d’erreurs, adresse IP, pour la sécurité du service.",
             "Fournisseurs : l’annuaire contient des coordonnées professionnelles de fournisseurs de matériaux (nom de l’entreprise, adresse, e-mail et téléphone professionnels, activité), issues de sources publiques comme leur site internet ou la Banque-Carrefour des Entreprises.",
@@ -179,7 +179,7 @@ export const legalFr: LegalTexts = {
         {
           title: "Pourquoi et sur quelle base",
           body: [
-            "Fournir le service (compte, demandes, offres, commandes, Partenaires, abonnement) : exécution du contrat.",
+            "Fournir le service (compte, demandes, offres, commandes, Réseau d’entrepreneurs, abonnement) : exécution du contrat.",
             "Facturation et comptabilité : obligation légale.",
             "Vérifier les entreprises, prévenir la fraude, sécuriser la plateforme : intérêt légitime à garder une plateforme fiable.",
             "Transmettre les demandes de prix aux fournisseurs de l’annuaire : intérêt légitime des entrepreneurs et des fournisseurs à se rencontrer entre professionnels. Chaque e-mail permet de s’y opposer en un clic.",

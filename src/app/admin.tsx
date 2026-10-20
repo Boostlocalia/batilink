@@ -53,7 +53,7 @@ type Contacts = {
 };
 type Overview = { figures: Figures; waiting: Waiting[]; toVerify: ToVerify[]; incomplete: Incomplete[]; recent: Recent[]; contacts: Contacts };
 
-const DEAL_KIND: Record<string, string> = { subcontract: 'Sous-traitance', shared_site: 'Partage de chantier', equipment: 'Matériel', other: 'Autre' };
+const DEAL_KIND: Record<string, string> = { subcontract: 'Sous-traitance', partnership: 'Partenariat', shared_site: 'Partage de chantier', equipment: 'Matériel', other: 'Autre' };
 
 type Supplier = {
   id?: string;
@@ -285,7 +285,7 @@ export default function AdminScreen() {
       </Card>
 
       <Card>
-        <ThemedText type="subtitle">Mises en relation (Partenaires)</ThemedText>
+        <ThemedText type="subtitle">Mises en relation (Réseau d’entrepreneurs)</ThemedText>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }}>
           <Figure label="Demandes de contact" value={overview.contacts.requested} />
           <Figure label="Acceptées" value={overview.contacts.accepted} />

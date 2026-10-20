@@ -17,7 +17,7 @@ export const fr = {
     newRequest: 'Demande',
     plans: 'Abonnement',
     settings: 'Réglages',
-    network: 'Partenaires',
+    network: 'Entrepreneurs',
   },
   auth: {
     nodiSignIn: ['Bonjour 👋 Content de vous revoir !', 'Vos offres fournisseurs vous attendent.', 'Les actus du bâtiment du jour sont prêtes.'],
@@ -222,7 +222,7 @@ export const fr = {
     },
   },
   network: {
-    title: 'Partenaires',
+    title: 'Réseau d’entrepreneurs',
     lead: 'Missions à sous-traiter entre entrepreneurs et projets d’architectes.',
     tabs: { posts: 'Annonces', mine: 'Mes annonces', agreements: 'Accords' },
     publish: 'Publier une annonce',
@@ -330,7 +330,7 @@ export const fr = {
     send: 'Envoyer',
     close: 'Fermer',
     helloTitle: (name: string) => `Bonjour, je suis ${name}, votre assistant IA 👷`,
-    helloText: 'Posez-moi vos questions : je vous guide pour vos demandes de prix, vos fournisseurs, vos partenaires et votre fiche.',
+    helloText: 'Posez-moi vos questions : je vous guide pour vos demandes de prix, vos fournisseurs, le réseau d’entrepreneurs et votre fiche.',
     thinking: (name: string) => `${name} réfléchit…`,
     unavailable: "L'assistant n'est pas disponible pour le moment. Réessayez plus tard.",
     hello: (name: string) =>
@@ -351,11 +351,11 @@ export const fr = {
         ['Votre entreprise est vérifiée', 'Nous contrôlons le numéro de TVA et l’inscription active à la BCE. Le résultat est dans Réglages.'],
         ['Demandez des prix', "Dans « Demande », listez vos matériaux. Les fournisseurs de votre zone la reçoivent et vous envoient leur prix."],
         ['Comparez et choisissez', 'Les offres arrivent côte à côte : meilleur prix et délai le plus court sont mis en avant. Un clic pour retenir.'],
-        ['Travaillez avec des partenaires', 'Dans « Partenaires », sous-traitez ou répondez aux annonces et aux projets d’architectes. Chaque accord est revérifié avant confirmation.'],
+        ['Sous-traitance et partenariats', 'Dans « Réseau d’entrepreneurs », sous-traitez, proposez un partenariat ou répondez aux annonces et aux projets d’architectes. Chaque accord est revérifié avant confirmation.'],
       ],
       architect: [
         ['Votre bureau est vérifié', 'Nous contrôlons la TVA et la BCE. Le résultat est dans Réglages.'],
-        ['Publiez vos projets', 'Dans « Partenaires », décrivez le projet, les métiers recherchés et la commune.'],
+        ['Publiez vos projets', 'Dans « Réseau d’entrepreneurs », décrivez le projet, les métiers recherchés et la commune.'],
         ['Recevez des entrepreneurs vérifiés', 'Les entrepreneurs intéressés répondent. Gardez ou écartez les candidats.'],
         ['Mettez en relation', 'Proposez la mise en relation : l’entrepreneur est revérifié (TVA, BCE) avant que les coordonnées soient partagées.'],
       ],
@@ -583,7 +583,7 @@ export const fr = {
   chat: {
     tab: 'Messages',
     tabUnread: (n: number) => `Messages (${n})`,
-    empty: 'Aucune conversation. Écrivez à une entreprise depuis une annonce de Partenaires.',
+    empty: 'Aucune conversation. Écrivez à une entreprise depuis une annonce du Réseau d’entrepreneurs.',
     write: 'Envoyer un message',
     writeTo: (name: string) => `Écrire à ${name}`,
     firstLead: 'Votre premier message est une demande de contact. L’entreprise choisit de l’accepter ; vous pourrez ensuite discuter librement.',
@@ -610,7 +610,7 @@ export const fr = {
       lead: 'Si cette discussion a abouti à un accord, indiquez-le. Il compte quand vos deux entreprises l’ont confirmé.',
       button: 'Nous avons conclu un accord',
       kind: 'Type d’accord',
-      kinds: { subcontract: 'Sous-traitance', shared_site: 'Partage de chantier', equipment: 'Prêt ou location de matériel', other: 'Autre' },
+      kinds: { subcontract: 'Sous-traitance', partnership: 'Partenariat', shared_site: 'Partage de chantier', equipment: 'Prêt ou location de matériel', other: 'Autre' },
       amount: 'Montant estimé HTVA (facultatif)',
       note: 'Note (facultatif)',
       confirm: 'Confirmer l’accord',

@@ -40,7 +40,7 @@ type Conversation = {
 
 const COLUMNS =
   'id, company_a, company_b, started_by, opportunity_id, status, blocked_by, created_at, last_message_at, a_read_at, b_read_at, a_notified_at, b_notified_at, a_deal_at, b_deal_at, deal_kind, deal_amount_ex_vat, deal_note, deal_confirmed_at';
-const DEAL_KINDS = ['subcontract', 'shared_site', 'equipment', 'other'];
+const DEAL_KINDS = ['subcontract', 'partnership', 'shared_site', 'equipment', 'other'];
 const NETWORK_KINDS = ['contractor', 'architect'];
 const UNDO_DAYS = 7;
 const NOTIFY_EVERY_MINUTES = 15;
@@ -294,7 +294,7 @@ Deno.serve(async (req) => {
     if (!count) await admin.from('conversation_reports').insert({ conversation_id: c.id, reporter: me, reason });
     await sendMail({
       to: Deno.env.get('EMAIL_FROM') ?? 'support@batinode.be',
-      subject: 'Conversation signalée dans Partenaires',
+      subject: 'Conversation signalée dans le Réseau d’entrepreneurs',
       text: `Une entreprise a signalé une conversation. Voir l'espace Admin : ${appUrl()}/admin`,
       html: `<p>Une entreprise a signalé une conversation.</p><p><a href="${appUrl()}/admin">Voir l'espace Admin</a></p>`,
     }).catch((e) => console.error(e));

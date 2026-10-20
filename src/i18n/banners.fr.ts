@@ -30,10 +30,10 @@ export const bannersFr = {
       cta: 'Lancer une demande',
     },
     network: {
-      kicker: 'Partenaires',
+      kicker: 'Réseau d’entrepreneurs',
       title: (n: number) => (n > 0 ? `${n} ${s(n, 'nouvel entrepreneur', 'nouveaux entrepreneurs')} cette semaine` : 'Votre prochain sous-traitant est déjà ici'),
       text: 'Publiez une mission ou répondez aux annonces de votre région. Entreprises vérifiées uniquement.',
-      cta: 'Voir les partenaires',
+      cta: 'Voir le réseau',
     },
     delivery: {
       kicker: 'Commandes',
@@ -85,7 +85,7 @@ export const bannersFr = {
       kicker: 'Vérifié',
       title: 'Uniquement des entreprises en règle',
       text: 'TVA et BCE vérifiées en direct, à chaque mise en relation.',
-      cta: 'Voir les partenaires',
+      cta: 'Voir le réseau',
     },
   },
   landing: {
@@ -111,12 +111,12 @@ export const bannersFr = {
   pages: {
     signin: [
       { kicker: 'Matériaux', title: 'Vos prix fournisseurs en 48 h ⚡', text: 'Une demande, plusieurs offres, vous choisissez la meilleure.' },
-      { kicker: 'Partenaires', title: 'Que des entreprises en règle', text: 'TVA et BCE vérifiées pour chaque entrepreneur, fournisseur et architecte.' },
+      { kicker: 'Réseau d’entrepreneurs', title: 'Que des entreprises en règle', text: 'TVA et BCE vérifiées pour chaque entrepreneur, fournisseur et architecte.' },
       { kicker: 'Essai', title: '7 jours gratuits, sans carte', text: 'Créez votre compte et testez tout Premium dès aujourd’hui.' },
     ],
     request: { kicker: 'Demande de prix', title: 'Listez, envoyez, comparez', text: 'Les fournisseurs de votre zone ont 48 h pour répondre. Vous choisissez l’offre qui vous convient.' },
     network: [
-      { kicker: 'Sous-traitance', title: 'Trouvez du renfort pour vos chantiers', text: 'Publiez une mission : des entrepreneurs vérifiés de votre région vous répondent.' },
+      { kicker: 'Sous-traitance et partenariats', title: 'Trouvez du renfort pour vos chantiers', text: 'Publiez une mission : des entrepreneurs vérifiés de votre région vous répondent.' },
       { kicker: 'Projets', title: 'Des architectes cherchent des entrepreneurs', text: 'Répondez à leurs projets et décrochez de nouveaux chantiers.' },
     ],
     plans: { kicker: 'Premium', title: 'Rentabilisé dès la première commande', text: 'Comparer trois offres sur un seul chantier fait souvent économiser plus que le prix d’un mois.' },

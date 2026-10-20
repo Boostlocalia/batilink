@@ -5,8 +5,8 @@ import { supabase } from '@/lib/supabase';
 // Direct messages between network companies. Every read and write goes through
 // the `chat` edge function, which only shows a company its own conversations.
 
-export type DealKind = 'subcontract' | 'shared_site' | 'equipment' | 'other';
-export const DEAL_KINDS: DealKind[] = ['subcontract', 'shared_site', 'equipment', 'other'];
+export type DealKind = 'subcontract' | 'partnership' | 'shared_site' | 'equipment' | 'other';
+export const DEAL_KINDS: DealKind[] = ['subcontract', 'partnership', 'shared_site', 'equipment', 'other'];
 
 export type ConversationView = {
   id: string;

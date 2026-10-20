@@ -66,7 +66,7 @@ export const legalNl: LegalTexts = {
         {
           title: "3. De diensten",
           body: [
-            "Met BatiNode kunt u onder meer prijsaanvragen naar leveranciers sturen en hun offertes vergelijken, bestelbonnen opmaken, met andere bedrijven communiceren in Partners, bestanden beheren en hulp krijgen van Nodi, de assistent van BatiNode.",
+            "Met BatiNode kunt u onder meer prijsaanvragen naar leveranciers sturen en hun offertes vergelijken, bestelbonnen opmaken, met andere bedrijven communiceren in het Ondernemersnetwerk (onderaanneming en partnerschappen), bestanden beheren en hulp krijgen van Nodi, de assistent van BatiNode.",
             "Welke functies beschikbaar zijn, hangt af van het gekozen abonnement, zoals vermeld op de pagina Abonnement in de applicatie.",
           ],
         },
@@ -170,7 +170,7 @@ export const legalNl: LegalTexts = {
           body: [
             "Account: naam, e-mailadres, telefoon, taal en wachtwoord (enkel versleuteld bewaard).",
             "Bedrijf: naam, btw-nummer, adres, openbare gegevens van de Kruispuntbank van Ondernemingen, logo, vakgebieden, werkgebied, grootte en de gegevens opgegeven bij de inschrijving.",
-            "Activiteit: prijsaanvragen, offertes, bestelbonnen, documenten, bestanden, berichten, berichten in Partners en vragen aan Nodi.",
+            "Activiteit: prijsaanvragen, offertes, bestelbonnen, documenten, bestanden, berichten, berichten in het Ondernemersnetwerk en vragen aan Nodi.",
             "Betaling: het abonnement en zijn status. Kaartgegevens worden rechtstreeks door Stripe verwerkt; wij hebben er geen toegang toe.",
             "Technisch: verbindings- en foutlogboeken, IP-adres, voor de veiligheid van de dienst.",
             "Leveranciers: de gids bevat professionele contactgegevens van materiaalleveranciers (bedrijfsnaam, adres, professioneel e-mailadres en telefoon, activiteit), afkomstig uit openbare bronnen zoals hun website of de Kruispuntbank van Ondernemingen.",
@@ -179,7 +179,7 @@ export const legalNl: LegalTexts = {
         {
           title: "Waarom en op welke grond",
           body: [
-            "De dienst leveren (account, aanvragen, offertes, bestellingen, Partners, abonnement): uitvoering van de overeenkomst.",
+            "De dienst leveren (account, aanvragen, offertes, bestellingen, Ondernemersnetwerk, abonnement): uitvoering van de overeenkomst.",
             "Facturatie en boekhouding: wettelijke verplichting.",
             "Bedrijven controleren, fraude voorkomen, het platform beveiligen: gerechtvaardigd belang bij een betrouwbaar platform.",
             "Prijsaanvragen doorsturen naar leveranciers uit de gids: gerechtvaardigd belang van aannemers en leveranciers om elkaar als professionals te vinden. Elke e-mail laat toe zich met één klik te verzetten.",
