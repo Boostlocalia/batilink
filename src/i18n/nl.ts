@@ -16,7 +16,7 @@ export const nl: Dictionary = {
   },
   tabs: {
     home: 'Start',
-    newRequest: 'Aanvraag',
+    newRequest: 'Leveranciers',
     plans: 'Abonnement',
     settings: 'Instellingen',
     network: 'Ondernemers',
@@ -70,8 +70,8 @@ export const nl: Dictionary = {
     hello: 'Goedendag',
     lead: (open: number) =>
       open === 0 ? 'Geen lopende prijsaanvragen.' : `${open} lopende prijsaanvra${open > 1 ? 'gen' : 'ag'}.`,
-    newRequest: 'Nieuwe prijsaanvraag',
-    myRequests: 'Mijn aanvragen',
+    newRequest: 'Leveranciersprijs vragen',
+    myRequests: 'Mijn leveranciersprijzen',
     newcomers: {
       title: 'Nieuw op BatiNode',
       lead: 'Geverifieerde aannemers die de voorbije 30 dagen aansloten, die uit uw regio eerst.',
@@ -87,11 +87,11 @@ export const nl: Dictionary = {
     },
   },
   request: {
-    title: 'Nieuwe prijsaanvraag',
+    title: 'Leveranciersprijs vragen',
     lead: 'Beschrijf wat u nodig heeft. Leveranciers in uw regio ontvangen ze en sturen u hun prijs.',
     name: 'Titel van de aanvraag',
     namePlaceholder: 'Chape en isolatie, werf Waterloo',
-    category: 'Categorie (optioneel)',
+    category: 'Soort materiaal (optioneel)',
     postalCode: 'Postcode van de werf',
     city: 'Gemeente',
     replyWindow: 'De aanvraag krijgt de datum van verzending. Leveranciers hebben 48 uur om hun offerte in te dienen.',
@@ -350,7 +350,7 @@ export const nl: Dictionary = {
     steps: {
       contractor: [
         ['Uw bedrijf wordt gecontroleerd', 'We controleren het btw-nummer en de actieve inschrijving in de KBO. Het resultaat staat in Instellingen.'],
-        ['Vraag prijzen', 'In « Aanvraag » lijst u uw materialen op. Leveranciers uit uw regio ontvangen ze en sturen u hun prijs.'],
+        ['Vraag prijzen', 'In « Leveranciers » lijst u uw materialen op. Leveranciers uit uw regio ontvangen ze en sturen u hun prijs.'],
         ['Vergelijk en kies', 'De offertes komen naast elkaar: beste prijs en snelste levering worden uitgelicht. Eén klik om te kiezen.'],
         ['Onderaanneming en partnerschappen', 'In « Ondernemersnetwerk » besteedt u werk uit, stelt u een partnerschap voor of reageert u op zoekertjes en projecten van architecten. Elk akkoord wordt vóór bevestiging opnieuw gecontroleerd.'],
       ],
@@ -377,7 +377,7 @@ export const nl: Dictionary = {
     view: 'Openen',
     remove: 'Verwijderen',
     confirmRemove: 'Definitief verwijderen?',
-    toRequest: 'Prijsaanvraag maken',
+    toRequest: 'Leveranciersprijs vragen',
     importLines: 'Meetstaat importeren (Excel of CSV)',
     importHint: 'Herkende kolommen: Omschrijving, Aantal, Eenheid (of Désignation, Quantité, Unité).',
     imported: (n: number) => (n === 1 ? '1 regel geïmporteerd. Controleer ze voor u verstuurt.' : `${n} regels geïmporteerd. Controleer ze voor u verstuurt.`),

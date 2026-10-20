@@ -14,7 +14,7 @@ export const fr = {
   },
   tabs: {
     home: 'Accueil',
-    newRequest: 'Demande',
+    newRequest: 'Fournisseurs',
     plans: 'Abonnement',
     settings: 'Réglages',
     network: 'Entrepreneurs',
@@ -68,8 +68,8 @@ export const fr = {
     hello: 'Bonjour',
     lead: (open: number) =>
       open === 0 ? 'Aucune demande de prix en cours.' : `${open} demande${open > 1 ? 's' : ''} de prix en cours.`,
-    newRequest: 'Nouvelle demande de prix',
-    myRequests: 'Mes demandes',
+    newRequest: 'Demander un prix fournisseur',
+    myRequests: 'Mes prix fournisseurs',
     newcomers: {
       title: 'Nouveaux sur BatiNode',
       lead: 'Entrepreneurs vérifiés arrivés ces 30 derniers jours, ceux de votre région d’abord.',
@@ -85,11 +85,11 @@ export const fr = {
     },
   },
   request: {
-    title: 'Nouvelle demande de prix',
+    title: 'Demander un prix fournisseur',
     lead: 'Décrivez ce dont vous avez besoin. Les fournisseurs de votre zone la reçoivent et vous envoient leur prix.',
     name: 'Titre de la demande',
     namePlaceholder: 'Chape et isolation, chantier Waterloo',
-    category: 'Catégorie (facultatif)',
+    category: 'Type de matériaux (facultatif)',
     postalCode: 'Code postal du chantier',
     city: 'Commune',
     replyWindow: 'La demande est datée du jour de l’envoi. Les fournisseurs ont 48 heures pour remettre leur offre.',
@@ -349,7 +349,7 @@ export const fr = {
     steps: {
       contractor: [
         ['Votre entreprise est vérifiée', 'Nous contrôlons le numéro de TVA et l’inscription active à la BCE. Le résultat est dans Réglages.'],
-        ['Demandez des prix', "Dans « Demande », listez vos matériaux. Les fournisseurs de votre zone la reçoivent et vous envoient leur prix."],
+        ['Demandez des prix', "Dans « Fournisseurs », listez vos matériaux. Les fournisseurs de votre zone la reçoivent et vous envoient leur prix."],
         ['Comparez et choisissez', 'Les offres arrivent côte à côte : meilleur prix et délai le plus court sont mis en avant. Un clic pour retenir.'],
         ['Sous-traitance et partenariats', 'Dans « Réseau d’entrepreneurs », sous-traitez, proposez un partenariat ou répondez aux annonces et aux projets d’architectes. Chaque accord est revérifié avant confirmation.'],
       ],
@@ -376,7 +376,7 @@ export const fr = {
     view: 'Ouvrir',
     remove: 'Supprimer',
     confirmRemove: 'Supprimer définitivement ?',
-    toRequest: 'Créer une demande de prix',
+    toRequest: 'Demander un prix fournisseur',
     importLines: 'Importer un métré Excel ou CSV',
     importHint: 'Colonnes reconnues : Désignation, Quantité, Unité (ou Omschrijving, Aantal, Eenheid).',
     imported: (n: number) => (n === 1 ? '1 ligne importée. Vérifiez-la avant d\'envoyer.' : `${n} lignes importées. Vérifiez-les avant d'envoyer.`),
