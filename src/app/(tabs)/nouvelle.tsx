@@ -46,7 +46,7 @@ export default function NewRequestScreen() {
   const [needsProfile, setNeedsProfile] = useState(false);
 
   // BatiNode picks 5 suppliers of the region, or the contractor picks them.
-  const [choice, setChoice] = useState<'batinode' | 'own'>('batinode');
+  const [choice, setChoice] = useState<'batinode' | 'own' | 'mix'>('batinode');
   const [draftId, setDraftId] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[] | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -200,7 +200,8 @@ export default function NewRequestScreen() {
     const found = (match.data ?? []) as Supplier[];
     setSuppliers(found);
     const max = PLANS[plan].suppliersPerRequest;
-    setPicked(new Set(found.slice(0, Number.isFinite(max) ? max : found.length).map((s) => s.id)));
+    // Mixed: the contractor ticks the one or two suppliers they know, BatiNode adds the rest.
+    setPicked(choice === 'mix' ? new Set() : new Set(found.slice(0, Number.isFinite(max) ? max : found.length).map((s) => s.id)));
   };
 
   const sendToBatinode = async () => {
@@ -211,10 +212,11 @@ export default function NewRequestScreen() {
 
   const send = async () => {
     if (!draftId || !company) return;
-    await submit(draftId, { supplier_ids: [...picked] }, picked.size);
+    if (choice === 'mix') await submit(draftId, { choice: 'mix', supplier_ids: [...picked] }, AUTO_SUPPLIERS);
+    else await submit(draftId, { supplier_ids: [...picked] }, picked.size);
   };
 
-  const submit = async (requestId: string, target: { choice: 'batinode' } | { supplier_ids: string[] }, count: number) => {
+  const submit = async (requestId: string, target: { choice: 'batinode' } | { choice: 'mix'; supplier_ids: string[] } | { supplier_ids: string[] }, count: number) => {
     setBusy(true);
     const { count: sentThisMonth } = await supabase
       .from('price_requests')
@@ -254,7 +256,7 @@ export default function NewRequestScreen() {
       const next = new Set(current);
       if (access !== 'full') setLimit('suppliers');
       else if (next.has(id)) next.delete(id);
-      else next.add(id);
+      else if (choice !== 'mix' || next.size < AUTO_SUPPLIERS - 1) next.add(id);
       return next;
     });
 
@@ -386,9 +388,10 @@ export default function NewRequestScreen() {
           <View style={styles.wrap}>
             <Option label={t.request.choiceBatinode} selected={choice === 'batinode'} onPress={() => setChoice('batinode')} />
             <Option label={t.request.choiceOwn} selected={choice === 'own'} onPress={() => setChoice('own')} />
+            <Option label={t.request.choiceMix} selected={choice === 'mix'} onPress={() => setChoice('mix')} />
           </View>
           <ThemedText type="small" themeColor="textSecondary">
-            {choice === 'batinode' ? t.request.choiceBatinodeHelp : t.request.choiceOwnHelp}
+            {choice === 'batinode' ? t.request.choiceBatinodeHelp : choice === 'mix' ? t.request.choiceMixHelp : t.request.choiceOwnHelp}
           </ThemedText>
           {errors.form ? <ThemedText themeColor="danger">{errors.form}</ThemedText> : null}
           {needsProfile ? <CompleteProfileCard text={t.signup.later.send} /> : null}
@@ -443,7 +446,18 @@ export default function NewRequestScreen() {
               <ThemedText type="small" themeColor="textSecondary">
                 {t.request.consent}
               </ThemedText>
-              <Button label={t.request.send(picked.size)} variant="signal" onPress={send} busy={busy} disabled={picked.size === 0} />
+              {choice === 'mix' ? (
+                <ThemedText type="small" themeColor="textSecondary">
+                  {t.request.choiceMixHelp}
+                </ThemedText>
+              ) : null}
+              <Button
+                label={choice === 'mix' ? t.request.sendMix(picked.size, AUTO_SUPPLIERS) : t.request.send(picked.size)}
+                variant="signal"
+                onPress={send}
+                busy={busy}
+                disabled={picked.size === 0}
+              />
             </>
           )}
           <Button label={t.request.findSuppliers} variant="ghost" small onPress={findSuppliers} />

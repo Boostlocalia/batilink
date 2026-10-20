@@ -14,7 +14,7 @@ import { AUTO_SUPPLIERS } from '@/lib/plans';
 import { compareOffers, type Offer, type RequestItem } from '@/lib/quotes';
 import { supabase } from '@/lib/supabase';
 
-type Request = { id: string; title: string; status: 'draft' | 'sent' | 'closed' | 'awarded'; postal_code: string; city: string | null; supplier_choice: 'own' | 'batinode' };
+type Request = { id: string; title: string; status: 'draft' | 'sent' | 'closed' | 'awarded'; postal_code: string; city: string | null; supplier_choice: 'own' | 'batinode' | 'mix' };
 
 const LABEL_WIDTH = 190;
 const OFFER_WIDTH = 168;
@@ -100,7 +100,7 @@ export default function CompareScreen() {
   return (
     <Screen withTabBar={false}>
       <Stack.Screen options={{ title: request?.title ?? '' }} />
-      {request?.supplier_choice === 'batinode' && request.status === 'sent' ? (
+      {request && request.supplier_choice !== 'own' && request.status === 'sent' ? (
         <Card style={{ backgroundColor: theme.goodBackground, borderColor: theme.goodBackground }}>
           <ThemedText type="smallBold" themeColor="good">
             {t.request.batinodeSearching(offers.length, AUTO_SUPPLIERS)}

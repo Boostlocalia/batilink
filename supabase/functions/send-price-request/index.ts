@@ -1,6 +1,7 @@
-// Sends a draft price request. Either the contractor chose the suppliers
-// (supplier_ids), or BatiNode picks up to 5 suppliers of the region (choice:
-// 'batinode'); when fewer are found, the BatiNode team is told to complete it.
+// Sends a draft price request. The contractor chose the suppliers (supplier_ids),
+// or BatiNode picks up to 5 suppliers of the region (choice: 'batinode'), or both:
+// the contractor's own, completed by BatiNode up to 5 (choice: 'mix'). When BatiNode
+// finds too few, the BatiNode team is told to complete the request.
 // One quote row and one e-mail with a personal reply link per supplier.
 
 import { REPLY_HOURS, sendMail } from '../_shared/email.ts';
@@ -18,8 +19,10 @@ Deno.serve(async (req) => {
   if (!companyId) return json({ error: 'unauthorized' }, 401);
 
   const body = (await req.json().catch(() => ({}))) as { request_id?: string; supplier_ids?: string[]; choice?: string };
-  const auto = body.choice === 'batinode';
-  const uniqueSuppliers = auto ? [] : [...new Set((Array.isArray(body.supplier_ids) ? body.supplier_ids : []).filter((s) => typeof s === 'string'))];
+  const choice = body.choice === 'batinode' || body.choice === 'mix' ? body.choice : 'own';
+  const auto = choice !== 'own';
+  const uniqueSuppliers = choice === 'batinode' ? [] : [...new Set((Array.isArray(body.supplier_ids) ? body.supplier_ids : []).filter((s) => typeof s === 'string'))];
+  if (choice === 'mix' && (uniqueSuppliers.length < 1 || uniqueSuppliers.length > AUTO_SUPPLIERS)) return json({ error: 'no_supplier' }, 400);
   if (typeof body.request_id !== 'string') return json({ error: 'not_found' }, 404);
 
   const { data: request } = await admin
@@ -42,7 +45,7 @@ Deno.serve(async (req) => {
   const check = canSendPriceRequest(plan, sentThisMonth ?? 0, auto ? AUTO_SUPPLIERS : uniqueSuppliers.length);
   if (!check.ok) return json({ error: check.reason, limit: check.limit, plan }, 403);
 
-  if (!auto) {
+  if (uniqueSuppliers.length) {
     // Only suppliers that really cover this category and postal code, or the contractor's favourites.
     const [{ data: coverage }, { data: favourites }] = await Promise.all([
       admin
@@ -64,15 +67,19 @@ Deno.serve(async (req) => {
   const replyBy = new Date(sentAt.getTime() + REPLY_HOURS * 3_600_000).toISOString().slice(0, 10);
   const { data: flipped } = await admin
     .from('price_requests')
-    .update({ status: 'sent', sent_at: sentAt.toISOString(), reply_by: replyBy, supplier_choice: auto ? 'batinode' : 'own' })
+    .update({ status: 'sent', sent_at: sentAt.toISOString(), reply_by: replyBy, supplier_choice: choice })
     .eq('id', request.id)
     .eq('status', 'draft')
     .select('id');
   if (!flipped?.length) return json({ error: 'already_sent' }, 409);
 
   const sent = { ...request, reply_by: replyBy };
-  const chosen = auto ? await pickSuppliers(admin, sent, AUTO_SUPPLIERS) : uniqueSuppliers;
-  const result = await inviteSuppliers(admin, sent, chosen);
+  // The contractor's own suppliers first, then BatiNode's picks for the places left.
+  const own = await inviteSuppliers(admin, sent, uniqueSuppliers);
+  const picked = auto ? await pickSuppliers(admin, sent, AUTO_SUPPLIERS - own.sent.length) : [];
+  const found = await inviteSuppliers(admin, sent, picked);
+  const chosen = [...uniqueSuppliers, ...picked];
+  const result = { sent: [...own.sent, ...found.sent], failed: [...own.failed, ...found.failed] };
 
   // BatiNode promised 5 suppliers: the team completes the request by hand.
   const missing = auto ? AUTO_SUPPLIERS - result.sent.length : 0;
@@ -90,9 +97,9 @@ Deno.serve(async (req) => {
     kind: 'request_sent',
     company_id: companyId,
     request_id: request.id,
-    data: { plan, choice: auto ? 'batinode' : 'own', suppliers: chosen.length, failed: result.failed.length, missing, category_id: request.category_id, postal_code: request.postal_code },
+    data: { plan, choice, suppliers: chosen.length, failed: result.failed.length, missing, category_id: request.category_id, postal_code: request.postal_code },
   });
-  return json({ sent: result.sent.length, failed: result.failed, choice: auto ? 'batinode' : 'own', target: auto ? AUTO_SUPPLIERS : chosen.length });
+  return json({ sent: result.sent.length, failed: result.failed, choice, target: auto ? AUTO_SUPPLIERS : chosen.length });
 });
 
 function escape(s: string): string {

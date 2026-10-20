@@ -110,6 +110,10 @@ export const fr = {
       'Recherche automatique : BatiNode envoie votre demande à 5 fournisseurs de votre région, choisis selon la catégorie et l’emplacement de votre chantier. Vous recevez jusqu’à 5 offres différentes sous 48 heures et vous choisissez la meilleure.',
     choiceOwnHelp: 'Vous choisissez vous-même les fournisseurs avec qui vous voulez travailler : vos favoris ou ceux de votre zone.',
     sendBatinode: 'Envoyer la demande',
+    choiceMix: 'Les deux',
+    choiceMixHelp:
+      'Cochez un ou plusieurs fournisseurs que vous connaissez. BatiNode complète avec des fournisseurs de votre région, pour que votre demande parte chez 5 fournisseurs en tout.',
+    sendMix: (n: number, total: number) => `Envoyer à ${n} fournisseur${n > 1 ? 's' : ''} + ${total - n} trouvé${total - n > 1 ? 's' : ''} par BatiNode`,
     batinodeSearching: (found: number, target: number) =>
       found >= target
         ? `BatiNode a envoyé votre demande à ${found} fournisseurs de votre région.`
