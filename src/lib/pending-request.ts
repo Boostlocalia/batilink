@@ -27,3 +27,25 @@ export async function takePendingRequest(): Promise<PendingRequest | null> {
     return null;
   }
 }
+
+// The form being written, kept on this device so leaving the screen loses nothing.
+const draftKey = (userId: string) => `batilink.request-draft.${userId}`;
+
+export type FormDraft = PendingRequest & { step: 1 | 2 | 3 };
+
+export async function keepFormDraft(userId: string, draft: FormDraft): Promise<void> {
+  await AsyncStorage.setItem(draftKey(userId), JSON.stringify(draft)).catch(() => undefined);
+}
+
+export async function readFormDraft(userId: string): Promise<FormDraft | null> {
+  try {
+    const raw = await AsyncStorage.getItem(draftKey(userId));
+    return raw ? (JSON.parse(raw) as FormDraft) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function dropFormDraft(userId: string): Promise<void> {
+  await AsyncStorage.removeItem(draftKey(userId)).catch(() => undefined);
+}

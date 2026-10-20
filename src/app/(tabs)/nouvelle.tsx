@@ -14,17 +14,28 @@ import { useI18n } from '@/i18n';
 import { pickFile, readPickedItems, takePendingItems, uploadCompanyFile } from '@/lib/files';
 import { isBelgianPostalCode, parseAmount, replyDeadline } from '@/lib/format';
 import { AUTO_SUPPLIERS, canSendPriceRequest, monthStart, PLANS } from '@/lib/plans';
-import { keepPendingRequest, takePendingRequest } from '@/lib/pending-request';
+import { dropFormDraft, keepFormDraft, keepPendingRequest, readFormDraft, takePendingRequest } from '@/lib/pending-request';
 import { useSession } from '@/lib/session';
 import { UNITS, type ImportedItem, type Unit } from '@/lib/spreadsheet';
 import { supabase } from '@/lib/supabase';
 
 type Category = { id: number; label_fr: string; label_nl: string };
-type Supplier = { id: string; name: string; city: string | null; verified: boolean };
+type Supplier = {
+  id: string;
+  name: string;
+  city: string | null;
+  verified: boolean;
+};
 type ItemDraft = { key: number; label: string; quantity: string; unit: Unit };
+type Step = 1 | 2 | 3;
 
 let nextKey = 1;
-const emptyItem = (): ItemDraft => ({ key: nextKey++, label: '', quantity: '', unit: 'piece' });
+const emptyItem = (): ItemDraft => ({
+  key: nextKey++,
+  label: '',
+  quantity: '',
+  unit: 'piece',
+});
 
 export default function NewRequestScreen() {
   const { t, language } = useI18n();
@@ -44,6 +55,11 @@ export default function NewRequestScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [limit, setLimit] = useState<UpgradeReason | null>(null);
   const [needsProfile, setNeedsProfile] = useState(false);
+  // Three short steps: what, where, which suppliers.
+  const [step, setStep] = useState<Step>(1);
+  const [more, setMore] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
+  const userId = session?.user.id;
 
   // BatiNode picks 5 suppliers of the region, or the contractor picks them.
   const [choice, setChoice] = useState<'batinode' | 'own' | 'mix'>('batinode');
@@ -54,12 +70,18 @@ export default function NewRequestScreen() {
   const [known, setKnown] = useState<Supplier[]>([]);
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [importNotice, setImportNotice] = useState<{ text: string; error: boolean } | null>(null);
+  const [importNotice, setImportNotice] = useState<{
+    text: string;
+    error: boolean;
+  } | null>(null);
 
   const applyImported = useCallback(
     (imported: ImportedItem[]) => {
       setItems((list) => [...list.filter((i) => i.label.trim() || i.quantity.trim()), ...imported.map((i) => ({ ...i, key: nextKey++ }))]);
-      setImportNotice({ text: t.files.imported(imported.length), error: false });
+      setImportNotice({
+        text: t.files.imported(imported.length),
+        error: false,
+      });
     },
     [t],
   );
@@ -95,12 +117,72 @@ export default function NewRequestScreen() {
       setPostalCode(pending.postalCode || company.postal_code || '');
       setCity(pending.city || company.city || '');
       setFulfilment(pending.fulfilment);
-      setItems(pending.items.map((i) => ({ key: nextKey++, label: i.label, quantity: i.quantity, unit: i.unit as Unit })));
+      setItems(
+        pending.items.map((i) => ({
+          key: nextKey++,
+          label: i.label,
+          quantity: i.quantity,
+          unit: i.unit as Unit,
+        })),
+      );
       setNote(pending.note);
       setNeedsProfile(false);
       setImportNotice({ text: t.signup.later.restored, error: false });
     });
   }, [company, t]);
+
+  // The form left half-written comes back where it was.
+  useEffect(() => {
+    if (!userId) return;
+    let live = true;
+    readFormDraft(userId).then((draft) => {
+      if (!live) return;
+      if (draft) {
+        setTitle((v) => v || draft.title);
+        setCategoryId((v) => v ?? draft.categoryId);
+        setPostalCode((v) => draft.postalCode || v);
+        setCity((v) => draft.city || v);
+        setFulfilment(draft.fulfilment);
+        setItems((list) =>
+          list.some((i) => i.label.trim())
+            ? list
+            : draft.items.map((i) => ({
+                key: nextKey++,
+                label: i.label,
+                quantity: i.quantity,
+                unit: i.unit as Unit,
+              })),
+        );
+        setNote((v) => v || draft.note);
+        setStep(draft.step);
+      }
+      setDraftReady(true);
+    });
+    return () => {
+      live = false;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || !draftReady) return;
+    const timer = setTimeout(() => {
+      keepFormDraft(userId, {
+        step,
+        title,
+        categoryId,
+        postalCode,
+        city,
+        fulfilment,
+        items: items.map(({ label, quantity, unit }) => ({
+          label,
+          quantity,
+          unit,
+        })),
+        note,
+      });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [userId, draftReady, step, title, categoryId, postalCode, city, fulfilment, items, note]);
 
   useEffect(() => {
     supabase
@@ -118,18 +200,42 @@ export default function NewRequestScreen() {
     setDraftId(null);
     setSuppliers(null);
     setPicked(new Set());
+    setStep(1);
+    setMore(false);
+    if (userId) dropFormDraft(userId);
   };
 
-  const validate = () => {
+  const whatErrors = () => {
     const next: Record<string, string> = {};
     if (title.trim().length < 3) next.title = t.request.errors.name;
-    if (!isBelgianPostalCode(postalCode)) next.postalCode = t.request.errors.postalCode;
     const filled = items.filter((i) => i.label.trim() || i.quantity.trim());
     if (!filled.length || filled.some((i) => i.label.trim().length < 2 || !(parseAmount(i.quantity) ?? 0))) {
       next.items = t.request.errors.items;
     }
-    setErrors(next);
-    return Object.keys(next).length === 0;
+    return next;
+  };
+
+  const whereErrors = (): Record<string, string> => (isBelgianPostalCode(postalCode) ? {} : { postalCode: t.request.errors.postalCode });
+
+  /** Checks the whole form and brings the contractor back to the step that needs fixing. */
+  const validate = () => {
+    const what = whatErrors();
+    const where = whereErrors();
+    setErrors({ ...what, ...where });
+    if (Object.keys(what).length) setStep(1);
+    else if (Object.keys(where).length) setStep(2);
+    return !Object.keys(what).length && !Object.keys(where).length;
+  };
+
+  const next = () => {
+    const found = step === 1 ? whatErrors() : whereErrors();
+    setErrors(found);
+    if (!Object.keys(found).length) setStep(step === 1 ? 2 : 3);
+  };
+
+  const back = () => {
+    setErrors({});
+    setStep(step === 3 ? 2 : 1);
   };
 
   /** Saves the form as a draft request and returns its id, or null when it cannot be sent yet. */
@@ -142,7 +248,11 @@ export default function NewRequestScreen() {
         postalCode,
         city,
         fulfilment,
-        items: items.map(({ label, quantity, unit }) => ({ label, quantity, unit })),
+        items: items.map(({ label, quantity, unit }) => ({
+          label,
+          quantity,
+          unit,
+        })),
         note,
       });
       setNeedsProfile(true);
@@ -167,7 +277,11 @@ export default function NewRequestScreen() {
     } else {
       const { data } = await supabase
         .from('price_requests')
-        .insert({ ...fields, company_id: company.id, created_by: session?.user.id })
+        .insert({
+          ...fields,
+          company_id: company.id,
+          created_by: session?.user.id,
+        })
         .select('id')
         .single();
       id = data?.id ?? null;
@@ -222,10 +336,7 @@ export default function NewRequestScreen() {
 
   const submit = async (requestId: string, target: { choice: 'batinode' } | { choice: 'mix'; supplier_ids: string[] } | { supplier_ids: string[] }, count: number) => {
     setBusy(true);
-    const { count: sentThisMonth } = await supabase
-      .from('price_requests')
-      .select('id', { count: 'exact', head: true })
-      .gte('sent_at', monthStart(new Date()).toISOString());
+    const { count: sentThisMonth } = await supabase.from('price_requests').select('id', { count: 'exact', head: true }).gte('sent_at', monthStart(new Date()).toISOString());
     const check = canSendPriceRequest(plan, sentThisMonth ?? 0, count);
     if (!check.ok) {
       setBusy(false);
@@ -237,10 +348,15 @@ export default function NewRequestScreen() {
     setBusy(false);
     if (error) {
       const body = error instanceof FunctionsHttpError ? await error.context.json().catch(() => null) : null;
-      return setErrors({ form: body?.error ? errorText(body.error, body.limit) : t.common.error });
+      return setErrors({
+        form: body?.error ? errorText(body.error, body.limit) : t.common.error,
+      });
     }
     reset();
-    router.push({ pathname: '/demande/[id]', params: { id: requestId, sent: String(data?.sent ?? count) } });
+    router.push({
+      pathname: '/demande/[id]',
+      params: { id: requestId, sent: String(data?.sent ?? count) },
+    });
   };
 
   const errorText = (reason: string, _limit?: number) => {
@@ -252,8 +368,7 @@ export default function NewRequestScreen() {
     return t.common.error;
   };
 
-  const updateItem = (key: number, patch: Partial<ItemDraft>) =>
-    setItems((list) => list.map((i) => (i.key === key ? { ...i, ...patch } : i)));
+  const updateItem = (key: number, patch: Partial<ItemDraft>) => setItems((list) => list.map((i) => (i.key === key ? { ...i, ...patch } : i)));
 
   const changeChoice = (next: 'batinode' | 'own' | 'mix') => {
     setChoice(next);
@@ -303,114 +418,148 @@ export default function NewRequestScreen() {
         <ThemedText type="title">{t.request.title}</ThemedText>
         <ThemedText themeColor="textSecondary">{t.request.lead}</ThemedText>
       </View>
-      <RequestBanner />
+      {step === 1 ? <RequestBanner /> : null}
 
-      <Card>
-        <Field label={t.request.name} placeholder={t.request.namePlaceholder} value={title} onChangeText={setTitle} error={errors.title} />
-        <View style={{ gap: Spacing.one }}>
-          <ThemedText type="smallBold">{t.request.category}</ThemedText>
-          <View style={styles.wrap}>
-            {categories.map((c) => {
-              const selected = c.id === categoryId;
-              return (
-                <Pressable
-                  key={c.id}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  onPress={() => setCategoryId(selected ? null : c.id)}
-                  style={[
-                    styles.option,
-                    { borderColor: selected ? theme.brand : theme.line, backgroundColor: selected ? theme.brand : 'transparent' },
-                  ]}>
-                  <ThemedText type="small" themeColor={selected ? 'onBrand' : 'text'}>
-                    {language === 'fr' ? c.label_fr : c.label_nl}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-          {errors.category ? (
-            <ThemedText type="small" themeColor="danger">
-              {errors.category}
-            </ThemedText>
-          ) : null}
-        </View>
-        <View style={styles.wrap}>
-          <Field label={t.request.postalCode} value={postalCode} onChangeText={setPostalCode} keyboardType="number-pad" maxLength={4} error={errors.postalCode} />
-          <Field label={t.request.city} value={city} onChangeText={setCity} />
+      <View style={{ gap: Spacing.one }}>
+        <View style={styles.progress}>
+          {([1, 2, 3] as const).map((n) => (
+            <View key={n} style={[styles.dot, { backgroundColor: n <= step ? theme.signal : theme.line }]} />
+          ))}
         </View>
         <ThemedText type="small" themeColor="textSecondary">
-          {t.request.replyWindow}
+          {t.request.steps.of(step, 3)}
         </ThemedText>
-        <View style={{ gap: Spacing.one }}>
-          <ThemedText type="smallBold">{t.request.fulfilment}</ThemedText>
-          <Segmented
-            value={fulfilment}
-            onChange={setFulfilment}
-            options={[
-              { value: 'delivery', label: t.request.delivery },
-              { value: 'pickup', label: t.request.pickup },
-            ]}
-          />
-        </View>
-      </Card>
+        <ThemedText type="subtitle">{step === 1 ? t.request.steps.what : step === 2 ? t.request.steps.where : t.request.steps.who}</ThemedText>
+      </View>
 
-      <Card>
-        <ThemedText type="subtitle">{t.request.items}</ThemedText>
-        {items.map((item, index) => (
-          <View key={item.key} style={[styles.item, index > 0 && { borderTopWidth: 1, borderTopColor: theme.line }]}>
-            <View style={styles.wrap}>
-              <Field label={t.request.item} value={item.label} onChangeText={(label) => updateItem(item.key, { label })} />
-              <Field
-                label={t.request.quantity}
-                value={item.quantity}
-                onChangeText={(quantity) => updateItem(item.key, { quantity })}
-                keyboardType="decimal-pad"
-                style={{ maxWidth: 140 }}
-              />
+      {step === 1 ? (
+        <Card>
+          <Field label={t.request.name} placeholder={t.request.namePlaceholder} value={title} onChangeText={setTitle} error={errors.title} />
+          <ThemedText type="smallBold">{t.request.items}</ThemedText>
+          {items.map((item, index) => (
+            <View key={item.key} style={[styles.item, index > 0 && { borderTopWidth: 1, borderTopColor: theme.line }]}>
+              <View style={styles.wrap}>
+                <Field label={t.request.item} value={item.label} onChangeText={(label) => updateItem(item.key, { label })} />
+                <Field
+                  label={t.request.quantity}
+                  value={item.quantity}
+                  onChangeText={(quantity) => updateItem(item.key, { quantity })}
+                  keyboardType="decimal-pad"
+                  style={{ maxWidth: 140 }}
+                />
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.units}>
+                {UNITS.map((u) => {
+                  const selected = u === item.unit;
+                  return (
+                    <Pressable
+                      key={u}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      onPress={() => updateItem(item.key, { unit: u })}
+                      style={[styles.unit, { borderColor: selected ? theme.brand : theme.line }]}>
+                      <ThemedText type="small" themeColor={selected ? 'brand' : 'textSecondary'}>
+                        {t.units[u]}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+              {items.length > 1 ? <Button label={t.request.removeItem} variant="ghost" small onPress={() => setItems((list) => list.filter((i) => i.key !== item.key))} /> : null}
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.units}>
-              {UNITS.map((u) => {
-                const selected = u === item.unit;
+          ))}
+          {errors.items ? <ThemedText themeColor="danger">{errors.items}</ThemedText> : null}
+          <View style={styles.wrap}>
+            <Button label={`+ ${t.request.addItem}`} variant="ghost" small onPress={() => setItems((list) => [...list, emptyItem()])} />
+            <Button label={t.files.importLines} variant="ghost" small busy={importing} onPress={importFile} />
+          </View>
+          {importNotice ? (
+            <ThemedText type="small" themeColor={importNotice.error ? 'danger' : 'textSecondary'}>
+              {importNotice.text}
+            </ThemedText>
+          ) : (
+            <ThemedText type="small" themeColor="textSecondary">
+              {t.files.importHint}
+            </ThemedText>
+          )}
+          <View style={{ gap: Spacing.one }}>
+            <ThemedText type="smallBold">{t.request.category}</ThemedText>
+            <View style={styles.wrap}>
+              {categories.map((c) => {
+                const selected = c.id === categoryId;
                 return (
                   <Pressable
-                    key={u}
+                    key={c.id}
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
-                    onPress={() => updateItem(item.key, { unit: u })}
-                    style={[styles.unit, { borderColor: selected ? theme.brand : theme.line }]}>
-                    <ThemedText type="small" themeColor={selected ? 'brand' : 'textSecondary'}>
-                      {t.units[u]}
+                    onPress={() => setCategoryId(selected ? null : c.id)}
+                    style={[
+                      styles.option,
+                      {
+                        borderColor: selected ? theme.brand : theme.line,
+                        backgroundColor: selected ? theme.brand : 'transparent',
+                      },
+                    ]}>
+                    <ThemedText type="small" themeColor={selected ? 'onBrand' : 'text'}>
+                      {language === 'fr' ? c.label_fr : c.label_nl}
                     </ThemedText>
                   </Pressable>
                 );
               })}
-            </ScrollView>
-            {items.length > 1 ? (
-              <Button label={t.request.removeItem} variant="ghost" small onPress={() => setItems((list) => list.filter((i) => i.key !== item.key))} />
+            </View>
+            {errors.category ? (
+              <ThemedText type="small" themeColor="danger">
+                {errors.category}
+              </ThemedText>
             ) : null}
           </View>
-        ))}
-        {errors.items ? <ThemedText themeColor="danger">{errors.items}</ThemedText> : null}
-        <View style={styles.wrap}>
-          <Button label={`+ ${t.request.addItem}`} variant="ghost" small onPress={() => setItems((list) => [...list, emptyItem()])} />
-          <Button label={t.files.importLines} variant="ghost" small busy={importing} onPress={importFile} />
-        </View>
-        {importNotice ? (
-          <ThemedText type="small" themeColor={importNotice.error ? 'danger' : 'textSecondary'}>
-            {importNotice.text}
-          </ThemedText>
-        ) : (
-          <ThemedText type="small" themeColor="textSecondary">
-            {t.files.importHint}
-          </ThemedText>
-        )}
-        <Field label={t.request.note} placeholder={t.request.notePlaceholder} value={note} onChangeText={setNote} multiline style={{ minHeight: 80 }} />
-      </Card>
+          <Button label={more ? t.request.steps.less : t.request.steps.more} variant="ghost" small onPress={() => setMore(!more)} />
+          {more ? <Field label={t.request.note} placeholder={t.request.notePlaceholder} value={note} onChangeText={setNote} multiline style={{ minHeight: 80 }} /> : null}
+        </Card>
+      ) : null}
 
-      {suppliers === null ? (
+      {step === 2 ? (
         <Card>
-          <ThemedText type="subtitle">{t.request.choice}</ThemedText>
+          <View style={styles.wrap}>
+            <Field label={t.request.postalCode} value={postalCode} onChangeText={setPostalCode} keyboardType="number-pad" maxLength={4} error={errors.postalCode} />
+            <Field label={t.request.city} value={city} onChangeText={setCity} />
+          </View>
+          <ThemedText type="small" themeColor="textSecondary">
+            {t.request.replyWindow}
+          </ThemedText>
+          <View style={{ gap: Spacing.one }}>
+            <ThemedText type="smallBold">{t.request.fulfilment}</ThemedText>
+            <Segmented
+              value={fulfilment}
+              onChange={setFulfilment}
+              options={[
+                { value: 'delivery', label: t.request.delivery },
+                { value: 'pickup', label: t.request.pickup },
+              ]}
+            />
+          </View>
+        </Card>
+      ) : null}
+
+      {step < 3 ? (
+        <View style={styles.nav}>
+          {step > 1 ? <Button label={`← ${t.request.steps.back}`} variant="ghost" onPress={back} /> : null}
+          <View style={{ flex: 1 }}>
+            <Button label={`${t.request.steps.next} →`} variant="signal" onPress={next} />
+          </View>
+        </View>
+      ) : null}
+
+      {step < 3 ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {t.request.steps.draftKept}
+        </ThemedText>
+      ) : null}
+
+      {step === 3 ? <Button label={`← ${t.request.steps.back}`} variant="ghost" onPress={back} /> : null}
+
+      {step !== 3 ? null : suppliers === null ? (
+        <Card>
           <View style={styles.wrap}>
             <Option label={t.request.choiceBatinode} selected={choice === 'batinode'} onPress={() => setChoice('batinode')} />
             <Option label={t.request.choiceOwn} selected={choice === 'own'} onPress={() => setChoice('own')} />
@@ -433,8 +582,19 @@ export default function NewRequestScreen() {
               <SupplierSearch onPick={addKnown} chosen={picked} />
               {known.map((k) => (
                 <Pressable key={k.id} accessibilityRole="checkbox" accessibilityState={{ checked: picked.has(k.id) }} onPress={() => togglePick(k.id)} style={styles.supplier}>
-                  <View style={[styles.box, { borderColor: picked.has(k.id) ? theme.signal : theme.line, backgroundColor: picked.has(k.id) ? theme.signal : 'transparent' }]}>
-                    {picked.has(k.id) ? <ThemedText type="smallBold" themeColor="onSignal">✓</ThemedText> : null}
+                  <View
+                    style={[
+                      styles.box,
+                      {
+                        borderColor: picked.has(k.id) ? theme.signal : theme.line,
+                        backgroundColor: picked.has(k.id) ? theme.signal : 'transparent',
+                      },
+                    ]}>
+                    {picked.has(k.id) ? (
+                      <ThemedText type="smallBold" themeColor="onSignal">
+                        ✓
+                      </ThemedText>
+                    ) : null}
                   </View>
                   <ThemedText type="smallBold" style={{ flex: 1 }}>
                     {[k.name, k.city].filter(Boolean).join(' · ')}
@@ -461,14 +621,20 @@ export default function NewRequestScreen() {
             suppliers.map((s) => {
               const selected = picked.has(s.id);
               return (
-                <Pressable
-                  key={s.id}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: selected }}
-                  onPress={() => togglePick(s.id)}
-                  style={styles.supplier}>
-                  <View style={[styles.box, { borderColor: selected ? theme.brand : theme.line, backgroundColor: selected ? theme.brand : 'transparent' }]}>
-                    {selected ? <ThemedText type="smallBold" themeColor="onBrand">✓</ThemedText> : null}
+                <Pressable key={s.id} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} onPress={() => togglePick(s.id)} style={styles.supplier}>
+                  <View
+                    style={[
+                      styles.box,
+                      {
+                        borderColor: selected ? theme.brand : theme.line,
+                        backgroundColor: selected ? theme.brand : 'transparent',
+                      },
+                    ]}>
+                    {selected ? (
+                      <ThemedText type="smallBold" themeColor="onBrand">
+                        ✓
+                      </ThemedText>
+                    ) : null}
                   </View>
                   <View style={{ flex: 1 }}>
                     <ThemedText type="smallBold">{s.name}</ThemedText>
@@ -546,7 +712,13 @@ function SupplierSearch({ onPick, chosen }: { onPick: (s: Supplier) => void; cho
             onPick(s);
             setQuery('');
           }}
-          style={[styles.match, { borderColor: theme.line, backgroundColor: theme.backgroundSelected }]}>
+          style={[
+            styles.match,
+            {
+              borderColor: theme.line,
+              backgroundColor: theme.backgroundSelected,
+            },
+          ]}>
           <View style={{ flex: 1 }}>
             <ThemedText type="smallBold">{s.name}</ThemedText>
             {s.city ? (
@@ -572,12 +744,44 @@ function SupplierSearch({ onPick, chosen }: { onPick: (s: Supplier) => void; cho
 }
 
 const styles = StyleSheet.create({
-  match: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, borderWidth: 1, borderRadius: Radius, padding: Spacing.two },
+  match: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderWidth: 1,
+    borderRadius: Radius,
+    padding: Spacing.two,
+  },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  option: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  nav: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  progress: { flexDirection: 'row', gap: Spacing.one },
+  dot: { flex: 1, height: 6, borderRadius: 3 },
+  option: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
   item: { gap: Spacing.two, paddingTop: Spacing.two },
   units: { gap: Spacing.one },
-  unit: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 },
-  supplier: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, paddingVertical: Spacing.one },
-  box: { width: 22, height: 22, borderRadius: Radius / 2, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  unit: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  supplier: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingVertical: Spacing.one,
+  },
+  box: {
+    width: 22,
+    height: 22,
+    borderRadius: Radius / 2,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
