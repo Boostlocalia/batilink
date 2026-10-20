@@ -25,7 +25,7 @@ export function welcomeMail(lang: Lang, to: string, kind: Kind, url: string, tri
   const nl: Record<Kind, string[]> = {
     contractor: [
       `Welkom bij ${APP_NAME}. U krijgt ${trialDays} dagen het Premium-plan cadeau, zonder bankkaart.`,
-      'De snelste manier om het verschil te zien: stuur uw volgende materiaalaanvraag naar meerdere handelaars in uw regio. Zij antwoorden per e-mail, u vergelijkt de offertes regel per regel.',
+      'De snelste manier om het verschil te zien: stuur uw volgende materiaalaanvraag naar meerdere leveranciers in uw regio. Zij antwoorden per e-mail, u vergelijkt de offertes regel per regel.',
       'Tip: voeg uw vaste leveranciers toe. Zij krijgen uw aanvragen, ook als ze nog niet ingeschreven zijn.',
     ],
     supplier: [
@@ -64,7 +64,7 @@ export function activationMail(lang: Lang, to: string, kind: Kind, url: string):
       nl: {
         subject: 'Uw eerste prijsaanvraag in 3 minuten',
         paragraphs: [
-          'U hebt nog geen prijsaanvraag verstuurd. Neem de lijst van uw volgende werf: titel, enkele productregels, de postcode. Wij sturen ze naar de handelaars in uw regio.',
+          'U hebt nog geen prijsaanvraag verstuurd. Neem de lijst van uw volgende werf: titel, enkele productregels, de postcode. Wij sturen ze naar de leveranciers in uw regio.',
           'Minstens drie offertes vergelijken is de eenvoudigste manier om de juiste prijs te betalen.',
         ],
         cta: { label: 'Mijn aanvraag maken', url },
@@ -181,7 +181,7 @@ export function winbackMail(lang: Lang, to: string, url: string): Mail {
     },
     nl: {
       subject: 'Start er een werf? Vergelijk uw prijzen in 3 minuten',
-      paragraphs: ['U hebt al een maand geen prijsaanvraag verstuurd. Stuur voor uw volgende werf de lijst naar de handelaars in uw regio en vergelijk de offertes regel per regel.'],
+      paragraphs: ['U hebt al een maand geen prijsaanvraag verstuurd. Stuur voor uw volgende werf de lijst naar de leveranciers in uw regio en vergelijk de offertes regel per regel.'],
       cta: { label: 'Nieuwe aanvraag', url },
     },
   });

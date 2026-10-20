@@ -12,10 +12,10 @@ export const signupNl: typeof signupFr = {
   profiles: {
     contractor: {
       title: 'Aannemer',
-      lead: 'Vergelijk de prijzen van handelaars, vind geverifieerde onderaannemers en bewaar het bewijs van uw aankopen.',
+      lead: 'Vergelijk de prijzen van leveranciers, vind geverifieerde onderaannemers en bewaar het bewijs van uw aankopen.',
     },
     supplier: {
-      title: 'Leverancier of handelaar',
+      title: 'Leverancier',
       lead: 'Ontvang prijsaanvragen van aannemers in uw regio. Inschrijven en antwoorden is gratis.',
     },
     architect: {
@@ -69,7 +69,7 @@ export const signupNl: typeof signupFr = {
     OVL: 'Oost-Vlaanderen',
   },
   supplierType: 'U bent',
-  supplierTypeLabels: { merchant: 'Bouwmaterialenhandel', manufacturer: 'Fabrikant', wholesaler: 'Groothandel', rental: 'Materiaalverhuur' },
+  supplierTypeLabels: { merchant: 'Leverancier van bouwmaterialen', manufacturer: 'Fabrikant', wholesaler: 'Groothandel', rental: 'Materiaalverhuur' },
   categories: 'Wat u verkoopt',
   service: 'Service',
   delivers: 'Levering op de werf',

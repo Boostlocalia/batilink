@@ -126,7 +126,7 @@ export const nl: Dictionary = {
       `BatiNode heeft uw aanvraag naar ${found} leverancier${found > 1 ? 's' : ''} in uw regio gestuurd. De offertes komen hier binnen 48 uur binnen.`,
     suppliers: 'Leveranciers in uw regio',
     noSuppliers:
-      'Er is nog geen leverancier ingeschreven voor deze categorie in uw regio. We contacteren elke week nieuwe handelaars.',
+      'Er is nog geen leverancier ingeschreven voor deze categorie in uw regio. We contacteren elke week nieuwe leveranciers.',
     verified: 'Geverifieerd',
     send: (n: number) => `Versturen naar ${n} leverancier${n > 1 ? 's' : ''}`,
     sent: (n: number) => `Aanvraag verstuurd naar ${n} leverancier${n > 1 ? 's' : ''}.`,

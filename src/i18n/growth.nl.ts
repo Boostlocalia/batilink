@@ -156,7 +156,7 @@ export const growthNl: typeof growthFr = {
     page: {
       heroTitle: "Uw offerte vertrekt vóór die van de anderen.",
       heroLead:
-        "Eén prijsaanvraag, al uw bouwhandels, lijn per lijn vergeleken. Uw vaste bouwhandel kan ook antwoorden: zo ziet u zwart op wit of zijn prijs klopt.",
+        "Eén prijsaanvraag, al uw leveranciers, lijn per lijn vergeleken. Uw vaste leverancier kan ook antwoorden: zo ziet u zwart op wit of zijn prijs klopt.",
       heroCta: "Probeer Premium 7 dagen, zonder kaart",
       problemTitle:
         "Materiaalprijzen bewegen elke maand. Uw offerte ligt vast.",
@@ -179,14 +179,14 @@ export const growthNl: typeof growthFr = {
       ],
       howTitle: "Drie stappen, geen telefoontjes",
       radius:
-        "Alleen bouwhandels binnen ongeveer 50 km rond uw werf worden aangeschreven, de dichtste eerst.",
+        "Alleen leveranciers binnen ongeveer 50 km rond uw werf worden aangeschreven, de dichtste eerst.",
       how: [
         {
           title: "Beschrijf uw materialen",
-          text: "Producten, hoeveelheden en postcode van de werf. Voeg uw vaste bouwhandels toe.",
+          text: "Producten, hoeveelheden en postcode van de werf. Voeg uw vaste leveranciers toe.",
         },
         {
-          title: "De bouwhandels antwoorden",
+          title: "De leveranciers antwoorden",
           text: "Ze krijgen de aanvraag in hun taal en antwoorden via een link, zonder account, of sturen hun offerte als pdf.",
         },
         {
@@ -209,7 +209,7 @@ export const growthNl: typeof growthFr = {
         "BatiNode controleert geen RSZ- of fiscale schulden. Voor de inhoudingsplicht (30bis) gebruikt u de officiële 30bis-toepassing op socialsecurity.be.",
       reachTitle: "Hoeveel leveranciers rond uw werf?",
       reachLead:
-        "Leveranciers opgelijst op basis van hun officiële websites. U kunt ook uw vaste bouwhandels toevoegen.",
+        "Leveranciers opgelijst op basis van hun officiële websites. U kunt ook uw vaste leveranciers toevoegen.",
       reachPlaceholder: "Postcode, bv. 1600",
       reachResult: (n: number, postal: string) =>
         n === 1
@@ -235,7 +235,7 @@ export const growthNl: typeof growthFr = {
       faqTitle: "Uw vragen, eerlijk beantwoord",
       faq: [
         {
-          q: "Mijn bouwhandel geeft me al een goede prijs.",
+          q: "Mijn leverancier geeft me al een goede prijs.",
           a: "Houd hem. Stuur hem de aanvraag via BatiNode, samen met twee of drie anderen: dan weet u lijn per lijn of het klopt.",
         },
         {
@@ -278,7 +278,7 @@ export const growthNl: typeof growthFr = {
     eyebrow: "Voor bouw-kmo’s in België",
     title:
       "Koop uw materialen aan de beste prijs. Werk met partners die in orde zijn.",
-    lead: `${APP_NAME} stuurt uw prijsaanvragen naar de handelaars in uw regio, vergelijkt de offertes regel per regel en bewaart het bewijs van elke bestelling. In het Nederlands en het Frans.`,
+    lead: `${APP_NAME} stuurt uw prijsaanvragen naar de leveranciers in uw regio, vergelijkt de offertes regel per regel en bewaart het bewijs van elke bestelling. In het Nederlands en het Frans.`,
     proof: [
       "Controle btw en KBO",
       "Peppol-facturen gecontroleerd",
@@ -297,7 +297,7 @@ export const growthNl: typeof growthFr = {
         cta: "Ik ben aannemer",
       },
       supplier: {
-        title: "Leveranciers en handelaars",
+        title: "Leveranciers",
         points: [
           "Gekwalificeerde aanvragen uit uw regio",
           "Antwoorden met één klik",
@@ -324,7 +324,7 @@ export const growthNl: typeof growthFr = {
         text: "Producten, hoeveelheden, postcode van de werf. Drie minuten.",
       },
       {
-        title: "De handelaars antwoorden",
+        title: "De leveranciers antwoorden",
         text: "Ze krijgen een e-mail in hun taal en sturen hun prijs.",
       },
       {
