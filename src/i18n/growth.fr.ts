@@ -128,8 +128,8 @@ export const growthFr = {
     memberLead: 'Votre prix de lancement est garanti à vie, tant que votre abonnement reste actif sans interruption sur le même plan.',
     memberEnded: (n: number) => `Vous avez été le fondateur n° ${n}. La garantie de prix a pris fin avec la résiliation ou le changement de plan.`,
     page: {
-      heroTitle: 'Une demande de prix. Tous vos négoces. Comparés ligne par ligne.',
-      heroLead: 'Gardez votre négoce habituel. Vérifiez enfin que son prix est le bon, par écrit.',
+      heroTitle: 'Votre devis part avant celui des autres.',
+      heroLead: 'Une demande de prix, tous vos négoces, comparés ligne par ligne. Votre négoce habituel peut répondre aussi : vous vérifiez enfin que son prix est le bon.',
       heroCta: 'Essayer Premium 7 jours, sans carte',
       problemTitle: 'Les prix bougent chaque mois. Votre devis, lui, est signé.',
       facts: [

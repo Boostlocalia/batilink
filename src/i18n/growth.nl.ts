@@ -130,8 +130,8 @@ export const growthNl: typeof growthFr = {
     memberLead: 'Uw lanceringsprijs is levenslang gegarandeerd, zolang uw abonnement zonder onderbreking actief blijft op hetzelfde plan.',
     memberEnded: (n: number) => `U was stichter nr. ${n}. De prijsgarantie is beëindigd door de opzegging of de wijziging van plan.`,
     page: {
-      heroTitle: 'Eén prijsaanvraag. Al uw bouwhandels. Lijn per lijn vergeleken.',
-      heroLead: 'Houd uw vaste bouwhandel. Controleer zwart op wit of de prijs klopt.',
+      heroTitle: 'Uw offerte vertrekt vóór die van de anderen.',
+      heroLead: 'Eén prijsaanvraag, al uw bouwhandels, lijn per lijn vergeleken. Uw vaste bouwhandel kan ook antwoorden: zo ziet u zwart op wit of zijn prijs klopt.',
       heroCta: 'Probeer Premium 7 dagen, zonder kaart',
       problemTitle: 'Materiaalprijzen bewegen elke maand. Uw offerte ligt vast.',
       facts: [
