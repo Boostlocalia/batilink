@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { HeroCarousel } from '@/components/hero-carousel';
 import { ThemedText } from '@/components/themed-text';
+import { LegalLinks } from '@/components/legal-links';
 import { Button, Card, Chip, Screen, Segmented } from '@/components/ui';
 import { Logo } from '@/components/logo';
 import { Radius, Spacing } from '@/constants/theme';
@@ -169,6 +170,7 @@ export default function WelcomeScreen() {
       <ThemedText type="small" themeColor="textSecondary">
         {l.footer}
       </ThemedText>
+      <LegalLinks />
     </Screen>
   );
 }

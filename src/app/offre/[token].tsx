@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 
 import { Logo } from "@/components/logo";
+import { LegalLinks } from "@/components/legal-links";
 import { Assistant } from "@/components/assistant";
 import { ThemedText } from "@/components/themed-text";
 import { Button, Card, Chip, Field, Screen, Segmented } from "@/components/ui";
@@ -665,6 +666,7 @@ export default function SupplierQuoteScreen() {
             ) : null}
           </Card>
         ) : null}
+        <LegalLinks />
       </Screen>
       <Assistant audience="supplier" token={token} />
     </View>

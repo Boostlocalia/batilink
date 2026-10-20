@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { LegalLinks } from '@/components/legal-links';
 import { Button, Card, Check, Field, Option, Screen, Segmented } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -416,6 +417,7 @@ export default function SignupScreen() {
             </Group>
             <Field label={s.referral} value={referral} onChangeText={setReferral} autoCapitalize="characters" hint={s.referralHint} />
             <Check label={s.terms} checked={terms} onChange={setTerms} error={errors.terms} />
+            <LegalLinks />
             {profile === 'supplier' && SUPPLIER_COMMISSION_ACTIVE ? <Check label={s.commission(rate)} checked={commission} onChange={setCommission} error={errors.commission} /> : null}
             {errors.form ? <ThemedText themeColor="danger">{errors.form}</ThemedText> : null}
           </Card>

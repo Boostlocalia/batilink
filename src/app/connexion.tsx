@@ -12,6 +12,7 @@ import { Logo } from "@/components/logo";
 import { SignInBanners } from "@/components/home-banners";
 import { GlowBackdrop } from "@/components/glow-backdrop";
 import { NodiGreeting } from "@/components/nodi-greeting";
+import { LegalLinks } from "@/components/legal-links";
 
 type Mode = "signin" | "signup";
 
@@ -241,6 +242,7 @@ export default function SignInScreen() {
           <SignInBanners tall={wide} />
         </View>
       </View>
+      <LegalLinks />
     </Screen>
   );
 }

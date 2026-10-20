@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 
 import { Logo } from '@/components/logo';
+import { LegalLinks } from '@/components/legal-links';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Field, Option, Screen, Segmented } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
@@ -309,6 +310,7 @@ export default function SupplierOrderScreen() {
           ))}
         </Card>
       ) : null}
+      <LegalLinks />
     </Screen>
   );
 }

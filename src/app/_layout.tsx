@@ -91,6 +91,7 @@ function RootNavigator() {
       {/* Suppliers answer from the e-mail link, signed in or not. */}
       <Stack.Screen name="offre/[token]" />
       <Stack.Screen name="bon/[token]" />
+      <Stack.Screen name="legal/[page]" />
     </Stack>
   );
 }
