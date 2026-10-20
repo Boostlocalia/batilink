@@ -3,6 +3,7 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 type Event = {
   kind:
     | 'request_sent'
+    | 'request_completed'
     | 'quote_submitted'
     | 'quote_declined'
     | 'quote_awarded'

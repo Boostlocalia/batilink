@@ -1,5 +1,6 @@
-// Run hourly by a cron job (see README). Reminds suppliers who have not answered
-// 24 h after the invitation, once, and closes requests past their reply date.
+// Run hourly by a cron job (see README). Completes requests BatiNode was asked to
+// send to 5 suppliers when fewer were found at sending, reminds suppliers who have
+// not answered 24 h after the invitation, once, and closes requests past their reply date.
 // Only the stored hash of a reply link is known, so a reminder carries a fresh link.
 
 import { isCron } from '../_shared/cron.ts';
@@ -8,6 +9,7 @@ import { contractorAddress, invitationMail, sendMail, type Lang } from '../_shar
 import { isTestCompany, testMail } from '../_shared/test-mode.ts';
 import { logEvent } from '../_shared/events.ts';
 import { relayAddress } from '../_shared/relay-address.ts';
+import { AUTO_SUPPLIERS, inviteSuppliers, pickSuppliers, type SentRequest } from '../_shared/invitations.ts';
 import { adminClient, appUrl, json } from '../_shared/supabase.ts';
 import { hashToken, newToken, tokenExpiry } from '../_shared/tokens.ts';
 
@@ -22,6 +24,21 @@ Deno.serve(async (req) => {
     .eq('status', 'sent')
     .lt('reply_by', today)
     .select('id');
+
+  // Requests still open that BatiNode promised to send to 5 suppliers.
+  const { data: open } = await admin
+    .from('price_requests')
+    .select('id, company_id, title, category_id, postal_code, city, needed_by, reply_by, fulfilment, status, quotes(count)')
+    .eq('status', 'sent')
+    .in('supplier_choice', ['batinode', 'mix'])
+    .gte('reply_by', today);
+  let completed = 0;
+  for (const r of open ?? []) {
+    const invited = (r.quotes as unknown as { count: number }[])[0]?.count ?? 0;
+    if (invited >= AUTO_SUPPLIERS) continue;
+    const ids = await pickSuppliers(admin, r as unknown as SentRequest, AUTO_SUPPLIERS - invited);
+    if (ids.length) completed += (await inviteSuppliers(admin, r as unknown as SentRequest, ids)).sent.length;
+  }
 
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
   const { data: due } = await admin
@@ -99,7 +116,8 @@ Deno.serve(async (req) => {
       .catch(console.error);
   }
 
+  if (completed) await logEvent(admin, { kind: 'request_completed', data: { count: completed } });
   if (closed?.length) await logEvent(admin, { kind: 'requests_closed', data: { count: closed.length } });
   if (reminded) await logEvent(admin, { kind: 'supplier_reminded', data: { count: reminded } });
-  return json({ closed: closed?.length ?? 0, reminded });
+  return json({ completed, closed: closed?.length ?? 0, reminded });
 });
