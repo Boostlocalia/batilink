@@ -25,8 +25,8 @@ export const OPERATOR = {
   name: "Modern X Renov",
   enterprise: "1015.519.625",
   vat: "BE 1015.519.625",
-  address: "Avenue Fernand Charlot 38, 1370 Jodoigne, Belgique",
-  addressNl: "Avenue Fernand Charlot 38, 1370 Geldenaken, België",
+  address: "Ruisbroeksesteenweg 9, 1600 Sint-Pieters-Leeuw, Belgique",
+  addressNl: "Ruisbroeksesteenweg 9, 1600 Sint-Pieters-Leeuw, België",
   email: "support@batinode.be",
   site: "app.batinode.be",
 };

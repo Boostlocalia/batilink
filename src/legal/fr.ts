@@ -149,7 +149,7 @@ export const legalFr: LegalTexts = {
           title: "14. Droit applicable et litiges",
           body: [
             "Ces conditions sont soumises au droit belge. En cas de désaccord, écrivez-nous d’abord : nous cherchons une solution amiable.",
-            "À défaut, les tribunaux de l’arrondissement judiciaire du Brabant wallon sont seuls compétents.",
+            "À défaut, les tribunaux de l’arrondissement judiciaire de Bruxelles sont seuls compétents.",
           ],
         },
       ],

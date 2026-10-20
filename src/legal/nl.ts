@@ -149,7 +149,7 @@ export const legalNl: LegalTexts = {
           title: "14. Toepasselijk recht en geschillen",
           body: [
             "Deze voorwaarden vallen onder het Belgisch recht. Bij onenigheid schrijft u ons eerst: wij zoeken een minnelijke oplossing.",
-            "Lukt dat niet, dan zijn uitsluitend de rechtbanken van het gerechtelijk arrondissement Waals-Brabant bevoegd.",
+            "Lukt dat niet, dan zijn uitsluitend de rechtbanken van het gerechtelijk arrondissement Brussel bevoegd.",
           ],
         },
       ],
