@@ -62,6 +62,7 @@ export default function PlansScreen() {
       ) : null}
       <View style={styles.interval}>
         <Segmented
+          signal
           value={billing}
           onChange={setBilling}
           options={[

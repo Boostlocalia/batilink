@@ -174,14 +174,17 @@ export function Segmented<T extends string>({
   value,
   options,
   onChange,
+  signal = false,
 }: {
   value: T;
   options: { value: T; label: string }[];
   onChange: (value: T) => void;
+  /** Black with the lime signal colour on the selected option, for choices that must stand out. */
+  signal?: boolean;
 }) {
   const theme = useTheme();
   return (
-    <View style={[styles.segmented, { backgroundColor: theme.backgroundSelected }]}>
+    <View style={[styles.segmented, signal ? { backgroundColor: theme.background, borderWidth: 1, borderColor: theme.signal } : { backgroundColor: theme.backgroundSelected }]}>
       {options.map((o) => {
         const selected = o.value === value;
         return (
@@ -190,8 +193,8 @@ export function Segmented<T extends string>({
             accessibilityRole="button"
             accessibilityState={{ selected }}
             onPress={() => onChange(o.value)}
-            style={[styles.segment, selected && { backgroundColor: theme.backgroundElement }]}>
-            <ThemedText type="smallBold" themeColor={selected ? 'text' : 'textSecondary'}>
+            style={[styles.segment, selected && { backgroundColor: signal ? theme.signal : theme.backgroundElement }]}>
+            <ThemedText type="smallBold" themeColor={selected ? (signal ? 'onSignal' : 'text') : signal ? 'text' : 'textSecondary'}>
               {o.label}
             </ThemedText>
           </Pressable>
