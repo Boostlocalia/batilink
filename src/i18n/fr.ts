@@ -17,7 +17,7 @@ export const fr = {
     newRequest: 'Demande',
     plans: 'Abonnement',
     settings: 'Réglages',
-    network: 'Réseau',
+    network: 'Partenaires',
   },
   auth: {
     nodiSignIn: ['Bonjour 👋 Content de vous revoir !', 'Vos offres fournisseurs vous attendent.', 'Les actus du bâtiment du jour sont prêtes.'],
@@ -222,7 +222,7 @@ export const fr = {
     },
   },
   network: {
-    title: 'Réseau',
+    title: 'Partenaires',
     lead: 'Missions à sous-traiter entre entrepreneurs et projets d’architectes.',
     tabs: { posts: 'Annonces', mine: 'Mes annonces', agreements: 'Accords' },
     publish: 'Publier une annonce',
@@ -330,7 +330,7 @@ export const fr = {
     send: 'Envoyer',
     close: 'Fermer',
     helloTitle: (name: string) => `Bonjour, je suis ${name}, votre assistant IA 👷`,
-    helloText: 'Posez-moi vos questions : je vous guide pour vos demandes de prix, vos fournisseurs, le réseau et votre fiche.',
+    helloText: 'Posez-moi vos questions : je vous guide pour vos demandes de prix, vos fournisseurs, vos partenaires et votre fiche.',
     thinking: (name: string) => `${name} réfléchit…`,
     unavailable: "L'assistant n'est pas disponible pour le moment. Réessayez plus tard.",
     hello: (name: string) =>
@@ -351,11 +351,11 @@ export const fr = {
         ['Votre entreprise est vérifiée', 'Nous contrôlons le numéro de TVA et l’inscription active à la BCE. Le résultat est dans Réglages.'],
         ['Demandez des prix', "Dans « Demande », listez vos matériaux. Les fournisseurs de votre zone la reçoivent et vous envoient leur prix."],
         ['Comparez et choisissez', 'Les offres arrivent côte à côte : meilleur prix et délai le plus court sont mis en avant. Un clic pour retenir.'],
-        ['Travaillez en réseau', 'Dans « Réseau », sous-traitez ou répondez aux annonces et aux projets d’architectes. Chaque accord est revérifié avant confirmation.'],
+        ['Travaillez avec des partenaires', 'Dans « Partenaires », sous-traitez ou répondez aux annonces et aux projets d’architectes. Chaque accord est revérifié avant confirmation.'],
       ],
       architect: [
         ['Votre bureau est vérifié', 'Nous contrôlons la TVA et la BCE. Le résultat est dans Réglages.'],
-        ['Publiez vos projets', 'Dans « Réseau », décrivez le projet, les métiers recherchés et la commune.'],
+        ['Publiez vos projets', 'Dans « Partenaires », décrivez le projet, les métiers recherchés et la commune.'],
         ['Recevez des entrepreneurs vérifiés', 'Les entrepreneurs intéressés répondent. Gardez ou écartez les candidats.'],
         ['Mettez en relation', 'Proposez la mise en relation : l’entrepreneur est revérifié (TVA, BCE) avant que les coordonnées soient partagées.'],
       ],
@@ -583,7 +583,7 @@ export const fr = {
   chat: {
     tab: 'Messages',
     tabUnread: (n: number) => `Messages (${n})`,
-    empty: 'Aucune conversation. Écrivez à une entreprise depuis une annonce du Réseau.',
+    empty: 'Aucune conversation. Écrivez à une entreprise depuis une annonce de Partenaires.',
     write: 'Envoyer un message',
     writeTo: (name: string) => `Écrire à ${name}`,
     firstLead: 'Votre premier message est une demande de contact. L’entreprise choisit de l’accepter ; vous pourrez ensuite discuter librement.',

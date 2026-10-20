@@ -19,7 +19,7 @@ export const nl: Dictionary = {
     newRequest: 'Aanvraag',
     plans: 'Abonnement',
     settings: 'Instellingen',
-    network: 'Netwerk',
+    network: 'Partners',
   },
   auth: {
     nodiSignIn: ['Hallo 👋 Fijn u terug te zien!', 'Uw leveranciersoffertes wachten op u.', 'Het bouwnieuws van vandaag staat klaar.'],
@@ -223,7 +223,7 @@ export const nl: Dictionary = {
     },
   },
   network: {
-    title: 'Netwerk',
+    title: 'Partners',
     lead: 'Opdrachten in onderaanneming tussen aannemers en projecten van architecten.',
     tabs: { posts: 'Zoekertjes', mine: 'Mijn zoekertjes', agreements: 'Akkoorden' },
     publish: 'Zoekertje plaatsen',
@@ -331,7 +331,7 @@ export const nl: Dictionary = {
     send: 'Versturen',
     close: 'Sluiten',
     helloTitle: (name: string) => `Hallo, ik ben ${name}, uw AI-assistent 👷`,
-    helloText: 'Stel me uw vragen: ik help u met prijsaanvragen, leveranciers, het netwerk en uw fiche.',
+    helloText: 'Stel me uw vragen: ik help u met prijsaanvragen, leveranciers, uw partners en uw fiche.',
     thinking: (name: string) => `${name} denkt na…`,
     unavailable: 'De assistent is nu niet beschikbaar. Probeer het later opnieuw.',
     hello: (name: string) =>
@@ -352,11 +352,11 @@ export const nl: Dictionary = {
         ['Uw bedrijf wordt gecontroleerd', 'We controleren het btw-nummer en de actieve inschrijving in de KBO. Het resultaat staat in Instellingen.'],
         ['Vraag prijzen', 'In « Aanvraag » lijst u uw materialen op. Leveranciers uit uw regio ontvangen ze en sturen u hun prijs.'],
         ['Vergelijk en kies', 'De offertes komen naast elkaar: beste prijs en snelste levering worden uitgelicht. Eén klik om te kiezen.'],
-        ['Werk in netwerk', 'In « Netwerk » besteedt u werk uit of reageert u op zoekertjes en projecten van architecten. Elk akkoord wordt vóór bevestiging opnieuw gecontroleerd.'],
+        ['Werk samen met partners', 'In « Partners » besteedt u werk uit of reageert u op zoekertjes en projecten van architecten. Elk akkoord wordt vóór bevestiging opnieuw gecontroleerd.'],
       ],
       architect: [
         ['Uw bureau wordt gecontroleerd', 'We controleren btw en KBO. Het resultaat staat in Instellingen.'],
-        ['Plaats uw projecten', 'In « Netwerk » beschrijft u het project, de gezochte vakgebieden en de gemeente.'],
+        ['Plaats uw projecten', 'In « Partners » beschrijft u het project, de gezochte vakgebieden en de gemeente.'],
         ['Ontvang gecontroleerde aannemers', 'Geïnteresseerde aannemers reageren. Bewaar of wijs kandidaten af.'],
         ['Breng in contact', 'Stel het contact voor: de aannemer wordt opnieuw gecontroleerd (btw, KBO) voordat de gegevens gedeeld worden.'],
       ],
@@ -584,7 +584,7 @@ export const nl: Dictionary = {
   chat: {
     tab: 'Berichten',
     tabUnread: (n: number) => `Berichten (${n})`,
-    empty: 'Nog geen gesprekken. Schrijf een bedrijf aan vanuit een zoekertje in het Netwerk.',
+    empty: 'Nog geen gesprekken. Schrijf een bedrijf aan vanuit een zoekertje in Partners.',
     write: 'Bericht sturen',
     writeTo: (name: string) => `Schrijven naar ${name}`,
     firstLead: 'Uw eerste bericht is een contactverzoek. Het bedrijf kiest of het dit aanvaardt; daarna kunt u vrij praten.',

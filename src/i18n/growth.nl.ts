@@ -17,7 +17,7 @@ export const growthNl: typeof growthFr = {
     trialOver: `Uw gratis proefperiode van 7 dagen is afgelopen. Kies Starter of Premium om ${APP_NAME} te blijven gebruiken. Uw aanvragen en bestellingen blijven bewaard.`,
     networkLeft: (left: number) =>
       left > 0
-        ? `Test-plan: nog ${left} uitwisseling${left > 1 ? "en" : ""} deze maand in het netwerk.`
+        ? `Test-plan: nog ${left} uitwisseling${left > 1 ? "en" : ""} deze maand in Partners.`
         : "Test-plan: uw 3 uitwisselingen van deze maand zijn gebruikt.",
   },
   upgrade: {

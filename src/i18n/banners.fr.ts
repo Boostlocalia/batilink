@@ -30,10 +30,10 @@ export const bannersFr = {
       cta: 'Lancer une demande',
     },
     network: {
-      kicker: 'Réseau',
+      kicker: 'Partenaires',
       title: (n: number) => (n > 0 ? `${n} ${s(n, 'nouvel entrepreneur', 'nouveaux entrepreneurs')} cette semaine` : 'Votre prochain sous-traitant est déjà ici'),
       text: 'Publiez une mission ou répondez aux annonces de votre région. Entreprises vérifiées uniquement.',
-      cta: 'Ouvrir le réseau',
+      cta: 'Voir les partenaires',
     },
     delivery: {
       kicker: 'Commandes',
@@ -85,7 +85,7 @@ export const bannersFr = {
       kicker: 'Vérifié',
       title: 'Uniquement des entreprises en règle',
       text: 'TVA et BCE vérifiées en direct, à chaque mise en relation.',
-      cta: 'Voir le réseau',
+      cta: 'Voir les partenaires',
     },
   },
   landing: {
@@ -111,7 +111,7 @@ export const bannersFr = {
   pages: {
     signin: [
       { kicker: 'Matériaux', title: 'Vos prix fournisseurs en 48 h ⚡', text: 'Une demande, plusieurs offres, vous choisissez la meilleure.' },
-      { kicker: 'Réseau', title: 'Que des entreprises en règle', text: 'TVA et BCE vérifiées pour chaque entrepreneur, fournisseur et architecte.' },
+      { kicker: 'Partenaires', title: 'Que des entreprises en règle', text: 'TVA et BCE vérifiées pour chaque entrepreneur, fournisseur et architecte.' },
       { kicker: 'Essai', title: '7 jours gratuits, sans carte', text: 'Créez votre compte et testez tout Premium dès aujourd’hui.' },
     ],
     request: { kicker: 'Demande de prix', title: 'Listez, envoyez, comparez', text: 'Les fournisseurs de votre zone ont 48 h pour répondre. Vous choisissez l’offre qui vous convient.' },

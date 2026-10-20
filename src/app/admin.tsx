@@ -285,7 +285,7 @@ export default function AdminScreen() {
       </Card>
 
       <Card>
-        <ThemedText type="subtitle">Mises en relation (Réseau)</ThemedText>
+        <ThemedText type="subtitle">Mises en relation (Partenaires)</ThemedText>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }}>
           <Figure label="Demandes de contact" value={overview.contacts.requested} />
           <Figure label="Acceptées" value={overview.contacts.accepted} />

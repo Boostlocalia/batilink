@@ -15,7 +15,7 @@ export const growthFr = {
     trialOver: `Votre essai gratuit de 7 jours est terminé. Choisissez Starter ou Premium pour continuer à utiliser ${APP_NAME}. Vos demandes et commandes sont conservées.`,
     networkLeft: (left: number) =>
       left > 0
-        ? `Plan Test : encore ${left} échange${left > 1 ? "s" : ""} ce mois-ci dans le réseau.`
+        ? `Plan Test : encore ${left} échange${left > 1 ? "s" : ""} ce mois-ci dans Partenaires.`
         : "Plan Test : vos 3 échanges du mois sont utilisés.",
   },
   upgrade: {

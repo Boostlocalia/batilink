@@ -294,7 +294,7 @@ Deno.serve(async (req) => {
     if (!count) await admin.from('conversation_reports').insert({ conversation_id: c.id, reporter: me, reason });
     await sendMail({
       to: Deno.env.get('EMAIL_FROM') ?? 'support@batinode.be',
-      subject: 'Conversation signalée sur le Réseau',
+      subject: 'Conversation signalée dans Partenaires',
       text: `Une entreprise a signalé une conversation. Voir l'espace Admin : ${appUrl()}/admin`,
       html: `<p>Une entreprise a signalé une conversation.</p><p><a href="${appUrl()}/admin">Voir l'espace Admin</a></p>`,
     }).catch((e) => console.error(e));

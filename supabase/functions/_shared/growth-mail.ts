@@ -104,7 +104,7 @@ export function trialEndingMail(lang: Lang, to: string, daysLeft: number, url: s
       subject: `Votre essai Premium se termine dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`,
       paragraphs: [
         `Après l’essai, choisissez un plan pour continuer à utiliser ${APP_NAME}. Vos demandes, offres et commandes restent enregistrées.`,
-        'Gardez Premium au prix de lancement de 129,99 € HTVA par mois, ou 1 299,90 € par an (deux mois offerts). Le plan Starter (69,99 € par mois) garde le réseau sans limite, sans les fournisseurs. Sans engagement, et ce prix vous reste garanti à vie tant que vous restez abonné.',
+        'Gardez Premium au prix de lancement de 129,99 € HTVA par mois, ou 1 299,90 € par an (deux mois offerts). Le plan Starter (69,99 € par mois) garde Partenaires sans limite, sans les fournisseurs. Sans engagement, et ce prix vous reste garanti à vie tant que vous restez abonné.',
       ],
       cta: { label: 'Choisir mon plan', url },
     },
@@ -112,7 +112,7 @@ export function trialEndingMail(lang: Lang, to: string, daysLeft: number, url: s
       subject: `Uw Premium-proefperiode eindigt over ${daysLeft} dag${daysLeft > 1 ? 'en' : ''}`,
       paragraphs: [
         `Kies na de proefperiode een plan om ${APP_NAME} te blijven gebruiken. Uw aanvragen, offertes en bestellingen blijven bewaard.`,
-        'Behoud Premium tegen de lanceringsprijs van € 129,99 excl. btw per maand, of € 1.299,90 per jaar (twee maanden gratis). Het Starter-plan (€ 69,99 per maand) houdt het netwerk zonder limiet, zonder de leveranciers. Zonder verbintenis, en deze prijs blijft u levenslang gegarandeerd zolang u geabonneerd blijft.',
+        'Behoud Premium tegen de lanceringsprijs van € 129,99 excl. btw per maand, of € 1.299,90 per jaar (twee maanden gratis). Het Starter-plan (€ 69,99 per maand) houdt Partners zonder limiet, zonder de leveranciers. Zonder verbintenis, en deze prijs blijft u levenslang gegarandeerd zolang u geabonneerd blijft.',
       ],
       cta: { label: 'Mijn plan kiezen', url },
     },
@@ -199,20 +199,20 @@ export function newcomersMail(lang: Lang, to: string, newcomers: Newcomer[], url
       paragraphs: [
         `Cette semaine, ${count > 1 ? `${count} entrepreneurs vérifiés ont` : 'un entrepreneur vérifié a'} rejoint ${APP_NAME} :`,
         ...newcomers.map(line),
-        'Besoin d’un sous-traitant ou d’un coup de main sur un chantier ? Publiez une annonce dans Réseau.',
+        'Besoin d’un sous-traitant ou d’un coup de main sur un chantier ? Publiez une annonce dans Partenaires.',
         'Vous ne voulez plus recevoir ce récapitulatif ? Désactivez-le dans Réglages.',
       ],
-      cta: { label: 'Voir le réseau', url },
+      cta: { label: 'Voir les partenaires', url },
     },
     nl: {
       subject: `${count} nieuw${count > 1 ? 'e bedrijven' : ' bedrijf'} op ${APP_NAME} deze week`,
       paragraphs: [
         `Deze week ${count > 1 ? `sloten ${count} geverifieerde aannemers` : 'sloot een geverifieerde aannemer'} aan bij ${APP_NAME}:`,
         ...newcomers.map(line),
-        'Een onderaannemer of extra hulp nodig op een werf? Plaats een oproep in Netwerk.',
+        'Een onderaannemer of extra hulp nodig op een werf? Plaats een oproep in Partners.',
         'Wilt u dit overzicht niet meer ontvangen? Zet het uit in Instellingen.',
       ],
-      cta: { label: 'Netwerk bekijken', url },
+      cta: { label: 'Partners bekijken', url },
     },
   });
 }

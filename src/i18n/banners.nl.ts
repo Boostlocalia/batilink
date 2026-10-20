@@ -31,10 +31,10 @@ export const bannersNl: typeof bannersFr = {
       cta: 'Aanvraag starten',
     },
     network: {
-      kicker: 'Netwerk',
+      kicker: 'Partners',
       title: (n: number) => (n > 0 ? `${n} ${s(n, 'nieuwe aannemer', 'nieuwe aannemers')} deze week` : 'Uw volgende onderaannemer is er al'),
       text: 'Publiceer een opdracht of reageer op zoekertjes in uw regio. Enkel geverifieerde bedrijven.',
-      cta: 'Netwerk openen',
+      cta: 'Partners bekijken',
     },
     delivery: {
       kicker: 'Bestellingen',
@@ -86,7 +86,7 @@ export const bannersNl: typeof bannersFr = {
       kicker: 'Geverifieerd',
       title: 'Enkel bedrijven die in orde zijn',
       text: 'Btw en KBO live gecontroleerd, bij elke samenwerking.',
-      cta: 'Netwerk bekijken',
+      cta: 'Partners bekijken',
     },
   },
   landing: {
@@ -112,7 +112,7 @@ export const bannersNl: typeof bannersFr = {
   pages: {
     signin: [
       { kicker: 'Materialen', title: 'Uw leveranciersprijzen binnen 48 u ⚡', text: 'Eén aanvraag, meerdere offertes, u kiest de beste.' },
-      { kicker: 'Netwerk', title: 'Enkel bedrijven die in orde zijn', text: 'Btw en KBO gecontroleerd voor elke aannemer, leverancier en architect.' },
+      { kicker: 'Partners', title: 'Enkel bedrijven die in orde zijn', text: 'Btw en KBO gecontroleerd voor elke aannemer, leverancier en architect.' },
       { kicker: 'Proef', title: '7 dagen gratis, zonder bankkaart', text: 'Maak uw account aan en test vandaag nog alles van Premium.' },
     ],
     request: { kicker: 'Prijsaanvraag', title: 'Oplijsten, versturen, vergelijken', text: 'De leveranciers in uw regio hebben 48 u om te antwoorden. U kiest de offerte die u past.' },
