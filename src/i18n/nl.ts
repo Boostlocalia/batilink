@@ -118,10 +118,8 @@ export const nl: Dictionary = {
     choiceMixHelp:
       'Vink een of meer leveranciers aan die u kent. BatiNode vult aan met leveranciers uit uw regio, zodat uw aanvraag in totaal naar 5 leveranciers gaat.',
     sendMix: (n: number, total: number) => `Versturen naar ${n} leverancier${n > 1 ? 's' : ''} + ${total - n} gevonden door BatiNode`,
-    batinodeSearching: (found: number, target: number) =>
-      found >= target
-        ? `BatiNode heeft uw aanvraag naar ${found} leveranciers in uw regio gestuurd.`
-        : `BatiNode zoekt leveranciers in uw regio: ${found} van de ${target} hebben uw aanvraag al ontvangen. De anderen krijgen ze zodra we ze gevonden hebben.`,
+    batinodeSearching: (found: number) =>
+      `BatiNode heeft uw aanvraag naar ${found} leverancier${found > 1 ? 's' : ''} in uw regio gestuurd. De offertes komen hier binnen 48 uur binnen.`,
     suppliers: 'Leveranciers in uw regio',
     noSuppliers:
       'Er is nog geen leverancier ingeschreven voor deze categorie in uw regio. We contacteren elke week nieuwe handelaars.',

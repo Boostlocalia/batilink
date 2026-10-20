@@ -10,7 +10,6 @@ import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
 import type { OrderStatus } from '@/lib/orders';
-import { AUTO_SUPPLIERS } from '@/lib/plans';
 import { compareOffers, type Offer, type RequestItem } from '@/lib/quotes';
 import { supabase } from '@/lib/supabase';
 
@@ -103,7 +102,7 @@ export default function CompareScreen() {
       {request && request.supplier_choice !== 'own' && request.status === 'sent' ? (
         <Card style={{ backgroundColor: theme.goodBackground, borderColor: theme.goodBackground }}>
           <ThemedText type="smallBold" themeColor="good">
-            {t.request.batinodeSearching(offers.length, AUTO_SUPPLIERS)}
+            {t.request.batinodeSearching(offers.length)}
           </ThemedText>
         </Card>
       ) : sent ? (

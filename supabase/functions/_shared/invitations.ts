@@ -85,21 +85,25 @@ export async function inviteSuppliers(admin: SupabaseClient, request: SentReques
 /**
  * The suppliers BatiNode picks for a request: those covering its category at the
  * closest postal prefix first, then those asked least recently, so the same
- * suppliers are not always the ones solicited. Only suppliers with an e-mail
- * address who did not unsubscribe, never one already invited to this request.
+ * suppliers are not always the ones solicited. When too few cover that postal code,
+ * suppliers of the category based nearby (same province, closest postal code) fill
+ * the remaining places. Only suppliers with an e-mail address who did not
+ * unsubscribe, never one already invited to this request.
  */
 export async function pickSuppliers(admin: SupabaseClient, request: SentRequest, count: number): Promise<string[]> {
   if (count < 1) return [];
   const { data: coverage } = await admin.from('supplier_coverage').select('supplier_id, postal_prefix').eq('category_id', request.category_id);
   const closeness = new Map<string, number>();
+  const category = new Set<string>();
   for (const c of coverage ?? []) {
+    category.add(c.supplier_id);
     if (!request.postal_code.startsWith(c.postal_prefix)) continue;
     closeness.set(c.supplier_id, Math.max(closeness.get(c.supplier_id) ?? 0, c.postal_prefix.length));
   }
-  if (!closeness.size) return [];
-  const ids = [...closeness.keys()];
+  if (!category.size) return [];
+  const ids = [...category];
   const [{ data: reachable }, { data: invited }, { data: recent }] = await Promise.all([
-    admin.from('companies').select('id, email, quote_email, verified_at').in('id', ids).eq('kind', 'supplier').is('requests_stopped_at', null),
+    admin.from('companies').select('id, email, quote_email, verified_at, postal_code').in('id', ids).eq('kind', 'supplier').is('requests_stopped_at', null),
     admin.from('quotes').select('supplier_id').eq('request_id', request.id),
     admin.from('quotes').select('supplier_id, created_at').in('supplier_id', ids).order('created_at', { ascending: false }).limit(1000),
   ]);
@@ -107,8 +111,10 @@ export async function pickSuppliers(admin: SupabaseClient, request: SentRequest,
   const lastAsked = new Map<string, string>();
   for (const q of recent ?? []) if (!lastAsked.has(q.supplier_id)) lastAsked.set(q.supplier_id, q.created_at);
   const shuffle = new Map(ids.map((id) => [id, Math.random()]));
-  return (reachable ?? [])
-    .filter((s) => (s.quote_email ?? s.email) && !already.has(s.id))
+  const candidates = (reachable ?? []).filter((s) => (s.quote_email ?? s.email) && !already.has(s.id));
+
+  const covering = candidates
+    .filter((s) => closeness.has(s.id))
     .sort(
       (a, b) =>
         closeness.get(b.id)! - closeness.get(a.id)! ||
@@ -116,6 +122,40 @@ export async function pickSuppliers(admin: SupabaseClient, request: SentRequest,
         Number(Boolean(b.verified_at)) - Number(Boolean(a.verified_at)) ||
         shuffle.get(a.id)! - shuffle.get(b.id)!,
     )
-    .slice(0, count)
     .map((s) => s.id);
+  if (covering.length >= count) return covering.slice(0, count);
+
+  // Not enough: suppliers of the category based in the same province, nearest postal code first.
+  const target = Number(request.postal_code);
+  const nearby = candidates
+    .filter((s) => !closeness.has(s.id) && s.postal_code && sameProvince(s.postal_code, request.postal_code))
+    .sort(
+      (a, b) =>
+        Math.abs(Number(a.postal_code) - target) - Math.abs(Number(b.postal_code) - target) ||
+        (lastAsked.get(a.id) ?? '').localeCompare(lastAsked.get(b.id) ?? '') ||
+        shuffle.get(a.id)! - shuffle.get(b.id)!,
+    )
+    .map((s) => s.id);
+  return [...covering, ...nearby].slice(0, count);
+}
+
+// Same provinces as public.region_prefixes().
+const PROVINCES: string[][] = [
+  ['10', '11', '12'],
+  ['13', '14'],
+  ['15', '16', '17', '18', '19', '30', '31', '32', '33', '34'],
+  ['2'],
+  ['35', '36', '37', '38', '39'],
+  ['4'],
+  ['5'],
+  ['60', '61', '62', '63', '64', '65', '7'],
+  ['66', '67', '68', '69'],
+  ['8'],
+  ['9'],
+];
+
+function sameProvince(a: string, b: string): boolean {
+  const province = (code: string) => PROVINCES.findIndex((prefixes) => prefixes.some((p) => code.startsWith(p)));
+  const pa = province(a);
+  return pa !== -1 && pa === province(b);
 }

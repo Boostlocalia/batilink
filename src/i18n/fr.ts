@@ -116,10 +116,8 @@ export const fr = {
     choiceMixHelp:
       'Cochez un ou plusieurs fournisseurs que vous connaissez. BatiNode complète avec des fournisseurs de votre région, pour que votre demande parte chez 5 fournisseurs en tout.',
     sendMix: (n: number, total: number) => `Envoyer à ${n} fournisseur${n > 1 ? 's' : ''} + ${total - n} trouvé${total - n > 1 ? 's' : ''} par BatiNode`,
-    batinodeSearching: (found: number, target: number) =>
-      found >= target
-        ? `BatiNode a envoyé votre demande à ${found} fournisseurs de votre région.`
-        : `BatiNode cherche des fournisseurs dans votre région : ${found} sur ${target} ont déjà reçu votre demande. Les autres la recevront dès que nous les aurons trouvés.`,
+    batinodeSearching: (found: number) =>
+      `BatiNode a envoyé votre demande à ${found} fournisseur${found > 1 ? 's' : ''} de votre région. Les offres arrivent ici sous 48 heures.`,
     suppliers: 'Fournisseurs de votre zone',
     noSuppliers:
       "Aucun fournisseur n'est encore inscrit pour cette catégorie dans votre zone. Nous en démarchons de nouveaux chaque semaine.",
