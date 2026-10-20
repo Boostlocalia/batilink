@@ -5,17 +5,21 @@
 // { token, question } asks the contractor something (relayed like a reply e-mail),
 // and { token, stop_requests: true } unsubscribes the supplier from request e-mails.
 // POST ?token=…&unsubscribe=1 is the one-click unsubscribe sent by mail clients.
+// POST multipart { token, file } stores the supplier's own quote (PDF) with the offer
+// and returns the prices Nodi read in it, for the supplier to check before submitting.
 
 import { offerTotalExVat, SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
 import { newQuoteMail, sendMail, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
 import { adminClient, appUrl, corsHeaders, json } from '../_shared/supabase.ts';
+import { readOfferPdf } from '../_shared/offer-pdf.ts';
+import { sniffType } from '../_shared/order-docs.ts';
 import { MAX_BODY, relayMessage } from '../_shared/relay.ts';
 import { hashToken } from '../_shared/tokens.ts';
 
 type Admin = ReturnType<typeof adminClient>;
 
-const QUOTE_COLUMNS = 'id, request_id, supplier_id, status, token_expires_at, delivery_fee, lead_time_days, valid_until, comment, commission_accepted_at';
+const QUOTE_COLUMNS = 'id, request_id, supplier_id, status, token_expires_at, delivery_fee, lead_time_days, valid_until, comment, commission_accepted_at, offer_file_path';
 
 /** The e-mailed link, or a short link the supplier opened from its space. */
 async function findQuote(admin: Admin, token: string | null) {
@@ -60,6 +64,7 @@ Deno.serve(async (req) => {
         valid_until: quote.valid_until,
         comment: quote.comment,
         commission_accepted: Boolean(quote.commission_accepted_at),
+        has_file: Boolean(quote.offer_file_path),
         prices: Object.fromEntries((prices ?? []).map((p) => [p.item_id, Number(p.unit_price)])),
       },
       request,
@@ -91,6 +96,8 @@ Deno.serve(async (req) => {
     await logEvent(admin, { kind: 'supplier_unsubscribed', company_id: target.supplier_id, quote_id: target.id, data: { via: 'one_click' } });
     return json({ ok: true });
   }
+
+  if ((req.headers.get('content-type') ?? '').startsWith('multipart/form-data')) return attachPdf(admin, req);
 
   const body = await req.json();
   const quote = await findQuote(admin, body.token);
@@ -184,3 +191,38 @@ Deno.serve(async (req) => {
   }
   return json({ ok: true });
 });
+
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
+const MAX_PDF_READS = 5;
+
+/** Stores the supplier's PDF quote on the offer and reads its prices. */
+async function attachPdf(admin: Admin, req: Request): Promise<Response> {
+  const form = await req.formData().catch(() => null);
+  const file = form?.get('file');
+  const quote = await findQuote(admin, typeof form?.get('token') === 'string' ? (form!.get('token') as string) : null);
+  if (!quote) return json({ error: 'invalid_link' }, 404);
+  if (!(file instanceof File)) return json({ error: 'file_type' }, 400);
+  if (file.size > MAX_PDF_BYTES) return json({ error: 'too_large' }, 413);
+
+  const { data: request } = await admin.from('price_requests').select('id, status').eq('id', quote.request_id).single();
+  if (!request || request.status !== 'sent' || !['invited', 'submitted'].includes(quote.status)) return json({ error: 'closed' }, 409);
+  // Each reading costs an AI call: a few per offer are enough.
+  const { data: counted } = await admin.from('quotes').select('offer_reads').eq('id', quote.id).single();
+  if ((counted?.offer_reads ?? 0) >= MAX_PDF_READS) return json({ error: 'too_many' }, 429);
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (sniffType(bytes) !== 'application/pdf') return json({ error: 'file_type' }, 400);
+
+  const path = `${quote.id}/${crypto.randomUUID()}.pdf`;
+  const { error: uploadError } = await admin.storage.from('quote-files').upload(path, bytes, { contentType: 'application/pdf' });
+  if (uploadError) return json({ error: 'save_failed' }, 500);
+  await admin.from('quotes').update({ offer_file_path: path, offer_reads: (counted?.offer_reads ?? 0) + 1 }).eq('id', quote.id);
+
+  const { data: items } = await admin.from('request_items').select('id, label, quantity, unit').eq('request_id', request.id).order('position');
+  const reading = await readOfferPdf(
+    bytes,
+    (items ?? []).map((i) => ({ id: i.id, label: i.label, quantity: Number(i.quantity), unit: i.unit })),
+    new Date().toISOString().slice(0, 10),
+  );
+  return json({ attached: true, reading });
+}

@@ -1,6 +1,7 @@
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 
 import { Questions, type Conversation, type QuoteMessage } from '@/components/questions';
 import { ThemedText } from '@/components/themed-text';
@@ -37,7 +38,7 @@ export default function CompareScreen() {
       supabase.from('request_items').select('id, label, quantity, unit').eq('request_id', id).order('position'),
       supabase
         .from('quotes')
-        .select('id, status, delivery_fee, lead_time_days, valid_until, comment, reminded_at, supplier:companies(name), quote_items(item_id, unit_price)')
+        .select('id, status, delivery_fee, lead_time_days, valid_until, comment, offer_file_path, reminded_at, supplier:companies(name), quote_items(item_id, unit_price)')
         .eq('request_id', id)
         .order('created_at'),
       supabase
@@ -64,6 +65,7 @@ export default function CompareScreen() {
         validUntil: q.valid_until,
         comment: q.comment,
         remindedAt: q.reminded_at,
+        offerFile: q.offer_file_path,
         prices: Object.fromEntries((q.quote_items ?? []).map((p) => [p.item_id, Number(p.unit_price)])),
       })),
     );
@@ -287,6 +289,22 @@ export default function CompareScreen() {
             </Card>
           ) : null}
 
+          {offers.some((o) => o.offerFile && o.status !== 'declined') ? (
+            <Card>
+              <ThemedText type="subtitle">{t.compare.offerPdfs}</ThemedText>
+              {offers
+                .filter((o) => o.offerFile && o.status !== 'declined')
+                .map((o) => (
+                  <View key={o.id} style={styles.waiting}>
+                    <ThemedText type="smallBold" style={{ flex: 1 }}>
+                      {o.supplierName}
+                    </ThemedText>
+                    <Button small variant="ghost" label={t.compare.openPdf} onPress={() => openOfferPdf(o.offerFile!)} />
+                  </View>
+                ))}
+            </Card>
+          ) : null}
+
           <Questions
             conversations={conversations}
             canAnswer={request.status === 'sent' || request.status === 'awarded'}
@@ -333,3 +351,11 @@ const styles = StyleSheet.create({
   tabular: { fontVariant: ['tabular-nums'] },
   waiting: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, flexWrap: 'wrap' },
 });
+
+/** Opens a supplier's PDF quote through a link valid five minutes. */
+async function openOfferPdf(path: string): Promise<void> {
+  const { data } = await supabase.storage.from('quote-files').createSignedUrl(path, 300);
+  if (!data?.signedUrl) return;
+  if (Platform.OS === 'web') window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+  else await WebBrowser.openBrowserAsync(data.signedUrl);
+}
