@@ -34,7 +34,9 @@ export function kboOutcome(
   row: { status: string; nace_codes: string[] } | null,
   kind: CompanyKind = 'contractor',
 ): Pick<CheckResult, 'outcome' | 'findings'> {
-  if (!row) return { outcome: 'failed', findings: ['kbo_not_found'] };
+  // The imported extract keeps only the building trades (decided by Henrique, 20/10/2026):
+  // a company missing from it goes to a person for review instead of being refused.
+  if (!row) return { outcome: 'warning', findings: ['kbo_not_found'] };
   if (row.status !== 'AC') return { outcome: 'failed', findings: ['kbo_not_active'] };
   if (kind === 'contractor' && !hasConstructionActivity(row.nace_codes)) {
     return { outcome: 'warning', findings: ['kbo_no_construction_activity'] };

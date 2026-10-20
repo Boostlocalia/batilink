@@ -23,7 +23,7 @@ describe('enterprise numbers', () => {
 
 describe('KBO', () => {
   it('needs an active enterprise with the right activity', () => {
-    expect(kboOutcome(null).outcome).toBe('failed');
+    expect(kboOutcome(null).outcome).toBe('warning');
     expect(kboOutcome({ status: 'gone', nace_codes: ['43320'] }).findings).toEqual(['kbo_not_active']);
     expect(kboOutcome({ status: 'AC', nace_codes: ['43320'] }).outcome).toBe('ok');
     expect(kboOutcome({ status: 'AC', nace_codes: [] }).findings).toEqual(['kbo_no_construction_activity']);
