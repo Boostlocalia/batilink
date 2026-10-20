@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { Platform, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Animated, Platform, useWindowDimensions, View } from "react-native";
 import type { AuthError } from "@supabase/supabase-js";
 
 import { ThemedText } from "@/components/themed-text";
@@ -8,8 +8,10 @@ import { Button, Card, Field, Screen, Segmented } from "@/components/ui";
 import { Spacing } from "@/constants/theme";
 import { useI18n, type Language } from "@/i18n";
 import { supabase } from "@/lib/supabase";
-import { Logo } from '@/components/logo';
+import { Logo } from "@/components/logo";
 import { SignInBanners } from "@/components/home-banners";
+import { GlowBackdrop } from "@/components/glow-backdrop";
+import { NodiGreeting } from "@/components/nodi-greeting";
 
 type Mode = "signin" | "signup";
 
@@ -28,6 +30,16 @@ export default function SignInScreen() {
     initial === "inscription" ? "signup" : "signin",
   );
   const [email, setEmail] = useState("");
+  // Two columns on large screens: the form, and the banners beside it.
+  const wide = useWindowDimensions().width >= 900;
+  const [enter] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    Animated.timing(enter, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: Platform.OS !== "web",
+    }).start();
+  }, [enter]);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -104,8 +116,15 @@ export default function SignInScreen() {
   };
 
   return (
-    <Screen withTabBar={false}>
-      <View style={{ gap: Spacing.two }}>
+    <Screen withTabBar={false} backdrop={<GlowBackdrop />}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Logo size={34} />
         <Segmented<Language>
           value={language}
           onChange={setLanguage}
@@ -114,74 +133,114 @@ export default function SignInScreen() {
             { value: "nl", label: "NL" },
           ]}
         />
-        <Logo size={34} />
-        <ThemedText type="subtitle">
-          {mode === "signin" ? a.title : a.signUpTitle}
-        </ThemedText>
-        <ThemedText themeColor="textSecondary">
-          {mode === "signin" ? a.lead : a.signUpLead}
-        </ThemedText>
       </View>
-      <Segmented<Mode>
-        value={mode}
-        onChange={switchMode}
-        options={[
-          { value: "signin", label: a.signInTab },
-          { value: "signup", label: a.signUpTab },
-        ]}
-      />
-      {notice ? <ThemedText themeColor="good">{notice}</ThemedText> : null}
-      <Card>
-        <Field
-          label={a.email}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          autoComplete="email"
-          textContentType="username"
-          keyboardType="email-address"
-          inputMode="email"
-          error={errors.email}
-        />
-        <Field
-          label={mode === "signin" ? a.password : a.newPassword}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCapitalize="none"
-          autoComplete={mode === "signin" ? "current-password" : "new-password"}
-          textContentType={mode === "signin" ? "password" : "newPassword"}
-          hint={mode === "signup" ? a.passwordHint : undefined}
-          error={errors.password}
-          onSubmitEditing={mode === "signin" ? submit : undefined}
-        />
-        {mode === "signup" ? (
-          <Field
-            label={a.confirmPassword}
-            value={confirm}
-            onChangeText={setConfirm}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="new-password"
-            textContentType="newPassword"
-            error={errors.confirm}
-            onSubmitEditing={submit}
+      <View
+        style={
+          wide
+            ? {
+                flexDirection: "row",
+                gap: Spacing.five,
+                alignItems: "flex-start",
+              }
+            : { gap: Spacing.four }
+        }
+      >
+        <Animated.View
+          style={[
+            { gap: Spacing.four },
+            wide && { flex: 1 },
+            {
+              opacity: enter,
+              transform: [
+                {
+                  translateY: enter.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [24, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <NodiGreeting
+            key={mode}
+            lines={mode === "signin" ? a.nodiSignIn : a.nodiSignUp}
           />
-        ) : null}
-        {errors.form ? (
-          <ThemedText themeColor="danger">{errors.form}</ThemedText>
-        ) : null}
-        <Button
-          label={mode === "signin" ? a.signIn : a.signUp}
-          variant="signal"
-          onPress={submit}
-          busy={busy}
-        />
-        {mode === "signin" ? (
-          <Button label={a.forgot} variant="ghost" small onPress={forgot} />
-        ) : null}
-      </Card>
-      <SignInBanners />
+          <View style={{ gap: Spacing.two }}>
+            <ThemedText type="title">
+              {mode === "signin" ? a.title : a.signUpTitle}
+            </ThemedText>
+            <ThemedText themeColor="textSecondary">
+              {mode === "signin" ? a.lead : a.signUpLead}
+            </ThemedText>
+          </View>
+          <Segmented<Mode>
+            signal
+            value={mode}
+            onChange={switchMode}
+            options={[
+              { value: "signin", label: a.signInTab },
+              { value: "signup", label: a.signUpTab },
+            ]}
+          />
+          {notice ? <ThemedText themeColor="good">{notice}</ThemedText> : null}
+          <Card>
+            <Field
+              label={a.email}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoComplete="email"
+              textContentType="username"
+              keyboardType="email-address"
+              inputMode="email"
+              error={errors.email}
+            />
+            <Field
+              label={mode === "signin" ? a.password : a.newPassword}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoCapitalize="none"
+              autoComplete={
+                mode === "signin" ? "current-password" : "new-password"
+              }
+              textContentType={mode === "signin" ? "password" : "newPassword"}
+              hint={mode === "signup" ? a.passwordHint : undefined}
+              error={errors.password}
+              onSubmitEditing={mode === "signin" ? submit : undefined}
+            />
+            {mode === "signup" ? (
+              <Field
+                label={a.confirmPassword}
+                value={confirm}
+                onChangeText={setConfirm}
+                secureTextEntry
+                autoCapitalize="none"
+                autoComplete="new-password"
+                textContentType="newPassword"
+                error={errors.confirm}
+                onSubmitEditing={submit}
+              />
+            ) : null}
+            {errors.form ? (
+              <ThemedText themeColor="danger">{errors.form}</ThemedText>
+            ) : null}
+            <Button
+              label={mode === "signin" ? a.signIn : a.signUp}
+              variant="signal"
+              onPress={submit}
+              busy={busy}
+            />
+            {mode === "signin" ? (
+              <Button label={a.forgot} variant="ghost" small onPress={forgot} />
+            ) : null}
+          </Card>
+        </Animated.View>
+        <View style={wide ? { flex: 1, paddingTop: Spacing.five } : undefined}>
+          <SignInBanners tall={wide} />
+        </View>
+      </View>
     </Screen>
   );
 }

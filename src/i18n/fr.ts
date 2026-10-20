@@ -20,6 +20,8 @@ export const fr = {
     network: 'Réseau',
   },
   auth: {
+    nodiSignIn: ['Bonjour 👋 Content de vous revoir !', 'Vos offres fournisseurs vous attendent.', 'Les actus du bâtiment du jour sont prêtes.'],
+    nodiSignUp: ['Bienvenue ! Je suis Nodi, votre assistant 👋', '7 jours de Premium offerts, sans carte.', 'Votre première demande de prix en 2 minutes.'],
     title: 'Connexion',
     lead: 'Connectez-vous avec votre adresse e-mail et votre mot de passe.',
     signUpTitle: 'Créer un compte',

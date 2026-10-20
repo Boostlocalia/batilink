@@ -67,14 +67,14 @@ const PAGE_LOOKS: { image: Slide['image']; accent: Slide['accent'] }[] = [
 ];
 
 /** A page header banner made of one or more hook lines, each with its own photo and accent. */
-function PageBanner({ items, looks = PAGE_LOOKS }: { items: PageSlide[]; looks?: typeof PAGE_LOOKS }) {
+function PageBanner({ items, looks = PAGE_LOOKS, height = 170 }: { items: PageSlide[]; looks?: typeof PAGE_LOOKS; height?: number }) {
   const slides: Slide[] = items.map((s, i) => ({ key: String(i), ...looks[i % looks.length], ...s }));
-  return <HeroCarousel slides={slides} height={170} />;
+  return <HeroCarousel slides={slides} height={height} />;
 }
 
-export function SignInBanners() {
+export function SignInBanners({ tall = false }: { tall?: boolean }) {
   const { t } = useI18n();
-  return <PageBanner items={t.banners.pages.signin} />;
+  return <PageBanner items={t.banners.pages.signin} height={tall ? 460 : 170} />;
 }
 
 export function RequestBanner() {

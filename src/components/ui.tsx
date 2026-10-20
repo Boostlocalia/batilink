@@ -16,10 +16,11 @@ import { BottomTabInset, MaxContentWidth, Radius, Spacing, type ThemeColor } fro
 import { useTheme } from '@/hooks/use-theme';
 
 /** Scrollable page with the content column centred and capped on wide screens. */
-export function Screen({ children, withTabBar = true }: { children: ReactNode; withTabBar?: boolean }) {
+export function Screen({ children, withTabBar = true, backdrop }: { children: ReactNode; withTabBar?: boolean; backdrop?: ReactNode }) {
   const theme = useTheme();
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.flex, { backgroundColor: theme.background }]}>
+      {backdrop}
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.scroll, { paddingBottom: (withTabBar ? BottomTabInset : 0) + Spacing.five }]}>

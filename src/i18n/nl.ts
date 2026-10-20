@@ -22,6 +22,8 @@ export const nl: Dictionary = {
     network: 'Netwerk',
   },
   auth: {
+    nodiSignIn: ['Hallo 👋 Fijn u terug te zien!', 'Uw leveranciersoffertes wachten op u.', 'Het bouwnieuws van vandaag staat klaar.'],
+    nodiSignUp: ['Welkom! Ik ben Nodi, uw assistent 👋', '7 dagen Premium gratis, zonder kaart.', 'Uw eerste prijsaanvraag in 2 minuten.'],
     title: 'Aanmelden',
     lead: 'Meld u aan met uw e-mailadres en wachtwoord.',
     signUpTitle: 'Account aanmaken',
