@@ -2,6 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
+import { Logo } from "@/components/logo";
 import { Assistant } from "@/components/assistant";
 import { ThemedText } from "@/components/themed-text";
 import { Button, Card, Chip, Field, Screen, Segmented } from "@/components/ui";
@@ -17,7 +18,6 @@ import {
   toBelgianDate,
 } from "@/lib/format";
 import { anonHeaders, functionsUrl } from "@/lib/supabase";
-import { APP_NAME } from "@/constants/brand";
 
 type Payload = {
   quote: {
@@ -203,9 +203,7 @@ export default function SupplierQuoteScreen() {
 
   const header = (
     <View style={styles.header}>
-      <ThemedText type="subtitle" themeColor="signal">
-        {APP_NAME}
-      </ThemedText>
+      <Logo size={24} />
       <Segmented<Language>
         value={language}
         onChange={setLanguage}

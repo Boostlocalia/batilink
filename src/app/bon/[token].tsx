@@ -2,9 +2,9 @@ import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 
+import { Logo } from '@/components/logo';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Field, Option, Screen, Segmented } from '@/components/ui';
-import { APP_NAME } from '@/constants/brand';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n, type Language } from '@/i18n';
@@ -103,9 +103,7 @@ export default function SupplierOrderScreen() {
 
   const header = (
     <View style={styles.header}>
-      <ThemedText type="subtitle" themeColor="signal">
-        {APP_NAME}
-      </ThemedText>
+      <Logo size={24} />
       <Segmented<Language>
         value={language}
         onChange={setLanguage}
