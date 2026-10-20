@@ -99,6 +99,9 @@ export function canSendPriceRequest(plan: Plan, sentThisMonth: number, supplierC
   return { ok: true };
 }
 
+/** How many suppliers BatiNode finds when the contractor lets it choose. */
+export const AUTO_SUPPLIERS = 5;
+
 /** First instant of the calendar month containing `now`, in UTC. */
 export function monthStart(now: Date): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));

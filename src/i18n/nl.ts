@@ -105,6 +105,17 @@ export const nl: Dictionary = {
     note: 'Opmerking voor leveranciers',
     notePlaceholder: 'Toegang tot de werf via de achterstraat, geen kraanwagen.',
     findSuppliers: 'Leveranciers zoeken',
+    choice: 'Naar wie sturen we de aanvraag?',
+    choiceBatinode: 'BatiNode zoekt voor mij',
+    choiceOwn: 'Ik kies mijn leveranciers',
+    choiceBatinodeHelp:
+      'Automatisch zoeken: BatiNode stuurt uw aanvraag naar 5 leveranciers in uw regio, gekozen op basis van de categorie en de ligging van uw werf. U ontvangt tot 5 verschillende offertes binnen 48 uur en kiest de beste.',
+    choiceOwnHelp: 'U kiest zelf de leveranciers met wie u wilt werken: uw favorieten of die uit uw regio.',
+    sendBatinode: 'Aanvraag versturen',
+    batinodeSearching: (found: number, target: number) =>
+      found >= target
+        ? `BatiNode heeft uw aanvraag naar ${found} leveranciers in uw regio gestuurd.`
+        : `BatiNode zoekt leveranciers in uw regio: ${found} van de ${target} hebben uw aanvraag al ontvangen. De anderen krijgen ze zodra we ze gevonden hebben.`,
     suppliers: 'Leveranciers in uw regio',
     noSuppliers:
       'Er is nog geen leverancier ingeschreven voor deze categorie in uw regio. We contacteren elke week nieuwe handelaars.',

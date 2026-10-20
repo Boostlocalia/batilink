@@ -10,10 +10,11 @@ import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
 import type { OrderStatus } from '@/lib/orders';
+import { AUTO_SUPPLIERS } from '@/lib/plans';
 import { compareOffers, type Offer, type RequestItem } from '@/lib/quotes';
 import { supabase } from '@/lib/supabase';
 
-type Request = { id: string; title: string; status: 'draft' | 'sent' | 'closed' | 'awarded'; postal_code: string; city: string | null };
+type Request = { id: string; title: string; status: 'draft' | 'sent' | 'closed' | 'awarded'; postal_code: string; city: string | null; supplier_choice: 'own' | 'batinode' };
 
 const LABEL_WIDTH = 190;
 const OFFER_WIDTH = 168;
@@ -33,7 +34,7 @@ export default function CompareScreen() {
 
   const load = useCallback(async () => {
     const [req, its, qs, msgs, po] = await Promise.all([
-      supabase.from('price_requests').select('id, title, status, postal_code, city').eq('id', id).single(),
+      supabase.from('price_requests').select('id, title, status, postal_code, city, supplier_choice').eq('id', id).single(),
       supabase.from('request_items').select('id, label, quantity, unit').eq('request_id', id).order('position'),
       supabase
         .from('quotes')
@@ -99,7 +100,13 @@ export default function CompareScreen() {
   return (
     <Screen withTabBar={false}>
       <Stack.Screen options={{ title: request?.title ?? '' }} />
-      {sent ? (
+      {request?.supplier_choice === 'batinode' && request.status === 'sent' ? (
+        <Card style={{ backgroundColor: theme.goodBackground, borderColor: theme.goodBackground }}>
+          <ThemedText type="smallBold" themeColor="good">
+            {t.request.batinodeSearching(offers.length, AUTO_SUPPLIERS)}
+          </ThemedText>
+        </Card>
+      ) : sent ? (
         <Card style={{ backgroundColor: theme.goodBackground, borderColor: theme.goodBackground }}>
           <ThemedText type="smallBold" themeColor="good">
             {t.request.sent(Number(sent))}

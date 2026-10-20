@@ -6,14 +6,14 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { ThemedText } from '@/components/themed-text';
 import { UpgradeCard, type UpgradeReason } from '@/components/upgrade-card';
-import { Button, Card, Chip, Field, Screen, Segmented } from '@/components/ui';
+import { Button, Card, Chip, Field, Option, Screen, Segmented } from '@/components/ui';
 import { RequestBanner } from '@/components/home-banners';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { pickFile, readPickedItems, takePendingItems, uploadCompanyFile } from '@/lib/files';
 import { isBelgianPostalCode, parseAmount, replyDeadline } from '@/lib/format';
-import { canSendPriceRequest, monthStart, PLANS } from '@/lib/plans';
+import { AUTO_SUPPLIERS, canSendPriceRequest, monthStart, PLANS } from '@/lib/plans';
 import { keepPendingRequest, takePendingRequest } from '@/lib/pending-request';
 import { useSession } from '@/lib/session';
 import { UNITS, type ImportedItem, type Unit } from '@/lib/spreadsheet';
@@ -45,6 +45,8 @@ export default function NewRequestScreen() {
   const [limit, setLimit] = useState<UpgradeReason | null>(null);
   const [needsProfile, setNeedsProfile] = useState(false);
 
+  // BatiNode picks 5 suppliers of the region, or the contractor picks them.
+  const [choice, setChoice] = useState<'batinode' | 'own'>('batinode');
   const [draftId, setDraftId] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[] | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -129,8 +131,9 @@ export default function NewRequestScreen() {
     return Object.keys(next).length === 0;
   };
 
-  const findSuppliers = async () => {
-    if (!validate()) return;
+  /** Saves the form as a draft request and returns its id, or null when it cannot be sent yet. */
+  const saveDraft = async (): Promise<string | null> => {
+    if (!validate()) return null;
     if (!company) {
       await keepPendingRequest({
         title,
@@ -141,7 +144,8 @@ export default function NewRequestScreen() {
         items: items.map(({ label, quantity, unit }) => ({ label, quantity, unit })),
         note,
       });
-      return setNeedsProfile(true);
+      setNeedsProfile(true);
+      return null;
     }
     setBusy(true);
     const fields = {
@@ -177,40 +181,60 @@ export default function NewRequestScreen() {
         unit: i.unit,
       }));
     const insert = id ? await supabase.from('request_items').insert(rows) : null;
-    const match = id && !insert?.error ? await supabase.rpc('match_suppliers', { p_request_id: id }) : null;
+    if (!id || insert?.error) {
+      setBusy(false);
+      setErrors({ form: t.common.error });
+      return null;
+    }
+    setDraftId(id);
+    return id;
+  };
+
+  const findSuppliers = async () => {
+    const id = await saveDraft();
+    if (!id) return;
+    const match = await supabase.rpc('match_suppliers', { p_request_id: id });
     setBusy(false);
-    if (!id || insert?.error || !match || match.error) return setErrors({ form: t.common.error });
+    if (match.error) return setErrors({ form: t.common.error });
 
     const found = (match.data ?? []) as Supplier[];
-    setDraftId(id);
     setSuppliers(found);
     const max = PLANS[plan].suppliersPerRequest;
     setPicked(new Set(found.slice(0, Number.isFinite(max) ? max : found.length).map((s) => s.id)));
   };
 
+  const sendToBatinode = async () => {
+    const id = await saveDraft();
+    if (!id) return;
+    await submit(id, { choice: 'batinode' }, AUTO_SUPPLIERS);
+  };
+
   const send = async () => {
     if (!draftId || !company) return;
+    await submit(draftId, { supplier_ids: [...picked] }, picked.size);
+  };
+
+  const submit = async (requestId: string, target: { choice: 'batinode' } | { supplier_ids: string[] }, count: number) => {
     setBusy(true);
-    const { count } = await supabase
+    const { count: sentThisMonth } = await supabase
       .from('price_requests')
       .select('id', { count: 'exact', head: true })
       .gte('sent_at', monthStart(new Date()).toISOString());
-    const check = canSendPriceRequest(plan, count ?? 0, picked.size);
+    const check = canSendPriceRequest(plan, sentThisMonth ?? 0, count);
     if (!check.ok) {
       setBusy(false);
       return setErrors({ form: errorText(check.reason, check.limit) });
     }
     const { data, error } = await supabase.functions.invoke('send-price-request', {
-      body: { request_id: draftId, supplier_ids: [...picked] },
+      body: { request_id: requestId, ...target },
     });
     setBusy(false);
     if (error) {
       const body = error instanceof FunctionsHttpError ? await error.context.json().catch(() => null) : null;
       return setErrors({ form: body?.error ? errorText(body.error, body.limit) : t.common.error });
     }
-    const id = draftId;
     reset();
-    router.push({ pathname: '/demande/[id]', params: { id, sent: String(data?.sent ?? picked.size) } });
+    router.push({ pathname: '/demande/[id]', params: { id: requestId, sent: String(data?.sent ?? count) } });
   };
 
   const errorText = (reason: string, _limit?: number) => {
@@ -357,11 +381,28 @@ export default function NewRequestScreen() {
       </Card>
 
       {suppliers === null ? (
-        <>
+        <Card>
+          <ThemedText type="subtitle">{t.request.choice}</ThemedText>
+          <View style={styles.wrap}>
+            <Option label={t.request.choiceBatinode} selected={choice === 'batinode'} onPress={() => setChoice('batinode')} />
+            <Option label={t.request.choiceOwn} selected={choice === 'own'} onPress={() => setChoice('own')} />
+          </View>
+          <ThemedText type="small" themeColor="textSecondary">
+            {choice === 'batinode' ? t.request.choiceBatinodeHelp : t.request.choiceOwnHelp}
+          </ThemedText>
           {errors.form ? <ThemedText themeColor="danger">{errors.form}</ThemedText> : null}
           {needsProfile ? <CompleteProfileCard text={t.signup.later.send} /> : null}
-          <Button label={t.request.findSuppliers} onPress={findSuppliers} busy={busy} />
-        </>
+          {choice === 'batinode' ? (
+            <>
+              <ThemedText type="small" themeColor="textSecondary">
+                {t.request.consent}
+              </ThemedText>
+              <Button label={t.request.sendBatinode} variant="signal" onPress={sendToBatinode} busy={busy} />
+            </>
+          ) : (
+            <Button label={t.request.findSuppliers} onPress={findSuppliers} busy={busy} />
+          )}
+        </Card>
       ) : (
         <Card>
           <ThemedText type="subtitle">{t.request.suppliers}</ThemedText>

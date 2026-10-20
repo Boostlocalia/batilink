@@ -103,6 +103,17 @@ export const fr = {
     note: 'Remarque pour les fournisseurs',
     notePlaceholder: 'Accès chantier par la rue arrière, pas de camion grue.',
     findSuppliers: 'Trouver les fournisseurs',
+    choice: 'À qui envoyer la demande ?',
+    choiceBatinode: 'BatiNode trouve pour moi',
+    choiceOwn: 'Je choisis mes fournisseurs',
+    choiceBatinodeHelp:
+      'Recherche automatique : BatiNode envoie votre demande à 5 fournisseurs de votre région, choisis selon la catégorie et l’emplacement de votre chantier. Vous recevez jusqu’à 5 offres différentes sous 48 heures et vous choisissez la meilleure.',
+    choiceOwnHelp: 'Vous choisissez vous-même les fournisseurs avec qui vous voulez travailler : vos favoris ou ceux de votre zone.',
+    sendBatinode: 'Envoyer la demande',
+    batinodeSearching: (found: number, target: number) =>
+      found >= target
+        ? `BatiNode a envoyé votre demande à ${found} fournisseurs de votre région.`
+        : `BatiNode cherche des fournisseurs dans votre région : ${found} sur ${target} ont déjà reçu votre demande. Les autres la recevront dès que nous les aurons trouvés.`,
     suppliers: 'Fournisseurs de votre zone',
     noSuppliers:
       "Aucun fournisseur n'est encore inscrit pour cette catégorie dans votre zone. Nous en démarchons de nouveaux chaque semaine.",

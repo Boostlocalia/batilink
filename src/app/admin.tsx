@@ -25,7 +25,18 @@ type Figures = {
   byPlan: Record<string, number>;
   trials: number;
 };
-type Waiting = { id: string; title: string; place: string; reply_by: string; sent_at: string | null; company: string | null; invited: number; answered: number };
+type Waiting = {
+  id: string;
+  title: string;
+  place: string;
+  reply_by: string;
+  sent_at: string | null;
+  company: string | null;
+  invited: number;
+  answered: number;
+  batinode: boolean;
+  target: number | null;
+};
 type ToVerify = { id: string; kind: string; name: string; vat_number: string | null; city: string | null; created_at: string; verification_status: string };
 type Incomplete = { id: string; name: string; city: string | null; phone: string | null; created_at: string; added_by: string[] };
 type Recent = { id: string; kind: string; name: string; city: string | null; created_at: string };
@@ -71,6 +82,12 @@ const ERRORS: Record<string, string> = {
   invalid_phone: 'Numéro de téléphone invalide.',
   invalid_postal_code: 'Code postal invalide.',
   vat_taken: 'Une entreprise avec ce numéro de TVA existe déjà.',
+  not_open: 'Cette demande n’attend plus d’offres.',
+  none_found: 'Aucun autre fournisseur avec e-mail ne couvre cette catégorie et cette zone. Ajoutez-en un plus bas.',
+  already_invited: 'Ce fournisseur a déjà reçu cette demande.',
+  unsubscribed: 'Ce fournisseur s’est désinscrit des demandes de prix.',
+  no_email: 'Ce fournisseur n’a pas d’adresse e-mail.',
+  send_failed: 'L’envoi a échoué.',
 };
 
 const day = (iso: string | null) => (iso ? iso.slice(0, 10).split('-').reverse().join('/') : '');
@@ -124,6 +141,12 @@ export default function AdminScreen() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [verifying, setVerifying] = useState<string | null>(null);
+  // Completing a request BatiNode looks after: which one, the supplier search, the outcome.
+  const [completing, setCompleting] = useState<string | null>(null);
+  const [pickQuery, setPickQuery] = useState('');
+  const [pickResults, setPickResults] = useState<SupplierRow[] | null>(null);
+  const [inviting, setInviting] = useState<string | null>(null);
+  const [inviteMessage, setInviteMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = useCallback(async () => {
     const res = await call<Overview>({ action: 'overview' });
@@ -178,6 +201,28 @@ export default function AdminScreen() {
     if (results) search();
   };
 
+  const startCompleting = (id: string) => {
+    setCompleting(completing === id ? null : id);
+    setPickQuery('');
+    setPickResults(null);
+    setInviteMessage(null);
+  };
+
+  const searchToInvite = async () => {
+    const res = await call<{ suppliers: SupplierRow[] }>({ action: 'suppliers', q: pickQuery });
+    setPickResults(res.data?.suppliers ?? []);
+  };
+
+  const invite = async (requestId: string, supplierId: string | null) => {
+    setInviting(supplierId ?? 'auto');
+    setInviteMessage(null);
+    const res = await call<{ sent: number }>(supplierId ? { action: 'invite_to_request', request_id: requestId, supplier_id: supplierId } : { action: 'auto_complete', request_id: requestId });
+    setInviting(null);
+    if (res.error) return setInviteMessage({ ok: false, text: ERRORS[res.error] ?? t.common.error });
+    setInviteMessage({ ok: true, text: `Demande envoyée à ${res.data?.sent ?? 1} fournisseur${(res.data?.sent ?? 1) > 1 ? 's' : ''}.` });
+    load();
+  };
+
   const verify = async (id: string, status: 'verified' | 'rejected') => {
     setVerifying(id + status);
     await call({ action: 'verify', company_id: id, status });
@@ -230,10 +275,33 @@ export default function AdminScreen() {
             <ThemedText type="small" themeColor="textSecondary">
               {[r.company, r.place, `envoyée le ${day(r.sent_at)}`, `réponse avant le ${day(r.reply_by)}`].filter(Boolean).join(' · ')}
             </ThemedText>
-            <View style={{ flexDirection: 'row', gap: Spacing.two }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }}>
               <Chip label={`${r.answered} / ${r.invited} offres`} tone={r.invited === 0 ? 'warn' : r.answered > 0 ? 'good' : 'neutral'} />
-              {r.invited === 0 ? <Chip label="Aucun fournisseur invité" tone="warn" /> : null}
+              {r.batinode ? <Chip label="Confiée à BatiNode" tone={r.invited < (r.target ?? 0) ? 'warn' : 'neutral'} /> : null}
+              {r.batinode && r.invited < (r.target ?? 0) ? <Chip label={`${(r.target ?? 0) - r.invited} fournisseur(s) à trouver`} tone="warn" /> : null}
+              {!r.batinode && r.invited === 0 ? <Chip label="Aucun fournisseur invité" tone="warn" /> : null}
             </View>
+            <Button label={completing === r.id ? 'Fermer' : 'Ajouter des fournisseurs'} variant="ghost" small onPress={() => startCompleting(r.id)} />
+            {completing === r.id ? (
+              <View style={{ gap: Spacing.two }}>
+                <Button label="Chercher automatiquement dans la région" small busy={inviting === 'auto'} onPress={() => invite(r.id, null)} />
+                <Field label="Ou chercher un fournisseur" value={pickQuery} onChangeText={setPickQuery} placeholder="Nom, ville, code postal ou e-mail" onSubmitEditing={searchToInvite} />
+                <Button label="Rechercher" variant="ghost" small onPress={searchToInvite} />
+                {pickResults?.length === 0 ? <ThemedText themeColor="textSecondary">Aucun fournisseur trouvé. Ajoutez-le plus bas avec son e-mail.</ThemedText> : null}
+                {(pickResults ?? []).map((s) => (
+                  <View key={s.id} style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
+                    <View style={{ flex: 1 }}>
+                      <ThemedText type="smallBold">{s.name}</ThemedText>
+                      <ThemedText type="small" themeColor="textSecondary">
+                        {[[s.postal_code, s.city].filter(Boolean).join(' '), s.quote_email ?? s.email ?? 'pas d’e-mail'].filter(Boolean).join(' · ')}
+                      </ThemedText>
+                    </View>
+                    <Button label="Inviter" small disabled={!(s.quote_email ?? s.email)} busy={inviting === s.id} onPress={() => invite(r.id, s.id)} />
+                  </View>
+                ))}
+                {inviteMessage ? <ThemedText themeColor={inviteMessage.ok ? 'good' : 'danger'}>{inviteMessage.text}</ThemedText> : null}
+              </View>
+            ) : null}
           </Row>
         ))}
       </Card>

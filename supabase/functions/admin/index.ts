@@ -5,7 +5,10 @@
 // POST { action: 'supplier', id }                         one supplier with its coverage
 // POST { action: 'save_supplier', supplier }              add (no id) or edit a supplier
 // POST { action: 'verify', company_id, status }           verified | rejected | needs_review
+// POST { action: 'invite_to_request', request_id, supplier_id }  add a supplier to a sent request
+// POST { action: 'auto_complete', request_id }            let BatiNode pick suppliers again for a request
 
+import { AUTO_SUPPLIERS, inviteSuppliers, pickSuppliers, type SentRequest } from '../_shared/invitations.ts';
 import { adminClient, corsHeaders, json } from '../_shared/supabase.ts';
 
 // Same provinces as public.region_prefixes().
@@ -64,6 +67,8 @@ Deno.serve(async (req) => {
     supplier?: SupplierInput;
     company_id?: string;
     status?: string;
+    request_id?: string;
+    supplier_id?: string;
   };
 
   if (body.action === 'overview') {
@@ -82,7 +87,7 @@ Deno.serve(async (req) => {
       admin.from('subscriptions').select('plan, status, trial_ends_at'),
       admin
         .from('price_requests')
-        .select('id, title, city, postal_code, reply_by, sent_at, company:companies(name), quotes(status)')
+        .select('id, title, city, postal_code, reply_by, sent_at, supplier_choice, company:companies(name), quotes(status)')
         .eq('status', 'sent')
         .order('sent_at', { ascending: false })
         .limit(30),
@@ -122,6 +127,8 @@ Deno.serve(async (req) => {
           place: [r.postal_code, r.city].filter(Boolean).join(' '),
           reply_by: r.reply_by,
           sent_at: r.sent_at,
+          batinode: r.supplier_choice === 'batinode',
+          target: r.supplier_choice === 'batinode' ? AUTO_SUPPLIERS : null,
           company: (r.company as { name?: string } | null)?.name ?? null,
           invited: quotes.length,
           answered: quotes.filter((q) => q.status === 'submitted' || q.status === 'awarded' || q.status === 'not_selected').length,
@@ -225,6 +232,36 @@ Deno.serve(async (req) => {
       .eq('id', body.company_id);
     if (error) return json({ error: 'save_failed', detail: error.message }, 500);
     return json({ ok: true });
+  }
+
+  if (body.action === 'invite_to_request' || body.action === 'auto_complete') {
+    if (typeof body.request_id !== 'string') return json({ error: 'not_found' }, 404);
+    const { data: request } = await admin
+      .from('price_requests')
+      .select('id, company_id, title, category_id, postal_code, city, needed_by, reply_by, fulfilment, status')
+      .eq('id', body.request_id)
+      .maybeSingle();
+    if (!request || request.status !== 'sent') return json({ error: 'not_open' }, 409);
+    let ids: string[];
+    if (body.action === 'auto_complete') {
+      const { count } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('request_id', request.id);
+      ids = await pickSuppliers(admin, request as SentRequest, Math.max(0, AUTO_SUPPLIERS - (count ?? 0)));
+      if (!ids.length) return json({ error: 'none_found' }, 404);
+    } else {
+      if (typeof body.supplier_id !== 'string') return json({ error: 'not_found' }, 404);
+      const [{ data: supplier }, { data: existing }] = await Promise.all([
+        admin.from('companies').select('id, email, quote_email, requests_stopped_at').eq('id', body.supplier_id).eq('kind', 'supplier').maybeSingle(),
+        admin.from('quotes').select('id').eq('request_id', request.id).eq('supplier_id', body.supplier_id).maybeSingle(),
+      ]);
+      if (!supplier) return json({ error: 'not_found' }, 404);
+      if (existing) return json({ error: 'already_invited' }, 409);
+      if (supplier.requests_stopped_at) return json({ error: 'unsubscribed' }, 409);
+      if (!(supplier.quote_email ?? supplier.email)) return json({ error: 'no_email' }, 400);
+      ids = [supplier.id];
+    }
+    const result = await inviteSuppliers(admin, request as SentRequest, ids);
+    if (!result.sent.length) return json({ error: 'send_failed' }, 500);
+    return json({ ok: true, sent: result.sent.length });
   }
 
   return json({ error: 'unknown_action' }, 400);

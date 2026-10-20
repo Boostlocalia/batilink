@@ -1,13 +1,13 @@
-// Sends a draft price request to the chosen suppliers: one quote row and one
-// e-mail with a personal reply link per supplier.
+// Sends a draft price request. Either the contractor chose the suppliers
+// (supplier_ids), or BatiNode picks up to 5 suppliers of the region (choice:
+// 'batinode'); when fewer are found, the BatiNode team is told to complete it.
+// One quote row and one e-mail with a personal reply link per supplier.
 
-import { SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
-import { contractorAddress, invitationMail, REPLY_HOURS, sendMail, type Lang } from '../_shared/email.ts';
+import { REPLY_HOURS, sendMail } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
-import { relayAddress } from '../_shared/relay-address.ts';
+import { AUTO_SUPPLIERS, inviteSuppliers, pickSuppliers } from '../_shared/invitations.ts';
 import { canSendPriceRequest, effectivePlan, monthStart, type Plan } from '../_shared/plans.ts';
 import { adminClient, appUrl, callerCompanyId, corsHeaders, json } from '../_shared/supabase.ts';
-import { hashToken, newToken, tokenExpiry } from '../_shared/tokens.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -17,16 +17,15 @@ Deno.serve(async (req) => {
   const companyId = await callerCompanyId(req, admin);
   if (!companyId) return json({ error: 'unauthorized' }, 401);
 
-  const { request_id: requestId, supplier_ids: supplierIds } = (await req.json()) as {
-    request_id: string;
-    supplier_ids: string[];
-  };
-  const uniqueSuppliers = [...new Set(supplierIds ?? [])];
+  const body = (await req.json().catch(() => ({}))) as { request_id?: string; supplier_ids?: string[]; choice?: string };
+  const auto = body.choice === 'batinode';
+  const uniqueSuppliers = auto ? [] : [...new Set((Array.isArray(body.supplier_ids) ? body.supplier_ids : []).filter((s) => typeof s === 'string'))];
+  if (typeof body.request_id !== 'string') return json({ error: 'not_found' }, 404);
 
   const { data: request } = await admin
     .from('price_requests')
     .select('id, company_id, title, category_id, postal_code, city, needed_by, reply_by, fulfilment, status')
-    .eq('id', requestId)
+    .eq('id', body.request_id)
     .single();
   if (!request || request.company_id !== companyId) return json({ error: 'not_found' }, 404);
   if (request.status !== 'draft') return json({ error: 'already_sent' }, 409);
@@ -40,92 +39,62 @@ Deno.serve(async (req) => {
       .gte('sent_at', monthStart(new Date()).toISOString()),
   ]);
   const plan: Plan = effectivePlan(sub);
-  const check = canSendPriceRequest(plan, sentThisMonth ?? 0, uniqueSuppliers.length);
+  const check = canSendPriceRequest(plan, sentThisMonth ?? 0, auto ? AUTO_SUPPLIERS : uniqueSuppliers.length);
   if (!check.ok) return json({ error: check.reason, limit: check.limit, plan }, 403);
 
-  // Only suppliers that really cover this category and postal code, or the contractor's favourites.
-  const [{ data: coverage }, { data: favourites }] = await Promise.all([
-    admin
-      .from('supplier_coverage')
-      .select('supplier_id, postal_prefix')
-      .eq('category_id', request.category_id)
-      .in('supplier_id', uniqueSuppliers),
-    admin.from('preferred_suppliers').select('supplier_id').eq('contractor_id', companyId).in('supplier_id', uniqueSuppliers),
-  ]);
-  const allowed = new Set([
-    ...(coverage ?? []).filter((c) => request.postal_code.startsWith(c.postal_prefix)).map((c) => c.supplier_id),
-    ...(favourites ?? []).map((f) => f.supplier_id),
-  ]);
-  if (allowed.size !== uniqueSuppliers.length) return json({ error: 'supplier_not_covering' }, 400);
+  if (!auto) {
+    // Only suppliers that really cover this category and postal code, or the contractor's favourites.
+    const [{ data: coverage }, { data: favourites }] = await Promise.all([
+      admin
+        .from('supplier_coverage')
+        .select('supplier_id, postal_prefix')
+        .eq('category_id', request.category_id)
+        .in('supplier_id', uniqueSuppliers),
+      admin.from('preferred_suppliers').select('supplier_id').eq('contractor_id', companyId).in('supplier_id', uniqueSuppliers),
+    ]);
+    const allowed = new Set([
+      ...(coverage ?? []).filter((c) => request.postal_code.startsWith(c.postal_prefix)).map((c) => c.supplier_id),
+      ...(favourites ?? []).map((f) => f.supplier_id),
+    ]);
+    if (allowed.size !== uniqueSuppliers.length) return json({ error: 'supplier_not_covering' }, 400);
+  }
 
   // Flip to `sent` first so a double tap cannot send twice. Suppliers get 48 hours from now.
   const sentAt = new Date();
   const replyBy = new Date(sentAt.getTime() + REPLY_HOURS * 3_600_000).toISOString().slice(0, 10);
   const { data: flipped } = await admin
     .from('price_requests')
-    .update({ status: 'sent', sent_at: sentAt.toISOString(), reply_by: replyBy })
+    .update({ status: 'sent', sent_at: sentAt.toISOString(), reply_by: replyBy, supplier_choice: auto ? 'batinode' : 'own' })
     .eq('id', request.id)
     .eq('status', 'draft')
     .select('id');
   if (!flipped?.length) return json({ error: 'already_sent' }, 409);
 
-  const [{ data: items }, { data: contractor }, { data: suppliers }] = await Promise.all([
-    admin.from('request_items').select('label, quantity, unit').eq('request_id', request.id).order('position'),
-    admin.from('companies').select('name, verified_at, vat_number, street, postal_code, city').eq('id', companyId).single(),
-    // Suppliers who unsubscribed from request e-mails are skipped.
-    admin.from('companies').select('id, email, quote_email, language, commission_rate').in('id', uniqueSuppliers).is('requests_stopped_at', null),
-  ]);
+  const sent = { ...request, reply_by: replyBy };
+  const chosen = auto ? await pickSuppliers(admin, sent, AUTO_SUPPLIERS) : uniqueSuppliers;
+  const result = await inviteSuppliers(admin, sent, chosen);
 
-  const failed: string[] = [];
-  for (const supplier of suppliers ?? []) {
-    const token = newToken();
-    const { data: quote, error } = await admin
-      .from('quotes')
-      .insert({
-        request_id: request.id,
-        supplier_id: supplier.id,
-        token_hash: await hashToken(token),
-        token_expires_at: tokenExpiry(),
-      })
-      .select('reply_key')
-      .single();
-    if (error || !quote || !(supplier.quote_email ?? supplier.email)) {
-      failed.push(supplier.id);
-      continue;
-    }
-    try {
-      await sendMail(
-        invitationMail({
-          lang: supplier.language as Lang,
-          to: supplier.quote_email ?? supplier.email,
-          contractor: contractor?.name ?? '',
-          contractorVerified: Boolean(contractor?.verified_at),
-          contractorVat: contractor?.vat_number ?? null,
-          contractorAddress: contractorAddress(contractor),
-          title: request.title,
-          postalCode: request.postal_code,
-          city: request.city,
-          items: items ?? [],
-          neededBy: request.needed_by,
-          replyBy,
-          delivery: request.fulfilment === 'delivery',
-          url: `${appUrl()}/offre/${token}`,
-          unsubscribeUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/supplier-quote?token=${token}&unsubscribe=1`,
-          commissionRate: SUPPLIER_COMMISSION_ACTIVE ? Number(supplier.commission_rate) : null,
-          replyTo: relayAddress('supplier', quote.reply_key, Deno.env.get('RELAY_EMAIL_DOMAIN') ?? undefined),
-        }),
-      );
-    } catch (e) {
-      console.error(e);
-      failed.push(supplier.id);
-    }
+  // BatiNode promised 5 suppliers: the team completes the request by hand.
+  const missing = auto ? AUTO_SUPPLIERS - result.sent.length : 0;
+  if (missing > 0) {
+    const where = [request.postal_code, request.city].filter(Boolean).join(' ');
+    await sendMail({
+      to: Deno.env.get('EMAIL_FROM') ?? 'support@batinode.be',
+      subject: `Demande à compléter : ${missing} fournisseur${missing > 1 ? 's' : ''} à trouver (${where})`,
+      text: `La demande « ${request.title} » (${where}) a été confiée à BatiNode. ${result.sent.length} fournisseur(s) trouvé(s) sur ${AUTO_SUPPLIERS}.\nComplétez-la dans l'espace Admin : ${appUrl()}/admin`,
+      html: `<p>La demande « ${escape(request.title)} » (${escape(where)}) a été confiée à BatiNode. ${result.sent.length} fournisseur(s) trouvé(s) sur ${AUTO_SUPPLIERS}.</p><p><a href="${appUrl()}/admin">Compléter dans l'espace Admin</a></p>`,
+    }).catch((e) => console.error(e));
   }
 
   await logEvent(admin, {
     kind: 'request_sent',
     company_id: companyId,
     request_id: request.id,
-    data: { plan, suppliers: uniqueSuppliers.length, failed: failed.length, category_id: request.category_id, postal_code: request.postal_code },
+    data: { plan, choice: auto ? 'batinode' : 'own', suppliers: chosen.length, failed: result.failed.length, missing, category_id: request.category_id, postal_code: request.postal_code },
   });
-  return json({ sent: (suppliers?.length ?? 0) - failed.length, failed });
+  return json({ sent: result.sent.length, failed: result.failed, choice: auto ? 'batinode' : 'own', target: auto ? AUTO_SUPPLIERS : chosen.length });
 });
+
+function escape(s: string): string {
+  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+}
