@@ -25,5 +25,6 @@ const policy = [
 const html = fs.readFileSync(file, 'utf8');
 if (html.includes('Content-Security-Policy')) process.exit(0);
 const meta = `<meta http-equiv="Content-Security-Policy" content="${policy}" />\n    <meta name="referrer" content="strict-origin-when-cross-origin" />\n    `;
-fs.writeFileSync(file, html.replace('<meta charset="utf-8" />\n    ', `<meta charset="utf-8" />\n    ${meta}`));
+// The app opens in French; Dutch speakers switch in the app.
+fs.writeFileSync(file, html.replace('<html lang="en">', '<html lang="fr">').replace('<meta charset="utf-8" />\n    ', `<meta charset="utf-8" />\n    ${meta}`));
 console.log('CSP added to', file);
