@@ -83,9 +83,10 @@ export const legalFr: LegalTexts = {
           body: [
             "Un nouvel entrepreneur peut essayer gratuitement l’abonnement Premium pendant 7 jours, sans carte de paiement. À la fin de l’essai, l’accès aux fonctions payantes s’arrête jusqu’au choix d’un abonnement.",
             "Prix de lancement hors TVA : Starter 69,99 € par mois ou 699,90 € par an ; Premium 129,99 € par mois ou 1 299,90 € par an. La TVA belge s’ajoute au prix.",
+            "Garantie fondateur : une entreprise qui s’abonne pendant la phase de lancement garde son prix de lancement à vie, tant que son abonnement reste actif sans interruption et sur le même plan. Cette garantie prend fin si l’abonnement est résilié ou s’il change de plan.",
             "Le paiement est traité par Stripe. L’abonnement est payable d’avance et se renouvelle automatiquement à la fin de chaque période, au prix en vigueur.",
             "Vous pouvez résilier à tout moment depuis l’application : la résiliation prend effet à la fin de la période payée, sans remboursement de la période en cours.",
-            "Nous annonçons toute hausse de prix au moins 30 jours à l’avance ; elle s’applique à partir de la période suivante et vous pouvez résilier avant.",
+            "Sous réserve de la garantie fondateur, nous annonçons toute hausse de prix au moins 30 jours à l’avance ; elle s’applique à partir de la période suivante et vous pouvez résilier avant.",
             "Les abonnements étant vendus à des entreprises, le droit de rétractation prévu pour les consommateurs ne s’applique pas.",
           ],
         },

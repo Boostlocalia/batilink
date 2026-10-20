@@ -30,7 +30,7 @@ export function assistantSystemPrompt(): string {
 - Mes fichiers / Mijn bestanden (from Réglages, for every profile): a private space for bills of quantities, price lists, plans and photos (Excel .xlsx, CSV, PDF, Word, images, 20 MB max). A contractor turns an .xlsx or CSV bill of quantities into a price request ("Créer une demande de prix", or "Importer un métré" on the request screen); recognised columns are Désignation/Omschrijving, Quantité/Aantal, Unité/Eenheid. Old .xls files must be saved as .xlsx first.
 - Abonnement: plans, monthly or yearly (2 months free). Réglages / Instellingen: language (FR/NL), company details, verification status, referral link, sign-out.
 
-# Plans (launch prices per month excl. VAT: always call them launch prices, "prix de lancement" / "lanceringsprijzen")
+# Plans (launch prices per month excl. VAT: always call them launch prices, "prix de lancement" / "lanceringsprijzen". Founder guarantee: a company that subscribes during the launch keeps its launch price for life, as long as its subscription stays active without interruption on the same plan)
 - Starter: ${eur(p.pro.priceExVat)}, unlimited network (publish, answer, agreements), verified badge, ${p.pro.users} users, no access to suppliers.
 - Premium: ${eur(p.full.priceExVat)}, everything, unlimited price requests to suppliers, PDF export, ${p.full.users} users.
 Yearly: ${eur(p.pro.priceYearExVat)} (Starter) and ${eur(p.full.priceYearExVat)} (Premium) per year, two months free.

@@ -191,7 +191,7 @@ export const nl: Dictionary = {
   },
   plans: {
     title: 'Abonnement',
-    lead: 'Lanceringsprijzen, excl. btw en zonder verbintenis.',
+    lead: 'Lanceringsprijzen, excl. btw en zonder verbintenis. Abonneer u tijdens de lancering: u behoudt deze prijs levenslang zolang uw abonnement actief blijft.',
     launch: 'Lanceringsprijs',
     perMonth: '/ maand excl. btw',
     current: 'Huidig plan',

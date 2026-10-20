@@ -190,7 +190,7 @@ export const fr = {
   },
   plans: {
     title: 'Abonnement',
-    lead: 'Prix de lancement, HTVA et sans engagement.',
+    lead: 'Prix de lancement, HTVA et sans engagement. Abonnez-vous pendant le lancement : vous gardez ce prix à vie tant que votre abonnement reste actif.',
     launch: 'Prix de lancement',
     perMonth: '/ mois HTVA',
     current: 'Plan actuel',

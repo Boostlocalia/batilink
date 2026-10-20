@@ -83,9 +83,10 @@ export const legalNl: LegalTexts = {
           body: [
             "Een nieuwe aannemer kan het Premium-abonnement 7 dagen gratis uitproberen, zonder betaalkaart. Na de proefperiode stopt de toegang tot de betalende functies tot er een abonnement gekozen wordt.",
             "Lanceringsprijzen exclusief btw: Starter 69,99 € per maand of 699,90 € per jaar; Premium 129,99 € per maand of 1 299,90 € per jaar. De Belgische btw komt bovenop de prijs.",
+            "Stichtersgarantie: een bedrijf dat zich tijdens de lanceringsfase abonneert, behoudt zijn lanceringsprijs levenslang, zolang het abonnement zonder onderbreking actief blijft op hetzelfde plan. De garantie vervalt bij opzegging of bij verandering van plan.",
             "De betaling verloopt via Stripe. Het abonnement wordt vooraf betaald en wordt aan het einde van elke periode automatisch verlengd, tegen de dan geldende prijs.",
             "U kunt op elk moment opzeggen in de applicatie: de opzegging gaat in aan het einde van de betaalde periode, zonder terugbetaling van de lopende periode.",
-            "Wij kondigen elke prijsverhoging minstens 30 dagen vooraf aan; ze geldt vanaf de volgende periode en u kunt vooraf opzeggen.",
+            "Onder voorbehoud van de stichtersgarantie kondigen wij elke prijsverhoging minstens 30 dagen vooraf aan; ze geldt vanaf de volgende periode en u kunt vooraf opzeggen.",
             "Omdat de abonnementen aan bedrijven verkocht worden, geldt het herroepingsrecht voor consumenten niet.",
           ],
         },
