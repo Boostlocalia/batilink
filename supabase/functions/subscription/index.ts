@@ -4,7 +4,7 @@
 //                                 payment method, download invoices or cancel.
 // The plan itself changes only when Stripe confirms it (stripe-webhook).
 
-import { stripeClient } from '../_shared/stripe.ts';
+import { CHECKOUT_BRANDING, stripeClient } from '../_shared/stripe.ts';
 import { adminClient, appUrl, callerCompanyId, corsHeaders, json } from '../_shared/supabase.ts';
 
 Deno.serve(async (req) => {
@@ -82,6 +82,7 @@ Deno.serve(async (req) => {
     automatic_tax: { enabled: !taxRate && Deno.env.get('STRIPE_AUTOMATIC_TAX') === 'on' },
     customer_update: { address: 'auto', name: 'auto' },
     billing_address_collection: 'required',
+    branding_settings: CHECKOUT_BRANDING,
     success_url: `${back}?paiement=ok`,
     cancel_url: back,
   });

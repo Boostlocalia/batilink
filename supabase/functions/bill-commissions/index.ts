@@ -13,7 +13,7 @@ import { isCron } from '../_shared/cron.ts';
 import { commissionBillMail, sendMail, type BillLine, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
 import { orderAmounts, toCents } from '../_shared/orders.ts';
-import { stripeClient } from '../_shared/stripe.ts';
+import { CHECKOUT_BRANDING, stripeClient } from '../_shared/stripe.ts';
 import { adminClient, appUrl, json } from '../_shared/supabase.ts';
 import { hashToken, newToken } from '../_shared/tokens.ts';
 
@@ -51,6 +51,7 @@ async function payLink(admin: Admin, token: string | null): Promise<Response> {
     line_items: [{ quantity: 1, price_data: { currency: 'eur', unit_amount: toCents(Number(bill.amount_inc_vat)), product_data: { name: `Commission ${bill.number}` } } }],
     payment_intent_data: { description: `Commission ${bill.number}`, metadata: { commission_bill_id: bill.id } },
     metadata: { commission_bill_id: bill.id },
+    branding_settings: CHECKOUT_BRANDING,
     success_url: `${appUrl()}/?commission=payee`,
     cancel_url: `${appUrl()}/`,
   });
