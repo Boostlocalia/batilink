@@ -6,6 +6,7 @@ import { Agreements } from '@/components/agreements';
 import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { ArchitectBanners, NetworkBanners } from '@/components/home-banners';
 import { CompanyAvatar } from '@/components/company-avatar';
+import { Conversations } from '@/components/conversations';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Option, Screen, Segmented } from '@/components/ui';
 import { UpgradeCard } from '@/components/upgrade-card';
@@ -18,7 +19,7 @@ import { useNetworkLeft } from '@/lib/network-quota';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 
-type View_ = 'posts' | 'mine' | 'agreements';
+type View_ = 'posts' | 'mine' | 'messages' | 'agreements';
 
 export default function NetworkScreen() {
   const { t, language, locale } = useI18n();
@@ -31,11 +32,12 @@ export default function NetworkScreen() {
   const [tradeFilter, setTradeFilter] = useState<number | null>(null);
   const [posts, setPosts] = useState<Opportunity[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [unread, setUnread] = useState(0);
 
   const load = useCallback(async () => {
     setFailed(false);
     if (!trades.length) setTrades(await loadTrades());
-    if (view === 'agreements') return;
+    if (view === 'agreements' || view === 'messages') return;
     let query = supabase.from('opportunities').select(OPPORTUNITY_COLUMNS).order('created_at', { ascending: false }).limit(50);
     if (view === 'mine') {
       if (!company) return setPosts([]);
@@ -80,12 +82,14 @@ export default function NetworkScreen() {
           // Architects only post: the list of other posts is for contractors.
           ...(architect ? [] : [{ value: 'posts' as const, label: t.network.tabs.posts }]),
           { value: 'mine', label: t.network.tabs.mine },
+          { value: 'messages', label: unread ? t.chat.tabUnread(unread) : t.chat.tab },
           { value: 'agreements', label: t.network.tabs.agreements },
         ]}
       />
 
       {left !== null ? <ThemedText type="small" themeColor="textSecondary">{t.growth.plans.networkLeft(left)}</ThemedText> : null}
-      {view !== 'agreements' ? (
+      {view === 'messages' ? <Conversations onUnread={setUnread} /> : null}
+      {view !== 'agreements' && view !== 'messages' ? (
         left === 0 ? (
           <UpgradeCard reason="network" />
         ) : canUseNetwork ? (
@@ -118,7 +122,7 @@ export default function NetworkScreen() {
 
       {view === 'agreements' ? (
         <Agreements />
-      ) : failed ? (
+      ) : view === 'messages' ? null : failed ? (
         <Card>
           <ThemedText themeColor="danger">{t.common.error}</ThemedText>
           <Button label={t.common.retry} variant="ghost" small onPress={load} />

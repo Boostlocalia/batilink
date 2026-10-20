@@ -27,7 +27,11 @@ type Event = {
     | 'subscription_changed'
     | 'commission_billed'
     | 'supplier_requested'
-    | 'supplier_unsubscribed';
+    | 'supplier_unsubscribed'
+    | 'contact_requested'
+    | 'contact_accepted'
+    | 'network_deal'
+    | 'news_published';
   company_id?: string | null;
   request_id?: string | null;
   quote_id?: string | null;

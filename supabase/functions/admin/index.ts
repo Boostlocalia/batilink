@@ -7,6 +7,7 @@
 // POST { action: 'verify', company_id, status }           verified | rejected | needs_review
 // POST { action: 'invite_to_request', request_id, supplier_id }  add a supplier to a sent request
 // POST { action: 'auto_complete', request_id }            let BatiNode pick suppliers again for a request
+// POST { action: 'report_handled', id }                   mark a reported conversation as dealt with
 
 import { AUTO_SUPPLIERS, inviteSuppliers, pickSuppliers, type SentRequest } from '../_shared/invitations.ts';
 import { adminClient, corsHeaders, json } from '../_shared/supabase.ts';
@@ -109,6 +110,43 @@ Deno.serve(async (req) => {
       admin.from('companies').select('id, kind, name, city, created_at').order('created_at', { ascending: false }).limit(10),
     ]);
 
+    // Network contacts: requests, accepted, active in 30 days, deals both sides confirmed.
+    // The team sees figures, companies and deal types, never the messages.
+    const monthAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();
+    const conv = () => admin.from('conversations').select('id', { count: 'exact', head: true });
+    const [requested, accepted, active, deals, dealRows, reports] = await Promise.all([
+      count(conv()),
+      count(conv().not('accepted_at', 'is', null)),
+      count(conv().eq('status', 'accepted').gte('last_message_at', monthAgo)),
+      count(conv().not('deal_confirmed_at', 'is', null)),
+      admin
+        .from('conversations')
+        .select('id, deal_kind, deal_amount_ex_vat, deal_confirmed_at, a:companies!conversations_company_a_fkey(name), b:companies!conversations_company_b_fkey(name)')
+        .not('deal_confirmed_at', 'is', null)
+        .order('deal_confirmed_at', { ascending: false })
+        .limit(50),
+      admin
+        .from('conversation_reports')
+        .select('id, reason, created_at, reporter:companies(name), conversation:conversations(a:companies!conversations_company_a_fkey(name), b:companies!conversations_company_b_fkey(name))')
+        .is('handled_at', null)
+        .order('created_at', { ascending: false })
+        .limit(30),
+    ]);
+    const name = (x: unknown) => (x as { name?: string } | null)?.name ?? '';
+    const contacts = {
+      requested,
+      accepted,
+      active,
+      deals,
+      conversion: accepted ? Math.round((deals / accepted) * 100) : 0,
+      amount: (dealRows.data ?? []).reduce((sum, d) => sum + Number(d.deal_amount_ex_vat ?? 0), 0),
+      recentDeals: (dealRows.data ?? []).map((d) => ({ id: d.id, kind: d.deal_kind, amount: d.deal_amount_ex_vat === null ? null : Number(d.deal_amount_ex_vat), at: d.deal_confirmed_at, between: [name(d.a), name(d.b)] })),
+      reports: (reports.data ?? []).map((r) => {
+        const c = r.conversation as unknown as { a: unknown; b: unknown } | null;
+        return { id: r.id, reason: r.reason, at: r.created_at, reporter: name(r.reporter), between: c ? [name(c.a), name(c.b)] : [] };
+      }),
+    };
+
     const byPlan: Record<string, number> = {};
     let trials = 0;
     for (const s of plans.data ?? []) {
@@ -144,6 +182,7 @@ Deno.serve(async (req) => {
         added_by: ((s.fans ?? []) as { contractor?: { name?: string } | null }[]).map((f) => f.contractor?.name).filter(Boolean),
       })),
       recent: recent.data ?? [],
+      contacts,
     });
   }
 
@@ -231,6 +270,12 @@ Deno.serve(async (req) => {
       .update({ verification_status: status, verified_at: status === 'verified' ? now : null, last_checked_at: now })
       .eq('id', body.company_id);
     if (error) return json({ error: 'save_failed', detail: error.message }, 500);
+    return json({ ok: true });
+  }
+
+  if (body.action === 'report_handled') {
+    if (typeof body.id !== 'string') return json({ error: 'not_found' }, 404);
+    await admin.from('conversation_reports').update({ handled_at: new Date().toISOString() }).eq('id', body.id);
     return json({ ok: true });
   }
 

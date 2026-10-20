@@ -1,4 +1,4 @@
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -124,6 +124,8 @@ export default function PostScreen() {
     );
 
   const myResponse = responses.find((r) => r.company_id === company?.id);
+  const writeTo = (companyId: string, name: string | undefined, postId: string) =>
+    router.push({ pathname: '/discussion/nouvelle', params: { company: companyId, name: name ?? '', post: postId } });
   const tradeLabel = (tid: number) => {
     const trade = trades.find((x) => x.id === tid);
     return trade ? (language === 'fr' ? trade.label_fr : trade.label_nl) : '';
@@ -180,6 +182,9 @@ export default function PostScreen() {
                 <Chip label={t.network.detail.responseStatus[r.status]} tone={RESPONSE_TONE[r.status]} />
               </View>
               <ThemedText type="small">{r.message}</ThemedText>
+              <View style={{ alignSelf: 'flex-start' }}>
+                <Button label={t.chat.write} variant="ghost" small onPress={() => writeTo(r.company_id, r.company?.name, post.id)} />
+              </View>
               {post.status === 'open' && r.status !== 'selected' && r.status !== 'declined' ? (
                 <View style={styles.wrap}>
                   {proposed.has(r.id) ? (
@@ -211,6 +216,9 @@ export default function PostScreen() {
             <Chip label={t.network.detail.responseStatus[myResponse.status]} tone={RESPONSE_TONE[myResponse.status]} />
           </View>
           <ThemedText type="small">{myResponse.message}</ThemedText>
+          <View style={{ alignSelf: 'flex-start' }}>
+            <Button label={t.chat.writeTo(post.company?.name ?? '')} variant="ghost" small onPress={() => writeTo(post.company_id, post.company?.name, post.id)} />
+          </View>
         </Card>
       ) : post.status === 'open' ? (
         <Card>
@@ -231,8 +239,9 @@ export default function PostScreen() {
                 multiline
                 style={{ minHeight: 100, textAlignVertical: 'top' }}
               />
-              <View style={{ alignSelf: 'flex-start' }}>
+              <View style={styles.wrap}>
                 <Button label={t.network.detail.send} variant="signal" busy={busy === 'answer'} disabled={message.trim().length < 10} onPress={answer} />
+                <Button label={t.chat.writeTo(post.company?.name ?? '')} variant="ghost" small onPress={() => writeTo(post.company_id, post.company?.name, post.id)} />
               </View>
             </>
           )}

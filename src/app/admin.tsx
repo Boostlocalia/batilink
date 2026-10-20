@@ -40,7 +40,19 @@ type Waiting = {
 type ToVerify = { id: string; kind: string; name: string; vat_number: string | null; city: string | null; created_at: string; verification_status: string };
 type Incomplete = { id: string; name: string; city: string | null; phone: string | null; created_at: string; added_by: string[] };
 type Recent = { id: string; kind: string; name: string; city: string | null; created_at: string };
-type Overview = { figures: Figures; waiting: Waiting[]; toVerify: ToVerify[]; incomplete: Incomplete[]; recent: Recent[] };
+type Contacts = {
+  requested: number;
+  accepted: number;
+  active: number;
+  deals: number;
+  conversion: number;
+  amount: number;
+  recentDeals: { id: string; kind: string | null; amount: number | null; at: string; between: string[] }[];
+  reports: { id: string; reason: string | null; at: string; reporter: string; between: string[] }[];
+};
+type Overview = { figures: Figures; waiting: Waiting[]; toVerify: ToVerify[]; incomplete: Incomplete[]; recent: Recent[]; contacts: Contacts };
+
+const DEAL_KIND: Record<string, string> = { subcontract: 'Sous-traitance', shared_site: 'Partage de chantier', equipment: 'Matériel', other: 'Autre' };
 
 type Supplier = {
   id?: string;
@@ -264,6 +276,38 @@ export default function AdminScreen() {
           <Figure label="Abonnés Full" value={f.byPlan.full ?? 0} />
           <Figure label="En essai" value={f.trials} />
         </View>
+      </Card>
+
+      <Card>
+        <ThemedText type="subtitle">Mises en relation (Réseau)</ThemedText>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }}>
+          <Figure label="Demandes de contact" value={overview.contacts.requested} />
+          <Figure label="Acceptées" value={overview.contacts.accepted} />
+          <Figure label="Actives (30 j)" value={overview.contacts.active} />
+          <Figure label="Accords conclus" value={overview.contacts.deals} />
+          <Figure label="Contact → accord" value={`${overview.contacts.conversion} %`} />
+          <Figure label="Montant estimé HTVA" value={`${Math.round(overview.contacts.amount).toLocaleString('fr-BE')} €`} />
+        </View>
+        {overview.contacts.recentDeals.map((d) => (
+          <Row key={d.id}>
+            <ThemedText type="smallBold">{d.between.join(' ↔ ')}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {[DEAL_KIND[d.kind ?? 'other'], d.amount !== null ? `${d.amount.toLocaleString('fr-BE')} € HTVA` : null, day(d.at)].filter(Boolean).join(' · ')}
+            </ThemedText>
+          </Row>
+        ))}
+        {overview.contacts.reports.length ? <ThemedText type="smallBold">Conversations signalées ({overview.contacts.reports.length})</ThemedText> : null}
+        {overview.contacts.reports.map((r) => (
+          <Row key={r.id}>
+            <ThemedText type="small">
+              {`${r.reporter} a signalé la conversation ${r.between.join(' ↔ ')} le ${day(r.at)}`}
+              {r.reason ? ` : ${r.reason}` : ''}
+            </ThemedText>
+            <View style={{ alignSelf: 'flex-start' }}>
+              <Button label="Marquer comme traité" variant="ghost" small onPress={() => call({ action: 'report_handled', id: r.id }).then(load)} />
+            </View>
+          </Row>
+        ))}
       </Card>
 
       <Card>
