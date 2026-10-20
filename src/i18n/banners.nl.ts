@@ -4,6 +4,13 @@ import { type bannersFr } from './banners.fr';
 const s = (n: number, one: string, many: string) => (n > 1 ? many : one);
 
 export const bannersNl: typeof bannersFr = {
+  news: {
+    nodi: 'Nodi meldt',
+    tip: 'Tip van Nodi',
+    read: 'Lezen',
+    source: (name: string) => `Bron: ${name}`,
+    topics: { ecology: 'Ecologie', regulation: 'Regelgeving', grants: 'Premies', products: 'Producten', market: 'Markt', safety: 'Veiligheid' },
+  },
   contractor: {
     trial: {
       kicker: 'Premium-proef',

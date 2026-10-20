@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { CompleteProfileCard } from '@/components/complete-profile-card';
-import { ContractorBanners } from '@/components/home-banners';
+import { NewsCarousel } from '@/components/home-banners';
 import { NewContractors } from '@/components/new-contractors';
 import { StartChecklist } from '@/components/start-checklist';
 import { SupplierHome } from '@/components/supplier-home';
@@ -77,7 +77,7 @@ function ContractorHome() {
 
       {company ? null : <CompleteProfileCard text={t.signup.later.home} />}
 
-      <ContractorBanners requests={requests ?? []} />
+      <NewsCarousel />
 
       {company ? <StartChecklist /> : null}
 

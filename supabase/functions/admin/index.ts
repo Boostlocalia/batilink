@@ -8,6 +8,8 @@
 // POST { action: 'invite_to_request', request_id, supplier_id }  add a supplier to a sent request
 // POST { action: 'auto_complete', request_id }            let BatiNode pick suppliers again for a request
 // POST { action: 'report_handled', id }                   mark a reported conversation as dealt with
+// POST { action: 'news' }                                 the carousel's news of the last 14 days, hidden ones too
+// POST { action: 'news_hide', id, hidden }                hide or show one news item
 
 import { AUTO_SUPPLIERS, inviteSuppliers, pickSuppliers, type SentRequest } from '../_shared/invitations.ts';
 import { adminClient, corsHeaders, json } from '../_shared/supabase.ts';
@@ -70,6 +72,7 @@ Deno.serve(async (req) => {
     status?: string;
     request_id?: string;
     supplier_id?: string;
+    hidden?: boolean;
   };
 
   if (body.action === 'overview') {
@@ -270,6 +273,23 @@ Deno.serve(async (req) => {
       .update({ verification_status: status, verified_at: status === 'verified' ? now : null, last_checked_at: now })
       .eq('id', body.company_id);
     if (error) return json({ error: 'save_failed', detail: error.message }, 500);
+    return json({ ok: true });
+  }
+
+  if (body.action === 'news') {
+    const since = new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10);
+    const { data } = await admin
+      .from('news_items')
+      .select('id, published_on, topic, title_fr, text_fr, source_name, source_url, hidden')
+      .gte('published_on', since)
+      .order('published_on', { ascending: false })
+      .order('created_at', { ascending: true });
+    return json({ news: data ?? [] });
+  }
+
+  if (body.action === 'news_hide') {
+    if (typeof body.id !== 'string') return json({ error: 'not_found' }, 404);
+    await admin.from('news_items').update({ hidden: body.hidden === true }).eq('id', body.id);
     return json({ ok: true });
   }
 

@@ -4,7 +4,7 @@ import { Animated, Platform, Pressable, StyleSheet, useWindowDimensions, View } 
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
-import { bannerUrl, type Banner } from '@/lib/banners';
+import { bannerUrl, mediaUrl, type Banner } from '@/lib/banners';
 
 /** Neon accents that light up each slide in turn, on top of the lime signal colour. */
 export const ACCENTS = { lime: '#d4ff3a', cyan: '#2ee6ff', magenta: '#ff3dc8', orange: '#ff8a1f', violet: '#9d6bff' } as const;
@@ -19,6 +19,10 @@ export type Slide = {
   text: string;
   cta?: string;
   onPress?: () => void;
+  /** Nodi announces the slide: his picture next to the kicker, shaped as a speech bubble. */
+  nodi?: boolean;
+  /** A small line under the text, such as the news source. */
+  footnote?: string;
 };
 
 const ROTATE_MS = 6500;
@@ -78,15 +82,23 @@ export function HeroCarousel({ slides, height = 240 }: { slides: Slide[]; height
       ))}
       <View style={[StyleSheet.absoluteFill, veil(narrow)]} />
       <Animated.View style={[styles.content, narrow && { paddingBottom: Spacing.five }, { opacity, transform: [{ translateY: lift }] }]}>
-        <View style={[styles.kicker, { backgroundColor: accent }]}>
-          <ThemedText type="smallBold" style={styles.kickerText}>
-            {current.kicker.toUpperCase()}
-          </ThemedText>
+        <View style={styles.kickerRow}>
+          {current.nodi ? <NodiFace accent={accent} /> : null}
+          <View style={[styles.kicker, current.nodi && styles.bubble, { backgroundColor: accent }]}>
+            <ThemedText type="smallBold" style={styles.kickerText}>
+              {current.kicker.toUpperCase()}
+            </ThemedText>
+          </View>
         </View>
         <ThemedText type="title" style={[styles.title, { textShadowColor: accent }]}>
           {current.title}
         </ThemedText>
         <ThemedText style={styles.text}>{current.text}</ThemedText>
+        {current.footnote ? (
+          <ThemedText type="small" style={styles.footnote}>
+            {current.footnote}
+          </ThemedText>
+        ) : null}
         {current.cta ? (
           <View style={[styles.cta, { backgroundColor: accent }, glow(accent)]}>
             <ThemedText type="smallBold" style={styles.ctaText}>
@@ -113,6 +125,22 @@ export function HeroCarousel({ slides, height = 240 }: { slides: Slide[]; height
   );
 }
 
+/** Nodi with his megaphone; his usual portrait until that picture is in the media bucket. */
+function NodiFace({ accent }: { accent: string }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <View style={[styles.face, { borderColor: accent }]}>
+      <Image
+        source={{ uri: mediaUrl(failed ? 'assistant.jpg' : 'nodi-annonce.png') }}
+        contentFit={failed ? 'cover' : 'contain'}
+        onError={() => setFailed(true)}
+        style={StyleSheet.absoluteFill}
+        accessibilityLabel="Nodi"
+      />
+    </View>
+  );
+}
+
 function glow(color: string) {
   return Platform.OS === 'web' ? ({ boxShadow: `0 0 24px ${color}55` } as object) : { shadowColor: color, shadowOpacity: 0.5, shadowRadius: 16 };
 }
@@ -120,7 +148,11 @@ function glow(color: string) {
 const styles = StyleSheet.create({
   frame: { borderRadius: Radius + 4, borderWidth: 1, overflow: 'hidden', backgroundColor: '#09090b' },
   content: { padding: Spacing.four, gap: Spacing.two, maxWidth: 520 },
+  kickerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   kicker: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: 2 },
+  bubble: { alignSelf: 'center', borderBottomLeftRadius: 4, paddingVertical: 4 },
+  face: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, overflow: 'hidden', backgroundColor: '#09090b' },
+  footnote: { color: '#a1a1aa' },
   kickerText: { color: '#09090b', fontSize: 11, letterSpacing: 1 },
   title: { color: '#ffffff', textShadowRadius: 18, textShadowOffset: { width: 0, height: 0 } },
   text: { color: '#e4e4ea' },

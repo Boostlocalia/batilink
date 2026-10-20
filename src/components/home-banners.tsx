@@ -3,46 +3,31 @@ import { useCallback, useState } from 'react';
 
 import { HeroCarousel, type Slide } from '@/components/hero-carousel';
 import { useI18n } from '@/i18n';
-import { supabase } from '@/lib/supabase';
-import { useTrial } from '@/lib/trial';
+import { loadNews, NEWS_PER_DAY, openNews, tipsOfTheDay, TOPIC_LOOK, type NewsCard } from '@/lib/news';
 
-/** Contractor home: hooks built from their own activity first, then what they have not tried yet. */
-export function ContractorBanners({ requests }: { requests: { id: string; status: string }[] }) {
-  const { t } = useI18n();
-  const b = t.banners.contractor;
-  const trial = useTrial();
-  const [newcomers, setNewcomers] = useState(0);
+/** Contractor home: the day's building news, announced by Nodi, topped up with his tips. */
+export function NewsCarousel() {
+  const { t, language } = useI18n();
+  const n = t.banners.news;
+  const [cards, setCards] = useState<NewsCard[]>(() => tipsOfTheDay(NEWS_PER_DAY, language));
 
   useFocusEffect(
     useCallback(() => {
-      supabase.rpc('new_contractors', { p_days: 7 }).then(({ data }) => setNewcomers(Array.isArray(data) ? data.length : 0));
-    }, []),
+      loadNews(language).then(setCards).catch(() => undefined);
+    }, [language]),
   );
 
-  const waiting = requests.filter((r) => r.status === 'sent');
-  const slides: Slide[] = [];
-  if (trial.onTrial && trial.daysLeft !== null) {
-    slides.push({ key: 'trial', image: 'phone', accent: 'magenta', ...b.trial, title: b.trial.title(trial.daysLeft), onPress: () => router.navigate('/abonnement') });
-  }
-  if (waiting.length) {
-    slides.push({
-      key: 'waiting',
-      image: 'delivery',
-      accent: 'orange',
-      ...b.waiting,
-      title: b.waiting.title(waiting.length),
-      onPress: () => router.push({ pathname: '/demande/[id]', params: { id: waiting[0].id } }),
-    });
-  }
-  slides.push(
-    { key: 'materials', image: 'materials', accent: 'lime', ...b.materials, onPress: () => router.navigate('/nouvelle') },
-    { key: 'network', image: 'network', accent: 'cyan', ...b.network, title: b.network.title(newcomers), onPress: () => router.navigate('/reseau') },
-  );
-  if (!waiting.length) {
-    slides.push({ key: 'delivery', image: 'supplier', accent: 'orange', ...b.delivery, onPress: () => router.push('/fournisseurs') });
-  }
-  slides.push({ key: 'referral', image: 'site', accent: 'violet', ...b.referral, onPress: () => router.navigate('/reglages') });
-
+  const slides: Slide[] = cards.map((c) => ({
+    key: c.key,
+    ...TOPIC_LOOK[c.topic],
+    nodi: true,
+    kicker: `${c.url ? n.nodi : n.tip} · ${n.topics[c.topic]}`,
+    title: c.title,
+    text: c.text,
+    footnote: c.source ? n.source(c.source) : undefined,
+    cta: c.url ? n.read : undefined,
+    onPress: c.url ? () => openNews(c.url!) : undefined,
+  }));
   return <HeroCarousel slides={slides} />;
 }
 

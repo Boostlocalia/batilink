@@ -3,6 +3,13 @@ import { APP_NAME } from '@/constants/brand';
 const s = (n: number, one: string, many: string) => (n > 1 ? many : one);
 
 export const bannersFr = {
+  news: {
+    nodi: 'Nodi annonce',
+    tip: 'Conseil de Nodi',
+    read: 'Lire',
+    source: (name: string) => `Source : ${name}`,
+    topics: { ecology: 'Écologie', regulation: 'Réglementation', grants: 'Primes', products: 'Produits', market: 'Marché', safety: 'Sécurité' },
+  },
   contractor: {
     trial: {
       kicker: 'Essai Premium',

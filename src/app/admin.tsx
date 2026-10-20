@@ -87,6 +87,8 @@ const EMPTY: Supplier = {
 };
 
 const KIND: Record<string, string> = { contractor: 'Entrepreneur', supplier: 'Fournisseur', architect: 'Architecte' };
+type AdminNews = { id: string; published_on: string; topic: string; title_fr: string; text_fr: string; source_name: string; source_url: string; hidden: boolean };
+
 const ERRORS: Record<string, string> = {
   invalid_name: 'Le nom est trop court.',
   invalid_vat: 'Numéro de TVA invalide (BE0123456789).',
@@ -159,11 +161,14 @@ export default function AdminScreen() {
   const [pickResults, setPickResults] = useState<SupplierRow[] | null>(null);
   const [inviting, setInviting] = useState<string | null>(null);
   const [inviteMessage, setInviteMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [news, setNews] = useState<AdminNews[]>([]);
 
   const load = useCallback(async () => {
     const res = await call<Overview>({ action: 'overview' });
     if (res.error === 'forbidden' || res.error === 'unauthorized') return setDenied(true);
     if (res.data) setOverview(res.data);
+    const n = await call<{ news: AdminNews[] }>({ action: 'news' });
+    setNews(n.data?.news ?? []);
   }, []);
 
   useFocusEffect(
@@ -305,6 +310,33 @@ export default function AdminScreen() {
             </ThemedText>
             <View style={{ alignSelf: 'flex-start' }}>
               <Button label="Marquer comme traité" variant="ghost" small onPress={() => call({ action: 'report_handled', id: r.id }).then(load)} />
+            </View>
+          </Row>
+        ))}
+      </Card>
+
+      <Card>
+        <ThemedText type="subtitle">Actualités de Nodi (14 derniers jours)</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          Publiées automatiquement chaque matin (nouvel essai vers 13 h s’il en manque). Rien à valider : masquez seulement ce qui ne convient pas.
+        </ThemedText>
+        {news.length === 0 ? <ThemedText themeColor="textSecondary">Aucune actualité publiée pour l’instant : les conseils de Nodi remplissent le carrousel.</ThemedText> : null}
+        {news.map((n) => (
+          <Row key={n.id}>
+            <ThemedText type="smallBold" style={n.hidden ? { textDecorationLine: 'line-through' } : null}>
+              {n.title_fr}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {[day(n.published_on), n.source_name, n.hidden ? 'masquée' : null].filter(Boolean).join(' · ')}
+            </ThemedText>
+            <ThemedText type="small">{n.text_fr}</ThemedText>
+            <View style={{ alignSelf: 'flex-start' }}>
+              <Button
+                label={n.hidden ? 'Afficher' : 'Masquer'}
+                variant="ghost"
+                small
+                onPress={() => call({ action: 'news_hide', id: n.id, hidden: !n.hidden }).then(load)}
+              />
             </View>
           </Row>
         ))}
