@@ -94,12 +94,15 @@ export async function inviteSuppliers(admin: SupabaseClient, request: SentReques
 export async function pickSuppliers(admin: SupabaseClient, request: SentRequest, count: number): Promise<string[]> {
   if (count < 1) return [];
   // Without a category, every supplier serving the postal code qualifies.
-  const query = admin.from('supplier_coverage').select('supplier_id, postal_prefix');
+  const query = admin.from('supplier_coverage').select('supplier_id, postal_prefix, category_id');
   const { data: coverage } = await (request.category_id === null ? query : query.eq('category_id', request.category_id));
   const closeness = new Map<string, number>();
   const category = new Set<string>();
+  // Without a category, general merchants (many categories) come before specialists.
+  const breadth = new Map<string, Set<number>>();
   for (const c of coverage ?? []) {
     category.add(c.supplier_id);
+    breadth.set(c.supplier_id, (breadth.get(c.supplier_id) ?? new Set()).add(c.category_id));
     if (!request.postal_code.startsWith(c.postal_prefix)) continue;
     closeness.set(c.supplier_id, Math.max(closeness.get(c.supplier_id) ?? 0, c.postal_prefix.length));
   }
@@ -121,6 +124,7 @@ export async function pickSuppliers(admin: SupabaseClient, request: SentRequest,
     .sort(
       (a, b) =>
         closeness.get(b.id)! - closeness.get(a.id)! ||
+        breadth.get(b.id)!.size - breadth.get(a.id)!.size ||
         (lastAsked.get(a.id) ?? '').localeCompare(lastAsked.get(b.id) ?? '') ||
         Number(Boolean(b.verified_at)) - Number(Boolean(a.verified_at)) ||
         shuffle.get(a.id)! - shuffle.get(b.id)!,
@@ -135,6 +139,7 @@ export async function pickSuppliers(admin: SupabaseClient, request: SentRequest,
     .sort(
       (a, b) =>
         Math.abs(Number(a.postal_code) - target) - Math.abs(Number(b.postal_code) - target) ||
+        breadth.get(b.id)!.size - breadth.get(a.id)!.size ||
         (lastAsked.get(a.id) ?? '').localeCompare(lastAsked.get(b.id) ?? '') ||
         shuffle.get(a.id)! - shuffle.get(b.id)!,
     )
