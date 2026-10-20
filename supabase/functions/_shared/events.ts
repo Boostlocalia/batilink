@@ -25,6 +25,8 @@ type Event = {
     | 'payment_succeeded'
     | 'payment_failed'
     | 'subscription_changed'
+    | 'founder_joined'
+    | 'founder_ended'
     | 'commission_billed'
     | 'supplier_requested'
     | 'supplier_unsubscribed'
