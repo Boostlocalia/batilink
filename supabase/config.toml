@@ -6,6 +6,9 @@ schemas = ["public"]
 [auth]
 site_url = "http://localhost:8081"
 additional_redirect_urls = ["batinode://", "batilink://"]
+# Same as the hosted project and src/lib/password.ts.
+minimum_password_length = 10
+password_requirements = "letters_digits"
 
 [auth.email]
 enable_signup = true

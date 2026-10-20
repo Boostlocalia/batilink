@@ -13,10 +13,9 @@ import { SignInBanners } from "@/components/home-banners";
 import { GlowBackdrop } from "@/components/glow-backdrop";
 import { NodiGreeting } from "@/components/nodi-greeting";
 import { LegalLinks } from "@/components/legal-links";
+import { strongPassword } from "@/lib/password";
 
 type Mode = "signin" | "signup";
-
-const MIN_PASSWORD = 8;
 
 /** Where the confirmation and reset links bring the user back. */
 const returnUrl = () =>
@@ -69,7 +68,7 @@ export default function SignInScreen() {
     const e: Record<string, string> = {};
     if (!validEmail) e.email = a.invalidEmail;
     if (mode === "signup") {
-      if (password.length < MIN_PASSWORD) e.password = a.shortPassword;
+      if (!strongPassword(password)) e.password = a.shortPassword;
       else if (password !== confirm) e.confirm = a.mismatch;
     } else if (!password) e.password = a.wrongPassword;
     setErrors(e);

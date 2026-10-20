@@ -6,6 +6,7 @@ import { Button, Card, Field, Screen } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useI18n } from '@/i18n';
 import { useSession } from '@/lib/session';
+import { strongPassword } from '@/lib/password';
 import { supabase } from '@/lib/supabase';
 
 /** Shown after a "forgot password" link: the user picks the password they will sign in with. */
@@ -19,13 +20,13 @@ export function NewPassword() {
   const [busy, setBusy] = useState(false);
 
   const save = async () => {
-    if (password.length < 8) return setErrors({ password: a.shortPassword });
+    if (!strongPassword(password)) return setErrors({ password: a.shortPassword });
     if (password !== confirm) return setErrors({ confirm: a.mismatch });
     setBusy(true);
     setErrors({});
     const { error } = await supabase.auth.updateUser({ password });
     setBusy(false);
-    if (error) return setErrors({ form: error.code === 'same_password' ? a.mismatch : t.common.error });
+    if (error) return setErrors({ form: error.code === 'same_password' ? a.mismatch : error.code === 'weak_password' ? a.shortPassword : t.common.error });
     endRecovery();
   };
 
