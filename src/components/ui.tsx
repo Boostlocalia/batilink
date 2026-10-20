@@ -76,17 +76,18 @@ export function Button({ label, onPress, variant = 'primary', disabled, busy, sm
   );
 }
 
-export function Chip({ label, tone = 'neutral' }: { label: string; tone?: 'neutral' | 'good' | 'warn' | 'brand' }) {
+export function Chip({ label, tone = 'neutral' }: { label: string; tone?: 'neutral' | 'good' | 'warn' | 'brand' | 'signal' }) {
   const theme = useTheme();
   const colors = {
     neutral: [theme.backgroundSelected, 'textSecondary'],
     good: [theme.goodBackground, 'good'],
     warn: [theme.warnBackground, 'warn'],
     brand: [theme.brand, 'onBrand'],
+    signal: [theme.background, 'signal'],
   } as const;
   const [bg, fg] = colors[tone];
   return (
-    <View style={[styles.chip, { backgroundColor: bg }]}>
+    <View style={[styles.chip, { backgroundColor: bg }, tone === 'signal' && { borderWidth: 1, borderColor: theme.signal }]}>
       <ThemedText type="smallBold" themeColor={fg} style={styles.chipText}>
         {label}
       </ThemedText>

@@ -71,7 +71,7 @@ export default function PlansScreen() {
           ]}
         />
         {/* The two free months only come with yearly billing. */}
-        <Chip label={billing === 'year' ? g.yearlySave : g.yearlyHint} tone={billing === 'year' ? 'good' : 'neutral'} />
+        <Chip label={billing === 'year' ? g.yearlySave : g.yearlyHint} tone="signal" />
       </View>
       <View style={styles.plans}>
         {ORDER.map((id) => {
@@ -93,7 +93,7 @@ export default function PlansScreen() {
               style={[styles.plan, isCurrent ? { borderColor: theme.brand, borderWidth: 2 } : id === 'full' && { borderColor: theme.signal, borderWidth: 2 }]}>
               <View style={styles.planHead}>
                 <ThemedText type="subtitle">{t.plans.names[id]}</ThemedText>
-                {isCurrent ? <Chip label={t.plans.current} tone="brand" /> : id === 'full' ? <Chip label={g.recommended} tone="good" /> : null}
+                {isCurrent ? <Chip label={t.plans.current} tone="brand" /> : id === 'full' ? <Chip label={g.recommended} tone="signal" /> : null}
               </View>
               <View>
                 <ThemedText type="title">
@@ -103,7 +103,7 @@ export default function PlansScreen() {
                   </ThemedText>
                 </ThemedText>
                 {yearly ? (
-                  <ThemedText type="small" themeColor="textSecondary">
+                  <ThemedText type="smallBold" themeColor="signal">
                     {g.perMonthEquivalent(formatEuro(Math.round((p.priceYearExVat / 12) * 100) / 100, locale))}
                   </ThemedText>
                 ) : null}
@@ -111,7 +111,7 @@ export default function PlansScreen() {
               <View style={{ gap: Spacing.two }}>
                 {features.map(([included, label]) => (
                   <View key={label} style={styles.feature}>
-                    <ThemedText type="smallBold" themeColor={included ? 'good' : 'textSecondary'}>
+                    <ThemedText type="smallBold" themeColor={included ? 'signal' : 'textSecondary'}>
                       {included ? '✓' : '–'}
                     </ThemedText>
                     <ThemedText type="small" themeColor={included ? 'text' : 'textSecondary'} style={{ flex: 1 }}>
@@ -122,7 +122,7 @@ export default function PlansScreen() {
               </View>
               <Button
                 label={isCurrent ? t.plans.current : t.plans.choose}
-                variant={isCurrent ? 'ghost' : id === 'full' ? 'signal' : 'primary'}
+                variant={isCurrent ? 'ghost' : 'signal'}
                 // Going back to the free plan is a cancellation, done from "Manage".
                 disabled={isCurrent || id === 'free'}
                 busy={busy === id}
