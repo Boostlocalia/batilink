@@ -35,12 +35,10 @@ const SOURCES = [
   'bouwkroniek.be',
   'batiactu.com',
   'lemoniteur.fr',
-  'lesoir.be',
-  'lecho.be',
   'rtbf.be',
-  'tijd.be',
   'vrt.be',
-  'standaard.be',
+  'architectura.be',
+  'livios.be',
 ];
 
 /** Never published, whatever the source: off-topic or unsafe content. */
@@ -88,22 +86,19 @@ Deno.serve(async (req) => {
     const messages: Anthropic.MessageParam[] = [{ role: 'user', content: SEARCH_PROMPT(today, seen) }];
     const found = new Set<string>();
     let notes = '';
+    let domains = [...SOURCES];
     for (let turn = 0; turn < 4; turn++) {
-      const response = await client.messages.create({
-        model: MODEL,
-        max_tokens: 8000,
-        system: SEARCH_SYSTEM,
-        messages,
-        tools: [
-          {
-            type: 'web_search_20260209',
-            name: 'web_search',
-            max_uses: 8,
-            allowed_domains: SOURCES,
-            user_location: { type: 'approximate', country: 'BE', timezone: 'Europe/Brussels' },
-          },
-        ],
-      });
+      let response: Anthropic.Message;
+      try {
+        response = await search(client, messages, domains);
+      } catch (error) {
+        // A site that blocks the search crawler is dropped for this run instead of failing the day.
+        const blocked = error instanceof Anthropic.APIError && error.status === 400 ? blockedDomains(error.message) : [];
+        if (!blocked.length) throw error;
+        console.error('news: skipped blocked sites', blocked.join(', '));
+        domains = domains.filter((d) => !blocked.includes(d));
+        response = await search(client, messages, domains);
+      }
       for (const block of response.content) {
         if (block.type === 'web_search_tool_result' && Array.isArray(block.content)) {
           for (const r of block.content) if (r.type === 'web_search_result') found.add(r.url);
@@ -169,6 +164,30 @@ Deno.serve(async (req) => {
     return json({ error: 'news_failed' }, 502);
   }
 });
+
+function search(client: Anthropic, messages: Anthropic.MessageParam[], domains: string[]): Promise<Anthropic.Message> {
+  return client.messages.create({
+    model: MODEL,
+    max_tokens: 8000,
+    system: SEARCH_SYSTEM,
+    messages,
+    tools: [
+      {
+        type: 'web_search_20260209',
+        name: 'web_search',
+        max_uses: 8,
+        allowed_domains: domains,
+        user_location: { type: 'approximate', country: 'BE', timezone: 'Europe/Brussels' },
+      },
+    ],
+  });
+}
+
+/** The sites named in "The following domains are not accessible to our user agent: ['a.be', 'b.be']". */
+function blockedDomains(message: string): string[] {
+  const list = /not accessible[^[]*\[([^\]]*)\]/.exec(message)?.[1] ?? '';
+  return [...list.matchAll(/'([^']+)'/g)].map((m) => m[1]);
+}
 
 /** One e-mail to support when nothing was published today nor yesterday (sent by the 13:00 run). */
 async function alertWhenSilent(admin: ReturnType<typeof adminClient>, today: string): Promise<void> {

@@ -23,6 +23,19 @@ create policy "signed-in users read visible news" on public.news_items
 revoke all on public.news_items from anon, authenticated;
 grant select on public.news_items to authenticated;
 
+-- The search takes longer than the other jobs: its own caller waits up to 150 s.
+create function public.call_news_job() returns bigint
+language sql security definer set search_path = '' as $$
+  select net.http_post(
+    url := 'https://bkmzstdviytslegbxsax.supabase.co/functions/v1/news-daily',
+    body := '{}'::jsonb,
+    headers := jsonb_build_object('Content-Type', 'application/json',
+      'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')),
+    timeout_milliseconds := 150000
+  )
+$$;
+revoke execute on function public.call_news_job() from public, anon, authenticated;
+
 -- UTC times: about 6:30 and 13:00 in Brussels. The second run only tops up a short day.
-select cron.schedule('news-daily', '30 4 * * *', $$select public.call_job('news-daily')$$);
-select cron.schedule('news-daily-retry', '0 11 * * *', $$select public.call_job('news-daily')$$);
+select cron.schedule('news-daily', '30 4 * * *', 'select public.call_news_job()');
+select cron.schedule('news-daily-retry', '0 11 * * *', 'select public.call_news_job()');
