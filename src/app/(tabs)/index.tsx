@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { NewsCarousel } from '@/components/home-banners';
-import { NewContractors } from '@/components/new-contractors';
+import { RegisteredContractors } from '@/components/registered-contractors';
 import { StartChecklist } from '@/components/start-checklist';
 import { SupplierHome } from '@/components/supplier-home';
 import { ThemedText } from '@/components/themed-text';
@@ -81,7 +81,7 @@ function ContractorHome() {
 
       {company ? <StartChecklist /> : null}
 
-      <NewContractors />
+      <RegisteredContractors />
 
       <Card>
         <ThemedText type="subtitle">{t.home.myRequests}</ThemedText>

@@ -75,6 +75,7 @@ function RootNavigator() {
         <Stack.Screen name="annonce/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
         <Stack.Screen name="commande/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
         <Stack.Screen name="fournisseurs" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
+        <Stack.Screen name="entrepreneurs" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
         <Stack.Screen name="zones" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
         <Stack.Screen name="admin" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
         <Stack.Screen name="discussion/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
