@@ -46,16 +46,14 @@ Deno.serve(async (req) => {
   if (!check.ok) return json({ error: check.reason, limit: check.limit, plan }, 403);
 
   if (uniqueSuppliers.length) {
-    // Only suppliers that really cover this category and postal code, or the contractor's favourites.
-    const [{ data: coverage }, { data: favourites }] = await Promise.all([
-      (request.category_id === null
-        ? admin.from('supplier_coverage').select('supplier_id, postal_prefix')
-        : admin.from('supplier_coverage').select('supplier_id, postal_prefix').eq('category_id', request.category_id)
-      ).in('supplier_id', uniqueSuppliers),
+    // Only suppliers of this category within 50 km of the site, or the contractor's favourites.
+    const [{ data: near }, { data: favourites }] = await Promise.all([
+      admin.rpc('nearby_suppliers', { p_postal: request.postal_code, p_category: request.category_id }),
       admin.from('preferred_suppliers').select('supplier_id').eq('contractor_id', companyId).in('supplier_id', uniqueSuppliers),
     ]);
+    const nearby = new Set(((near ?? []) as { id: string }[]).map((n) => n.id));
     const allowed = new Set([
-      ...(coverage ?? []).filter((c) => request.postal_code.startsWith(c.postal_prefix)).map((c) => c.supplier_id),
+      ...uniqueSuppliers.filter((id) => nearby.has(id)),
       ...(favourites ?? []).map((f) => f.supplier_id),
     ]);
     if (allowed.size !== uniqueSuppliers.length) return json({ error: 'supplier_not_covering' }, 400);

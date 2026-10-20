@@ -84,86 +84,43 @@ export async function inviteSuppliers(admin: SupabaseClient, request: SentReques
 }
 
 /**
- * The suppliers BatiNode picks for a request: those covering its category at the
- * closest postal prefix first, then those asked least recently, so the same
- * suppliers are not always the ones solicited. When too few cover that postal code,
- * suppliers of the category based nearby (same province, closest postal code) fill
- * the remaining places. Only suppliers with an e-mail address who did not
- * unsubscribe, never one already invited to this request.
+ * The suppliers BatiNode picks for a request: those of its category within 50 km of
+ * the site, nearest first (in 10 km bands), then those asked least recently, so the
+ * same suppliers are not always the ones solicited. Only suppliers with an e-mail
+ * address who did not unsubscribe, never one already invited to this request.
  */
 export async function pickSuppliers(admin: SupabaseClient, request: SentRequest, count: number): Promise<string[]> {
   if (count < 1) return [];
-  // Without a category, every supplier serving the postal code qualifies.
-  const query = admin.from('supplier_coverage').select('supplier_id, postal_prefix, category_id');
-  const { data: coverage } = await (request.category_id === null ? query : query.eq('category_id', request.category_id));
-  const closeness = new Map<string, number>();
-  const category = new Set<string>();
-  // Without a category, general merchants (many categories) come before specialists.
-  const breadth = new Map<string, Set<number>>();
-  for (const c of coverage ?? []) {
-    category.add(c.supplier_id);
-    breadth.set(c.supplier_id, (breadth.get(c.supplier_id) ?? new Set()).add(c.category_id));
-    if (!request.postal_code.startsWith(c.postal_prefix)) continue;
-    closeness.set(c.supplier_id, Math.max(closeness.get(c.supplier_id) ?? 0, c.postal_prefix.length));
-  }
-  if (!category.size) return [];
-  const ids = [...category];
-  const [{ data: reachable }, { data: invited }, { data: recent }] = await Promise.all([
-    admin.from('companies').select('id, email, quote_email, verified_at, postal_code').in('id', ids).eq('kind', 'supplier').is('requests_stopped_at', null),
+  // Suppliers of the category within 50 km of the site, nearest first (public.nearby_suppliers).
+  const { data: near } = await admin.rpc('nearby_suppliers', { p_postal: request.postal_code, p_category: request.category_id });
+  const distance = new Map(((near ?? []) as { id: string; km: number | null }[]).map((n) => [n.id, n.km ?? 999]));
+  if (!distance.size) return [];
+  const ids = [...distance.keys()];
+  const [{ data: reachable }, { data: invited }, { data: recent }, { data: coverage }] = await Promise.all([
+    admin.from('companies').select('id, email, quote_email, verified_at').in('id', ids).eq('kind', 'supplier').is('requests_stopped_at', null),
     admin.from('quotes').select('supplier_id').eq('request_id', request.id),
     admin.from('quotes').select('supplier_id, created_at').in('supplier_id', ids).order('created_at', { ascending: false }).limit(1000),
+    admin.from('supplier_coverage').select('supplier_id, category_id').in('supplier_id', ids),
   ]);
   const already = new Set((invited ?? []).map((q) => q.supplier_id));
   const lastAsked = new Map<string, string>();
   for (const q of recent ?? []) if (!lastAsked.has(q.supplier_id)) lastAsked.set(q.supplier_id, q.created_at);
+  // Without a category, general merchants (many categories) come before specialists.
+  const breadth = new Map<string, Set<number>>();
+  for (const c of coverage ?? []) breadth.set(c.supplier_id, (breadth.get(c.supplier_id) ?? new Set()).add(c.category_id));
   const shuffle = new Map(ids.map((id) => [id, Math.random()]));
-  const candidates = (reachable ?? []).filter((s) => (s.quote_email ?? s.email) && !already.has(s.id));
-
-  const covering = candidates
-    .filter((s) => closeness.has(s.id))
+  // Within 10 km of each other, suppliers count as equally close.
+  const band = (id: string) => Math.floor(distance.get(id)! / 10);
+  return (reachable ?? [])
+    .filter((s) => (s.quote_email ?? s.email) && !already.has(s.id))
     .sort(
       (a, b) =>
-        closeness.get(b.id)! - closeness.get(a.id)! ||
-        breadth.get(b.id)!.size - breadth.get(a.id)!.size ||
+        band(a.id) - band(b.id) ||
+        (request.category_id === null ? (breadth.get(b.id)?.size ?? 0) - (breadth.get(a.id)?.size ?? 0) : 0) ||
         (lastAsked.get(a.id) ?? '').localeCompare(lastAsked.get(b.id) ?? '') ||
         Number(Boolean(b.verified_at)) - Number(Boolean(a.verified_at)) ||
         shuffle.get(a.id)! - shuffle.get(b.id)!,
     )
-    .map((s) => s.id);
-  if (covering.length >= count) return covering.slice(0, count);
-
-  // Not enough: suppliers of the category based in the same province, nearest postal code first.
-  const target = Number(request.postal_code);
-  const nearby = candidates
-    .filter((s) => !closeness.has(s.id) && s.postal_code && sameProvince(s.postal_code, request.postal_code))
-    .sort(
-      (a, b) =>
-        Math.abs(Number(a.postal_code) - target) - Math.abs(Number(b.postal_code) - target) ||
-        breadth.get(b.id)!.size - breadth.get(a.id)!.size ||
-        (lastAsked.get(a.id) ?? '').localeCompare(lastAsked.get(b.id) ?? '') ||
-        shuffle.get(a.id)! - shuffle.get(b.id)!,
-    )
-    .map((s) => s.id);
-  return [...covering, ...nearby].slice(0, count);
-}
-
-// Same provinces as public.region_prefixes().
-const PROVINCES: string[][] = [
-  ['10', '11', '12'],
-  ['13', '14'],
-  ['15', '16', '17', '18', '19', '30', '31', '32', '33', '34'],
-  ['2'],
-  ['35', '36', '37', '38', '39'],
-  ['4'],
-  ['5'],
-  ['60', '61', '62', '63', '64', '65', '7'],
-  ['66', '67', '68', '69'],
-  ['8'],
-  ['9'],
-];
-
-function sameProvince(a: string, b: string): boolean {
-  const province = (code: string) => PROVINCES.findIndex((prefixes) => prefixes.some((p) => code.startsWith(p)));
-  const pa = province(a);
-  return pa !== -1 && pa === province(b);
+    .map((s) => s.id)
+    .slice(0, count);
 }

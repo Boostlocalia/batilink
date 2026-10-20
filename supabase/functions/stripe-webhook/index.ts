@@ -58,11 +58,14 @@ async function paymentFailed(admin: Admin, session: Stripe.Checkout.Session, sta
   if (data && status === 'failed') await logEvent(admin, { kind: 'payment_failed', company_id: data.company_id, data: { bill: data.commission_bill_id } });
 }
 
-/** Founding members: the first live paid plan takes a place; cancelling or changing plan ends the price guarantee. */
+/**
+ * Founding members: the first live paid plan takes a place. Moving up once from Starter
+ * to Premium keeps the price guarantee; cancelling, moving down or a second change ends it.
+ */
 async function updateFounder(admin: Admin, companyId: string, plan: 'pro' | 'full' | undefined, status: string) {
   const { data: row } = await admin
     .from('subscriptions')
-    .select('founder_number, founder_plan, founder_ended_at')
+    .select('founder_number, founder_plan, founder_plan_changed_at, founder_ended_at')
     .eq('company_id', companyId)
     .maybeSingle();
   if (!row) return;
@@ -72,10 +75,19 @@ async function updateFounder(admin: Admin, companyId: string, plan: 'pro' | 'ful
     if (number) await logEvent(admin, { kind: 'founder_joined', company_id: companyId, data: { number, plan } });
     return;
   }
-  const ends = status === 'canceled' || (!!plan && plan !== row.founder_plan);
-  if (row.founder_ended_at || !ends) return;
-  await admin.from('subscriptions').update({ founder_ended_at: new Date().toISOString() }).eq('company_id', companyId);
-  await logEvent(admin, { kind: 'founder_ended', company_id: companyId, data: { number: row.founder_number, status, plan: plan ?? null } });
+  if (row.founder_ended_at) return;
+  if (status !== 'canceled' && (!plan || plan === row.founder_plan)) return;
+  const upgrade = status !== 'canceled' && row.founder_plan === 'pro' && plan === 'full' && !row.founder_plan_changed_at;
+  const now = new Date().toISOString();
+  await admin
+    .from('subscriptions')
+    .update(upgrade ? { founder_plan: 'full', founder_plan_changed_at: now } : { founder_ended_at: now })
+    .eq('company_id', companyId);
+  await logEvent(admin, {
+    kind: upgrade ? 'founder_upgraded' : 'founder_ended',
+    company_id: companyId,
+    data: { number: row.founder_number, status, plan: plan ?? null },
+  });
 }
 
 async function subscriptionChanged(admin: Admin, sub: Stripe.Subscription, livemode: boolean) {
