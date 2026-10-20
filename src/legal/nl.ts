@@ -192,6 +192,7 @@ export const legalNl: LegalTexts = {
             "Leveranciers die een aanvraag ontvangen, zien de naam, het btw-nummer en het adres van het aanvragende bedrijf en de inhoud van de aanvraag. De aannemer ziet de offertes en de naam van de leveranciers. Persoonlijke contactgegevens worden uit doorgestuurde berichten verwijderd.",
             "Onze verwerkers, enkel om BatiNode te laten werken: Supabase (database en bestanden, Frankfurt, EU), GitHub (hosting van de webapplicatie), Brevo (verzending van e-mails, Frankrijk), Stripe (betalingen) en Anthropic (het AI-model van Nodi). Volgens zijn commerciële voorwaarden gebruikt Anthropic deze gegevens niet om zijn modellen te trainen.",
             "Sommige van deze dienstverleners kunnen gegevens buiten de Europese Unie verwerken, met name in de Verenigde Staten. Die doorgiften gebeuren binnen het EU-VS-kader voor gegevensbescherming of met de standaardcontractbepalingen van de Europese Commissie.",
+            "Ingelogde leden van BatiNode zien in de lijst van ingeschreven aannemers de naam van uw bedrijf, uw gemeente, uw vakgebieden en de badges « KBO-geverifieerd » en « Stichter ». Nooit uw e-mail, telefoon of btw-nummer. U kunt die lijst op elk moment verlaten in Instellingen.",
             "Wij verkopen uw gegevens nooit.",
           ],
         },

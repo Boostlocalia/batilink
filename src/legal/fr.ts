@@ -192,6 +192,7 @@ export const legalFr: LegalTexts = {
             "Les fournisseurs à qui une demande est envoyée voient le nom, le numéro de TVA et l’adresse de l’entreprise qui demande, ainsi que le contenu de la demande. L’entrepreneur voit les offres et le nom des fournisseurs. Les coordonnées personnelles sont retirées des messages relayés.",
             "Nos sous-traitants, uniquement pour faire fonctionner BatiNode : Supabase (base de données et fichiers, Francfort, UE), GitHub (hébergement de l’application web), Brevo (envoi des e-mails, France), Stripe (paiements) et Anthropic (le modèle d’intelligence artificielle de Nodi). Selon ses conditions commerciales, Anthropic n’utilise pas ces données pour entraîner ses modèles.",
             "Certains de ces prestataires peuvent traiter des données hors de l’Union européenne, notamment aux États-Unis. Ces transferts sont encadrés par le cadre de protection des données UE–États-Unis ou par les clauses contractuelles types de la Commission européenne.",
+            "Les membres connectés de BatiNode voient, dans la liste des entrepreneurs inscrits, le nom de votre entreprise, votre commune, vos métiers et les badges « Vérifié BCE » et « Fondateur ». Jamais votre e-mail, votre téléphone ni votre numéro de TVA. Vous pouvez quitter cette liste à tout moment dans Réglages.",
             "Nous ne vendons jamais vos données.",
           ],
         },

@@ -23,7 +23,7 @@ export default function ContractorsScreen() {
   useEffect(() => {
     let live = true;
     const timer = setTimeout(async () => {
-      const { data } = await supabase.rpc('registered_contractors', { p_query: query.trim() || null, p_limit: PAGE, p_offset: 0 });
+      const { data } = await supabase.rpc('contractor_directory', { p_query: query.trim() || null, p_limit: PAGE, p_offset: 0 });
       if (live) setRows((data as ContractorRow[] | null) ?? []);
     }, 250);
     return () => {
@@ -34,7 +34,7 @@ export default function ContractorsScreen() {
 
   const more = async () => {
     setBusy(true);
-    const { data } = await supabase.rpc('registered_contractors', { p_query: query.trim() || null, p_limit: PAGE, p_offset: rows?.length ?? 0 });
+    const { data } = await supabase.rpc('contractor_directory', { p_query: query.trim() || null, p_limit: PAGE, p_offset: rows?.length ?? 0 });
     setBusy(false);
     setRows((list) => [...(list ?? []), ...((data as ContractorRow[] | null) ?? [])]);
   };

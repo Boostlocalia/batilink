@@ -11,7 +11,7 @@ import { formatDate } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 
-export type ContractorRow = { id: string; name: string; city: string | null; postal_code: string | null; trade_ids: number[]; verified_at: string | null; total: number };
+export type ContractorRow = { id: string; name: string; city: string | null; postal_code: string | null; trade_ids: number[]; verified_at: string | null; founder: boolean; total: number };
 type Trade = { id: number; label_fr: string; label_nl: string };
 
 /** Trade labels by id, for the chips under each contractor. */
@@ -40,6 +40,8 @@ export function ContractorItem({ row, trades, first }: { row: ContractorRow; tra
           {[`${row.postal_code ?? ''} ${row.city ?? ''}`.trim(), row.verified_at ? c.since(formatDate(row.verified_at.slice(0, 10), locale)) : null].filter(Boolean).join(' · ')}
         </ThemedText>
         <View style={styles.chips}>
+          {row.verified_at ? <Chip label={c.verified} tone="good" /> : null}
+          {row.founder ? <Chip label={c.founder} tone="signal" /> : null}
           {row.trade_ids.slice(0, 3).map((id) => {
             const trade = trades.get(id);
             return trade ? <Chip key={id} label={language === 'nl' ? trade.label_nl : trade.label_fr} /> : null;
@@ -53,6 +55,9 @@ export function ContractorItem({ row, trades, first }: { row: ContractorRow; tra
   );
 }
 
+// Below this many, a count would look empty: the card invites colleagues instead.
+const FEW = 5;
+
 /** Home card: verified contractors already on BatiNode, the same region first. */
 export function RegisteredContractors() {
   const { t } = useI18n();
@@ -62,7 +67,7 @@ export function RegisteredContractors() {
 
   useFocusEffect(
     useCallback(() => {
-      supabase.rpc('registered_contractors', { p_limit: 5 }).then(({ data }) => setRows((data as ContractorRow[] | null) ?? []));
+      supabase.rpc('contractor_directory', { p_limit: 5 }).then(({ data }) => setRows((data as ContractorRow[] | null) ?? []));
     }, []),
   );
 
@@ -72,12 +77,13 @@ export function RegisteredContractors() {
     <Card>
       <ThemedText type="subtitle">{c.title}</ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
-        {total ? c.lead(total) : c.empty}
+        {total >= FEW ? c.lead(total) : c.first}
       </ThemedText>
       {rows.map((r, i) => (
         <ContractorItem key={r.id} row={r} trades={trades} first={i === 0} />
       ))}
       {total > rows.length ? <Button label={c.all} variant="ghost" small onPress={() => router.push('/entrepreneurs')} /> : null}
+      {total < FEW ? <Button label={c.invite} variant="ghost" small onPress={() => router.push('/reglages')} /> : null}
     </Card>
   );
 }

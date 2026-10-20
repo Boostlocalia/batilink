@@ -20,6 +20,7 @@ export default function SettingsScreen() {
   const { session, company } = useSession();
 
   const [news, setNews] = useState<boolean | null>(null);
+  const [listed, setListed] = useState<boolean | null>(null);
   const [platformAdmin, setPlatformAdmin] = useState(false);
   useEffect(() => {
     if (!session) return;
@@ -29,16 +30,25 @@ export default function SettingsScreen() {
     if (company?.kind !== 'contractor') return;
     supabase
       .from('companies')
-      .select('news_emails')
+      .select('news_emails, directory_visible')
       .eq('id', company.id)
       .single()
-      .then(({ data }) => setNews(data?.news_emails ?? true));
+      .then(({ data }) => {
+        setNews(data?.news_emails ?? true);
+        setListed(data?.directory_visible ?? true);
+      });
   }, [company?.id, company?.kind]);
 
   const changeNews = (next: 'on' | 'off') => {
     if (!company) return;
     setNews(next === 'on');
     supabase.from('companies').update({ news_emails: next === 'on' }).eq('id', company.id).then(() => {});
+  };
+
+  const changeListed = (next: 'on' | 'off') => {
+    if (!company) return;
+    setListed(next === 'on');
+    supabase.from('companies').update({ directory_visible: next === 'on' }).eq('id', company.id).then(() => {});
   };
 
   const changeLanguage = (next: Language) => {
@@ -89,6 +99,22 @@ export default function SettingsScreen() {
           <Segmented<'on' | 'off'>
             value={news ? 'on' : 'off'}
             onChange={changeNews}
+            options={[
+              { value: 'on', label: t.settings.on },
+              { value: 'off', label: t.settings.off },
+            ]}
+          />
+        </Card>
+      ) : null}
+      {company?.kind === 'contractor' && listed !== null ? (
+        <Card>
+          <ThemedText type="smallBold">{t.settings.directory}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {t.settings.directoryLead}
+          </ThemedText>
+          <Segmented<'on' | 'off'>
+            value={listed ? 'on' : 'off'}
+            onChange={changeListed}
             options={[
               { value: 'on', label: t.settings.on },
               { value: 'off', label: t.settings.off },
