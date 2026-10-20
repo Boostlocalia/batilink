@@ -145,8 +145,8 @@ export const growthFr = {
       { title: 'Les négoces répondent', text: 'Ils reçoivent un e-mail dans leur langue et envoient leur prix.' },
       { title: 'Comparez et commandez', text: 'Meilleur prix par ligne, délai, livraison. Vous retenez une offre et payez le fournisseur en direct.' },
     ],
-    pricingTitle: 'Des prix simples',
-    pricingLead: 'Essayez Premium gratuitement pendant 7 jours, puis choisissez votre plan. Prix HTVA, sans engagement.',
+    pricingTitle: 'Prix de lancement',
+    pricingLead: 'Essayez Premium gratuitement pendant 7 jours, puis choisissez votre plan. Prix de lancement, HTVA et sans engagement.',
     pricingFrom: (price: string) => `à partir de ${price} / mois`,
     faqTitle: 'Questions fréquentes',
     faq: [

@@ -82,7 +82,7 @@ export const legalFr: LegalTexts = {
           title: "5. Abonnements des entrepreneurs",
           body: [
             "Un nouvel entrepreneur peut essayer gratuitement l’abonnement Premium pendant 7 jours, sans carte de paiement. À la fin de l’essai, l’accès aux fonctions payantes s’arrête jusqu’au choix d’un abonnement.",
-            "Prix hors TVA : Starter 69,99 € par mois ou 699,90 € par an ; Premium 129,99 € par mois ou 1 299,90 € par an. La TVA belge s’ajoute au prix.",
+            "Prix de lancement hors TVA : Starter 69,99 € par mois ou 699,90 € par an ; Premium 129,99 € par mois ou 1 299,90 € par an. La TVA belge s’ajoute au prix.",
             "Le paiement est traité par Stripe. L’abonnement est payable d’avance et se renouvelle automatiquement à la fin de chaque période, au prix en vigueur.",
             "Vous pouvez résilier à tout moment depuis l’application : la résiliation prend effet à la fin de la période payée, sans remboursement de la période en cours.",
             "Nous annonçons toute hausse de prix au moins 30 jours à l’avance ; elle s’applique à partir de la période suivante et vous pouvez résilier avant.",

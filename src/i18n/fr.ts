@@ -190,7 +190,8 @@ export const fr = {
   },
   plans: {
     title: 'Abonnement',
-    lead: 'Prix HTVA, sans engagement.',
+    lead: 'Prix de lancement, HTVA et sans engagement.',
+    launch: 'Prix de lancement',
     perMonth: '/ mois HTVA',
     current: 'Plan actuel',
     store: {

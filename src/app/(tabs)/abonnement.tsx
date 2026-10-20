@@ -113,6 +113,9 @@ export default function PlansScreen() {
                 {isCurrent ? <Chip label={t.plans.current} tone="brand" /> : id === 'full' ? <Chip label={g.recommended} tone="signal" /> : null}
               </View>
               <View>
+                <ThemedText type="smallBold" themeColor="signal" style={{ textTransform: 'uppercase', letterSpacing: 1 }}>
+                  {t.plans.launch}
+                </ThemedText>
                 <ThemedText type="title">
                   {formatEuro(yearly ? p.priceYearExVat : p.priceExVat, locale).replace(/[,.]00/, '')}{' '}
                   <ThemedText type="small" themeColor="textSecondary">

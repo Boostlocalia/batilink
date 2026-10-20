@@ -178,6 +178,13 @@ export default function WelcomeScreen() {
                     <Chip label={t.growth.plans.recommended} tone="good" />
                   ) : null}
                 </View>
+                <ThemedText
+                  type="smallBold"
+                  themeColor="signal"
+                  style={{ textTransform: "uppercase", letterSpacing: 1 }}
+                >
+                  {t.plans.launch}
+                </ThemedText>
                 <ThemedText type="subtitle">
                   {formatEuro(PLANS[id].priceExVat, locale).replace(
                     /[,.]00/,

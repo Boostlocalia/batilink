@@ -147,8 +147,8 @@ export const growthNl: typeof growthFr = {
       { title: 'De handelaars antwoorden', text: 'Ze krijgen een e-mail in hun taal en sturen hun prijs.' },
       { title: 'Vergelijk en bestel', text: 'Beste prijs per regel, levertijd, levering. U kiest een offerte en betaalt de leverancier rechtstreeks.' },
     ],
-    pricingTitle: 'Eenvoudige prijzen',
-    pricingLead: 'Probeer Premium 7 dagen gratis en kies daarna uw plan. Prijzen excl. btw, zonder verbintenis.',
+    pricingTitle: 'Lanceringsprijzen',
+    pricingLead: 'Probeer Premium 7 dagen gratis en kies daarna uw plan. Lanceringsprijzen, excl. btw en zonder verbintenis.',
     pricingFrom: (price: string) => `vanaf ${price} / maand`,
     faqTitle: 'Veelgestelde vragen',
     faq: [

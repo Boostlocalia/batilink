@@ -104,7 +104,7 @@ export function trialEndingMail(lang: Lang, to: string, daysLeft: number, url: s
       subject: `Votre essai Premium se termine dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`,
       paragraphs: [
         `Après l’essai, choisissez un plan pour continuer à utiliser ${APP_NAME}. Vos demandes, offres et commandes restent enregistrées.`,
-        'Gardez Premium pour 129,99 € HTVA par mois, ou 1 299,90 € par an (deux mois offerts). Le plan Starter (69,99 € par mois) garde le réseau sans limite, sans les fournisseurs. Sans engagement.',
+        'Gardez Premium au prix de lancement de 129,99 € HTVA par mois, ou 1 299,90 € par an (deux mois offerts). Le plan Starter (69,99 € par mois) garde le réseau sans limite, sans les fournisseurs. Sans engagement.',
       ],
       cta: { label: 'Choisir mon plan', url },
     },
@@ -112,7 +112,7 @@ export function trialEndingMail(lang: Lang, to: string, daysLeft: number, url: s
       subject: `Uw Premium-proefperiode eindigt over ${daysLeft} dag${daysLeft > 1 ? 'en' : ''}`,
       paragraphs: [
         `Kies na de proefperiode een plan om ${APP_NAME} te blijven gebruiken. Uw aanvragen, offertes en bestellingen blijven bewaard.`,
-        'Behoud Premium voor € 129,99 excl. btw per maand, of € 1.299,90 per jaar (twee maanden gratis). Het Starter-plan (€ 69,99 per maand) houdt het netwerk zonder limiet, zonder de leveranciers. Zonder verbintenis.',
+        'Behoud Premium tegen de lanceringsprijs van € 129,99 excl. btw per maand, of € 1.299,90 per jaar (twee maanden gratis). Het Starter-plan (€ 69,99 per maand) houdt het netwerk zonder limiet, zonder de leveranciers. Zonder verbintenis.',
       ],
       cta: { label: 'Mijn plan kiezen', url },
     },
