@@ -23,6 +23,7 @@ export type LegalTexts = {
 /** The company that runs BatiNode. */
 export const OPERATOR = {
   name: "Modern X Renov SRL",
+  nameNl: "Modern X Renov BV",
   enterprise: "1015.519.625",
   vat: "BE 1015.519.625",
   address: "Ruisbroeksesteenweg 9, 1600 Sint-Pieters-Leeuw, Belgique",

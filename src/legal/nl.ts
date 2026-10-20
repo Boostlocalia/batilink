@@ -1,6 +1,6 @@
 import { OPERATOR as O, type LegalTexts } from "./types";
 
-const P = `${O.name} (ondernemingsnummer ${O.enterprise}, btw ${O.vat}), ${O.addressNl}`;
+const P = `${O.nameNl} (ondernemingsnummer ${O.enterprise}, btw ${O.vat}), ${O.addressNl}`;
 
 export const legalNl: LegalTexts = {
   updated: "Van kracht sinds 20 oktober 2026",
@@ -32,7 +32,7 @@ export const legalNl: LegalTexts = {
         {
           title: "Intellectuele eigendom",
           body: [
-            `Het merk BatiNode, het logo, Nodi, de teksten, de illustraties en de code van de applicatie behoren toe aan ${O.name}. Elke overname zonder schriftelijke toestemming is verboden.`,
+            `Het merk BatiNode, het logo, Nodi, de teksten, de illustraties en de code van de applicatie behoren toe aan ${O.nameNl}. Elke overname zonder schriftelijke toestemming is verboden.`,
             "Namen, logo’s en inhoud van ingeschreven bedrijven blijven eigendom van die bedrijven.",
           ],
         },
@@ -123,7 +123,7 @@ export const legalNl: LegalTexts = {
           title: "10. Beschikbaarheid en aansprakelijkheid",
           body: [
             "Wij doen het nodige om BatiNode beschikbaar en veilig te houden, zonder een dienst zonder onderbreking of fouten te kunnen waarborgen. Er kan onderhoud plaatsvinden.",
-            `Behalve bij opzet of zware fout is de aansprakelijkheid van ${O.name} beperkt tot rechtstreekse schade en tot de bedragen die uw bedrijf in de 12 maanden vóór het schadegeval aan BatiNode betaald heeft. Wij zijn niet aansprakelijk voor onrechtstreekse schade, zoals verlies van omzet, klanten of gegevens.`,
+            `Behalve bij opzet of zware fout is de aansprakelijkheid van ${O.nameNl} beperkt tot rechtstreekse schade en tot de bedragen die uw bedrijf in de 12 maanden vóór het schadegeval aan BatiNode betaald heeft. Wij zijn niet aansprakelijk voor onrechtstreekse schade, zoals verlies van omzet, klanten of gegevens.`,
           ],
         },
         {
