@@ -7,7 +7,7 @@ export const bannersFr = {
     nodi: 'Nodi annonce',
     tip: 'Conseil de Nodi',
     read: 'Lire',
-    source: (name: string) => `Source : ${name}`,
+    source: (name: string, other?: boolean) => `Source : ${name}${other ? ' (article en néerlandais)' : ''}`,
     topics: { ecology: 'Écologie', regulation: 'Réglementation', grants: 'Primes', products: 'Produits', market: 'Marché', safety: 'Sécurité' },
   },
   contractor: {

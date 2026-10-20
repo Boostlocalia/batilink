@@ -8,7 +8,7 @@ export const bannersNl: typeof bannersFr = {
     nodi: 'Nodi meldt',
     tip: 'Tip van Nodi',
     read: 'Lezen',
-    source: (name: string) => `Bron: ${name}`,
+    source: (name: string, other?: boolean) => `Bron: ${name}${other ? ' (Franstalig artikel)' : ''}`,
     topics: { ecology: 'Ecologie', regulation: 'Regelgeving', grants: 'Premies', products: 'Producten', market: 'Markt', safety: 'Veiligheid' },
   },
   contractor: {

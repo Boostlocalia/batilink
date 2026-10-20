@@ -24,7 +24,7 @@ export function NewsCarousel() {
     kicker: `${c.url ? n.nodi : n.tip} · ${n.topics[c.topic]}`,
     title: c.title,
     text: c.text,
-    footnote: c.source ? n.source(c.source) : undefined,
+    footnote: c.source ? n.source(c.source, c.otherLanguage) : undefined,
     cta: c.url ? n.read : undefined,
     onPress: c.url ? () => openNews(c.url!) : undefined,
   }));

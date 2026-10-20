@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase';
 export const NEWS_PER_DAY = 5;
 export type NewsTopic = 'ecology' | 'regulation' | 'grants' | 'products' | 'market' | 'safety';
 
-export type NewsCard = { key: string; topic: NewsTopic; title: string; text: string; source?: string; url?: string };
+export type NewsCard = { key: string; topic: NewsTopic; title: string; text: string; source?: string; url?: string; otherLanguage?: boolean };
 
 /** Our own photos per topic: nothing is loaded from the news sites. */
 export const TOPIC_LOOK: Record<NewsTopic, { image: Banner; accent: Accent }> = {
@@ -23,17 +23,20 @@ export const TOPIC_LOOK: Record<NewsTopic, { image: Banner; accent: Accent }> = 
   safety: { image: 'supplier', accent: 'orange' },
 };
 
-type Row = { id: string; topic: NewsTopic; title_fr: string; text_fr: string; title_nl: string; text_nl: string; source_name: string; source_url: string };
+type Row = { id: string; topic: NewsTopic; title_fr: string; text_fr: string; title_nl: string; text_nl: string; source_name: string; source_url: string; source_lang: string };
 
 export async function loadNews(lang: 'fr' | 'nl'): Promise<NewsCard[]> {
   const { data } = await supabase
     .from('news_items')
-    .select('id, topic, title_fr, text_fr, title_nl, text_nl, source_name, source_url')
+    .select('id, topic, title_fr, text_fr, title_nl, text_nl, source_name, source_url, source_lang, published_on')
     .order('published_on', { ascending: false })
     .order('created_at', { ascending: true })
-    .limit(NEWS_PER_DAY);
-  const news: NewsCard[] = ((data ?? []) as Row[])
+    .limit(NEWS_PER_DAY * 2);
+  // The latest day first, and within it articles written in the reader's language first.
+  const news: NewsCard[] = ((data ?? []) as (Row & { published_on: string })[])
     .filter((r) => r.source_url.startsWith('https://'))
+    .sort((a, b) => b.published_on.localeCompare(a.published_on) || Number(b.source_lang === lang) - Number(a.source_lang === lang))
+    .slice(0, NEWS_PER_DAY)
     .map((r) => ({
       key: r.id,
       topic: r.topic,
@@ -41,6 +44,7 @@ export async function loadNews(lang: 'fr' | 'nl'): Promise<NewsCard[]> {
       text: lang === 'nl' ? r.text_nl : r.text_fr,
       source: r.source_name,
       url: r.source_url,
+      otherLanguage: r.source_lang !== lang,
     }));
   return [...news, ...tipsOfTheDay(NEWS_PER_DAY - news.length, lang)];
 }
