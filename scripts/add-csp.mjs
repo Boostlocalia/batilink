@@ -26,8 +26,8 @@ const html = fs.readFileSync(file, 'utf8');
 if (html.includes('Content-Security-Policy')) process.exit(0);
 // Link previews (WhatsApp, iMessage, LinkedIn…), home-screen icon and installable app.
 const site = 'https://app.batinode.be';
-const title = 'BatiNode · Une demande de prix, tous vos négoces';
-const description = 'Envoyez une demande de prix aux négoces autour de votre chantier et comparez les offres ligne par ligne. Entreprises vérifiées, en français et en néerlandais.';
+const title = 'BatiNode · Une demande de prix, tous vos fournisseurs';
+const description = 'Envoyez une demande de prix aux fournisseurs autour de votre chantier et comparez les offres ligne par ligne. Entreprises vérifiées, en français et en néerlandais.';
 const share = [
   `<meta name="description" content="${description}" />`,
   '<meta name="theme-color" content="#09090b" />',
@@ -43,7 +43,7 @@ const share = [
   `<meta property="og:image" content="${site}/og-image.png" />`,
   '<meta property="og:image:width" content="1200" />',
   '<meta property="og:image:height" content="630" />',
-  '<meta property="og:image:alt" content="Logo BatiNode : une demande de prix, tous vos négoces" />',
+  '<meta property="og:image:alt" content="Logo BatiNode : une demande de prix, tous vos fournisseurs" />',
   '<meta property="og:locale" content="fr_BE" />',
   '<meta property="og:locale:alternate" content="nl_BE" />',
   '<meta name="twitter:card" content="summary_large_image" />',

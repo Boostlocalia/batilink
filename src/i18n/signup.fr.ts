@@ -10,10 +10,10 @@ export const signupFr = {
   profiles: {
     contractor: {
       title: 'Entrepreneur',
-      lead: 'Comparez les prix des négoces, trouvez des sous-traitants vérifiés et gardez la preuve de vos achats.',
+      lead: 'Comparez les prix des fournisseurs, trouvez des sous-traitants vérifiés et gardez la preuve de vos achats.',
     },
     supplier: {
-      title: 'Fournisseur ou négoce',
+      title: 'Fournisseur',
       lead: 'Recevez des demandes de prix d’entrepreneurs de votre zone. Inscription et réponses gratuites.',
     },
     architect: {
@@ -67,7 +67,7 @@ export const signupFr = {
     OVL: 'Flandre orientale',
   },
   supplierType: 'Vous êtes',
-  supplierTypeLabels: { merchant: 'Négoce de matériaux', manufacturer: 'Fabricant', wholesaler: 'Grossiste', rental: 'Location de matériel' },
+  supplierTypeLabels: { merchant: 'Fournisseur de matériaux', manufacturer: 'Fabricant', wholesaler: 'Grossiste', rental: 'Location de matériel' },
   categories: 'Ce que vous vendez',
   service: 'Service',
   delivers: 'Livraison sur chantier',

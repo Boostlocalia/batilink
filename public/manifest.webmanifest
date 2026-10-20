@@ -1,7 +1,7 @@
 {
   "name": "BatiNode",
   "short_name": "BatiNode",
-  "description": "Une demande de prix, tous vos négoces, comparés ligne par ligne.",
+  "description": "Une demande de prix, tous vos fournisseurs, comparés ligne par ligne.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#09090b",

@@ -9,7 +9,7 @@ export function welcomeMail(lang: Lang, to: string, kind: Kind, url: string, tri
   const fr: Record<Kind, string[]> = {
     contractor: [
       `Bienvenue sur ${APP_NAME}. Vous avez ${trialDays} jours de plan Premium offerts, sans carte bancaire.`,
-      'Le plus rapide pour voir la différence : envoyez votre prochaine demande de matériaux à plusieurs négoces de votre zone. Ils répondent par e-mail, vous comparez les offres ligne par ligne.',
+      'Le plus rapide pour voir la différence : envoyez votre prochaine demande de matériaux à plusieurs fournisseurs de votre zone. Ils répondent par e-mail, vous comparez les offres ligne par ligne.',
       'Astuce : ajoutez vos fournisseurs habituels. Ils recevront vos demandes même s’ils ne sont pas encore inscrits.',
     ],
     supplier: [
@@ -56,7 +56,7 @@ export function activationMail(lang: Lang, to: string, kind: Kind, url: string):
       fr: {
         subject: 'Votre première demande de prix en 3 minutes',
         paragraphs: [
-          'Vous n’avez pas encore envoyé de demande de prix. Prenez la liste de votre prochain chantier : titre, quelques lignes de produits, le code postal. Nous l’envoyons aux négoces de votre zone.',
+          'Vous n’avez pas encore envoyé de demande de prix. Prenez la liste de votre prochain chantier : titre, quelques lignes de produits, le code postal. Nous l’envoyons aux fournisseurs de votre zone.',
           'Comparer au moins trois offres est le moyen le plus simple de payer le juste prix.',
         ],
         cta: { label: 'Créer ma demande', url },
@@ -176,7 +176,7 @@ export function winbackMail(lang: Lang, to: string, url: string): Mail {
   return notice(lang, to, {
     fr: {
       subject: 'Un chantier qui démarre ? Comparez vos prix en 3 minutes',
-      paragraphs: ['Vous n’avez pas envoyé de demande de prix depuis un mois. Pour votre prochain chantier, envoyez la liste aux négoces de votre zone et comparez les offres ligne par ligne.'],
+      paragraphs: ['Vous n’avez pas envoyé de demande de prix depuis un mois. Pour votre prochain chantier, envoyez la liste aux fournisseurs de votre zone et comparez les offres ligne par ligne.'],
       cta: { label: 'Nouvelle demande', url },
     },
     nl: {

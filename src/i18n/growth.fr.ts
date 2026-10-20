@@ -156,7 +156,7 @@ export const growthFr = {
     page: {
       heroTitle: "Votre devis part avant celui des autres.",
       heroLead:
-        "Une demande de prix, tous vos négoces, comparés ligne par ligne. Votre négoce habituel peut répondre aussi : vous vérifiez enfin que son prix est le bon.",
+        "Une demande de prix, tous vos fournisseurs, comparés ligne par ligne. Votre fournisseur habituel peut répondre aussi : vous vérifiez enfin que son prix est le bon.",
       heroCta: "Essayer Premium 7 jours, sans carte",
       problemTitle:
         "Les prix bougent chaque mois. Votre devis, lui, est signé.",
@@ -179,14 +179,14 @@ export const growthFr = {
       ],
       howTitle: "Trois étapes, sans un coup de fil",
       radius:
-        "Seuls les négoces situés dans un rayon d’environ 50 km autour de votre chantier sont sollicités, du plus proche au plus loin.",
+        "Seuls les fournisseurs situés dans un rayon d’environ 50 km autour de votre chantier sont sollicités, du plus proche au plus loin.",
       how: [
         {
           title: "Décrivez vos matériaux",
-          text: "Produits, quantités et code postal du chantier. Ajoutez vos négoces habituels.",
+          text: "Produits, quantités et code postal du chantier. Ajoutez vos fournisseurs habituels.",
         },
         {
-          title: "Les négoces répondent",
+          title: "Les fournisseurs répondent",
           text: "Ils reçoivent la demande dans leur langue et répondent par un simple lien, sans compte, ou envoient leur offre en PDF.",
         },
         {
@@ -209,7 +209,7 @@ export const growthFr = {
         "BatiNode ne vérifie pas les dettes ONSS ou fiscales. Pour l’obligation de retenue (30bis), consultez l’application officielle 30bis sur socialsecurity.be.",
       reachTitle: "Combien de fournisseurs près de votre chantier ?",
       reachLead:
-        "Fournisseurs recensés à partir de leurs sites officiels. Vous pouvez aussi ajouter vos négoces habituels.",
+        "Fournisseurs recensés à partir de leurs sites officiels. Vous pouvez aussi ajouter vos fournisseurs habituels.",
       reachPlaceholder: "Code postal, ex. 1600",
       reachResult: (n: number, postal: string) =>
         n === 1
@@ -235,7 +235,7 @@ export const growthFr = {
       faqTitle: "Vos questions, nos réponses franches",
       faq: [
         {
-          q: "Mon négoce me fait déjà un bon prix.",
+          q: "Mon fournisseur me fait déjà un bon prix.",
           a: "Gardez-le. Envoyez-lui la demande via BatiNode avec deux ou trois autres : vous saurez, ligne par ligne, si c’est vrai.",
         },
         {
@@ -278,7 +278,7 @@ export const growthFr = {
     eyebrow: "Pour les PME de la construction en Belgique",
     title:
       "Achetez vos matériaux au meilleur prix. Travaillez avec des partenaires en règle.",
-    lead: `${APP_NAME} envoie vos demandes de prix aux négoces de votre zone, compare les offres ligne par ligne et garde la preuve de chaque commande. En français et en néerlandais.`,
+    lead: `${APP_NAME} envoie vos demandes de prix aux fournisseurs de votre zone, compare les offres ligne par ligne et garde la preuve de chaque commande. En français et en néerlandais.`,
     proof: [
       "Vérification TVA et BCE",
       "Factures Peppol contrôlées",
@@ -297,7 +297,7 @@ export const growthFr = {
         cta: "Je suis entrepreneur",
       },
       supplier: {
-        title: "Fournisseurs et négoces",
+        title: "Fournisseurs",
         points: [
           "Des demandes qualifiées de votre zone",
           "Réponse en un clic",
@@ -324,7 +324,7 @@ export const growthFr = {
         text: "Produits, quantités, code postal du chantier. Trois minutes.",
       },
       {
-        title: "Les négoces répondent",
+        title: "Les fournisseurs répondent",
         text: "Ils reçoivent un e-mail dans leur langue et envoient leur prix.",
       },
       {

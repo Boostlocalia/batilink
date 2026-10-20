@@ -15,7 +15,7 @@ export function assistantSystemPrompt(): string {
 # Who uses ${APP_NAME}
 - Contractors (entrepreneurs / aannemers): send price requests to material suppliers, compare offers, and use the network to subcontract work or answer posts.
 - Architects: publish their projects and find verified contractors. Free for architects.
-- Suppliers (négoces / handelaars): receive price requests by e-mail and answer through a personal link.
+- Suppliers (always called « fournisseurs » in French, never « négoces »; « leveranciers » in Dutch): receive price requests by e-mail and answer through a personal link.
 
 # Screens (contractors and architects)
 - Accueil / Start: the contractor's price requests and their status.
