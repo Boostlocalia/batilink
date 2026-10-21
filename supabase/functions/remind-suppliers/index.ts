@@ -1,7 +1,7 @@
 // Run hourly by a cron job (see README). Completes requests BatiNode was asked to
 // send to 5 suppliers when fewer were found at sending, relaunches those short of answers
 // after 48 h (see relaunch.ts), reminds suppliers who have
-// not answered the next early afternoon (weekdays, at least 18 h after the invitation), once, and closes requests past their reply date.
+// not answered the next working day between 8:00 and 15:00 (at least 18 h after the invitation), once, and closes requests past their reply date.
 // Only the stored hash of a reply link is known, so a reminder carries a fresh link.
 
 import { isCron } from '../_shared/cron.ts';
@@ -47,9 +47,9 @@ Deno.serve(async (req) => {
   // PDFs that gave no price yet, read once more.
   const reread = await rereadOffers(admin);
 
-  // 18 h rather than 24 so that a request sent the day before still gets its reminder the next early afternoon.
+  // 18 h rather than 24 so that a request sent the day before still gets its reminder the next working day.
   const dayAgo = new Date(Date.now() - 18 * 3_600_000).toISOString();
-  // Reminders wait for early afternoon on a weekday (see send-window.ts).
+  // Reminders wait for shop hours on a weekday (see send-window.ts).
   const { data: due } = !isReminderTime(new Date())
     ? { data: [] }
     : await admin

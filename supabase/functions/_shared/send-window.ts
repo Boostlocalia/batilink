@@ -1,7 +1,8 @@
-// Supplier reminders go out early afternoon on weekdays (Brussels time), while the shop
+// Supplier reminders go out between 8:00 and 15:00 on weekdays (Brussels time), while the shop
 // staff are still at the counter and can answer straight away (Henrique's rule).
 
-const REMINDER_HOURS = [13, 14];
+// From 8:00 to 15:00.
+const REMINDER_HOURS = [8, 9, 10, 11, 12, 13, 14];
 
 /** Hour (0-23) and weekday (0 = Sunday) in Brussels. */
 export function brusselsClock(at: Date): { hour: number; weekday: number } {
