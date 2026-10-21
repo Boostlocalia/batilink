@@ -119,6 +119,7 @@ export async function relayMessage(admin: SupabaseClient, input: RelayInput): Pr
             request.title,
             result.relayed_body,
             relayAddress('supplier', quote.reply_key, domain),
+            (items ?? []).map((i) => ({ ...i, quantity: Number(i.quantity) })),
           );
     try {
       await sendMail(mail);

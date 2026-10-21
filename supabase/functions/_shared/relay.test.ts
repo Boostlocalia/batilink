@@ -71,8 +71,12 @@ describe('relay e-mails', () => {
   });
 
   it('relays an answer back to the supplier', () => {
-    const mail = answerToSupplierMail('fr', 's@negoce.be', 'Bati SRL', 'Chape', 'C25/30, livraison le matin.', relayAddress('supplier', key));
-    expect(mail.subject).toBe('Réponse de Bati SRL : Chape');
+    const mail = answerToSupplierMail('fr', 's@negoce.be', 'Bati SRL', 'Chape', 'C25/30, livraison le matin.', relayAddress('supplier', key), [
+      { label: 'Béton C25/30', quantity: 8, unit: 'm3' },
+    ]);
+    expect(mail.subject).toBe('Re: Demande de prix – Chape');
+    expect(mail.fromName).toBe('Bati SRL (via BatiNode)');
     expect(mail.text).toContain('C25/30, livraison le matin.');
+    expect(mail.text).toContain('Pour rappel, ma demande :\n8 m³ · Béton C25/30');
   });
 });

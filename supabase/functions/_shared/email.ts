@@ -309,15 +309,51 @@ export function questionToContractorMail(
  * The contractor's answer, relayed to the supplier. Replying asks a follow-up question.
  * No price link: only its hash is stored, and the invitation's link still works.
  */
-export function answerToSupplierMail(lang: Lang, to: string, contractor: string, title: string, relayed: string, replyTo: string): Mail {
-  if (lang === 'nl') {
-    const intro = `${esc(contractor)} antwoordt op uw vraag over « ${esc(title)} »:`;
-    const hint = 'Nog een vraag? Beantwoord deze e-mail. Uw prijs geeft u door via de link in de oorspronkelijke aanvraag.';
-    return { to, subject: `Antwoord van ${contractor}: ${title}`, html: layout([intro, ...paragraphs(relayed), esc(hint)]), text: `${intro}\n\n${relayed}\n\n${hint}`, replyTo };
-  }
-  const intro = `${esc(contractor)} répond à votre question sur « ${esc(title)} » :`;
-  const hint = 'Une autre question ? Répondez à cet e-mail. Votre prix se remet par le lien de la demande initiale.';
-  return { to, subject: `Réponse de ${contractor} : ${title}`, html: layout([intro, ...paragraphs(relayed), esc(hint)]), text: `${intro}\n\n${relayed}\n\n${hint}`, replyTo };
+/** The contractor's answer to a supplier's question: a plain reply in the contractor's name, like the request itself. */
+export function answerToSupplierMail(
+  lang: Lang,
+  to: string,
+  contractor: string,
+  title: string,
+  relayed: string,
+  replyTo: string,
+  items: { label: string; quantity: number; unit: string }[] = [],
+): Mail {
+  const nl = lang === 'nl';
+  // A reminder of what was asked, so the supplier need not look for the first e-mail.
+  const asked = items.map((i) => `${i.quantity} ${UNITS[lang][i.unit] ?? i.unit} · ${i.label}`);
+  const l = nl
+    ? {
+        subject: `Re: Prijsaanvraag – ${title}`,
+        hello: 'Goedendag,',
+        reply: 'U kunt gewoon op deze e-mail antwoorden met uw prijs of uw offerte in pdf.',
+        thanks: 'Met vriendelijke groeten,',
+        asked: 'Ter herinnering, mijn aanvraag:',
+        tagline: `${APP_NAME}, de oplossing voor bouwondernemers`,
+        footer: `Bericht doorgestuurd via ${APP_NAME} namens ${contractor}.`,
+      }
+    : {
+        subject: `Re: Demande de prix – ${title}`,
+        hello: 'Bonjour,',
+        reply: 'Vous pouvez simplement répondre à cet e-mail avec votre prix ou votre offre en PDF.',
+        thanks: 'Bien à vous,',
+        asked: 'Pour rappel, ma demande :',
+        tagline: `${APP_NAME}, la solution des entrepreneurs du bâtiment`,
+        footer: `Message transmis via ${APP_NAME} pour le compte de ${contractor}.`,
+      };
+  const html = plainLayout(
+    [
+      l.hello,
+      ...paragraphs(relayed),
+      ...(asked.length ? [`${esc(l.asked)}<br>${asked.map(esc).join('<br>')}`] : []),
+      esc(l.reply),
+      `${esc(l.thanks)}<br>${esc(contractor)}`,
+      `<img src="${EMAIL_LOGO_LIGHT_URL}" width="100" height="24" alt="${APP_NAME}" style="display:block;border:0;width:100px;height:24px;margin-top:8px"><span style="color:#888;font-size:12px">${esc(l.tagline)}</span>`,
+    ],
+    esc(l.footer),
+  );
+  const text = [l.hello, relayed, ...(asked.length ? [`${l.asked}\n${asked.join('\n')}`] : []), l.reply, `${l.thanks}\n${contractor}`, l.tagline, `--\n${l.footer}`].join('\n\n');
+  return { to, subject: l.subject, html, text, fromName: `${contractor} (via ${APP_NAME})`, replyTo };
 }
 
 // Orders -----------------------------------------------------------------------
