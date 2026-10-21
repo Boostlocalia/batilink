@@ -6,6 +6,7 @@ import type { Dictionary } from './fr';
 
 export const nl: Dictionary = {
   common: {
+    back: '← Terug',
     save: 'Opslaan',
     cancel: 'Annuleren',
     retry: 'Opnieuw proberen',

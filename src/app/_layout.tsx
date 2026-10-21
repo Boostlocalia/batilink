@@ -3,6 +3,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
+import { BackButton } from '@/components/back-button';
 import { NewPassword } from '@/components/new-password';
 import { Colors } from '@/constants/theme';
 import { LanguageProvider } from '@/i18n';
@@ -56,6 +57,9 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
   document.addEventListener('touchcancel', release);
 }
 
+/** Inner pages: a header with the page title and a clear back button. */
+const INNER = { headerShown: true, headerBackTitle: '', title: '', headerBackVisible: false, headerLeft: () => <BackButton /> };
+
 function RootNavigator() {
   const { ready, session, company, browsing, recovering } = useSession();
 
@@ -70,19 +74,19 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!!session && (!!company || browsing)} redirectTo={session ? '/entreprise' : '/bienvenue'}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="demande/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
-        <Stack.Screen name="annonce/nouvelle" options={{ headerShown: true, headerBackTitle: '', title: '', presentation: 'modal' }} />
-        <Stack.Screen name="annonce/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
-        <Stack.Screen name="commande/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
-        <Stack.Screen name="fournisseurs" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
-        <Stack.Screen name="entrepreneurs" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
-        <Stack.Screen name="parrainage" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
-        <Stack.Screen name="demandes" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
-        <Stack.Screen name="zones" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
-        <Stack.Screen name="admin" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
-        <Stack.Screen name="discussion/[id]" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
-        <Stack.Screen name="discussion/nouvelle" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
-        <Stack.Screen name="fichiers" options={{ headerShown: true, headerBackTitle: '', title: '' }} />
+        <Stack.Screen name="demande/[id]" options={INNER} />
+        <Stack.Screen name="annonce/nouvelle" options={{ ...INNER, presentation: 'modal' }} />
+        <Stack.Screen name="annonce/[id]" options={INNER} />
+        <Stack.Screen name="commande/[id]" options={INNER} />
+        <Stack.Screen name="fournisseurs" options={INNER} />
+        <Stack.Screen name="entrepreneurs" options={INNER} />
+        <Stack.Screen name="parrainage" options={INNER} />
+        <Stack.Screen name="demandes" options={INNER} />
+        <Stack.Screen name="zones" options={INNER} />
+        <Stack.Screen name="admin" options={INNER} />
+        <Stack.Screen name="discussion/[id]" options={INNER} />
+        <Stack.Screen name="discussion/nouvelle" options={INNER} />
+        <Stack.Screen name="fichiers" options={INNER} />
       </Stack.Protected>
       <Stack.Protected guard={!!session && !company} redirectTo="/connexion">
         <Stack.Screen name="entreprise" />

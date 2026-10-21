@@ -4,6 +4,7 @@ import { signupFr } from './signup.fr';
 import { APP_NAME } from '@/constants/brand';
 export const fr = {
   common: {
+    back: '← Retour',
     save: 'Enregistrer',
     cancel: 'Annuler',
     retry: 'Réessayer',
