@@ -31,12 +31,7 @@ describe('offerTotals', () => {
 });
 
 describe('compareOffers', () => {
-  const offers = [
-    offer('delvaux', 6.2, 14.9, 65, 2),
-    offer('peeters', 6.55, 13.8, 0, 4),
-    offer('brabant', 5.95, 15.4, 80, 1),
-    offer('uccle', 0, 0, 0, 0, 'invited'),
-  ];
+  const offers = [offer('delvaux', 6.2, 14.9, 65, 2), offer('peeters', 6.55, 13.8, 0, 4), offer('brabant', 5.95, 15.4, 80, 1), offer('uccle', 0, 0, 0, 0, 'invited')];
 
   it('ignores suppliers that have not answered', () => {
     expect(compareOffers(items, offers).priced.map((o) => o.id)).toEqual(['delvaux', 'peeters', 'brabant']);
@@ -56,5 +51,24 @@ describe('compareOffers', () => {
     const result = compareOffers(items, [offers[3]]);
     expect(result.cheapestId).toBeNull();
     expect(result.fastestId).toBeNull();
+  });
+});
+
+describe('offers read from a PDF', () => {
+  const items: RequestItem[] = [
+    { id: 'a', label: 'Colle', quantity: 10, unit: 'piece' },
+    { id: 'b', label: 'Joint', quantity: 2, unit: 'piece' },
+  ];
+  const base = { deliveryFee: 0, leadTimeDays: null, validUntil: null, comment: null, remindedAt: null };
+  const offers: Offer[] = [
+    { ...base, id: 'typed', supplierName: 'A', status: 'submitted', prices: { a: 5, b: 3 } },
+    { ...base, id: 'pdf', supplierName: 'B', status: 'invited', offerFile: 'x.pdf', prices: { a: 1 } },
+    { ...base, id: 'pdf-empty', supplierName: 'C', status: 'invited', offerFile: 'y.pdf', prices: {} },
+  ];
+
+  it('are shown but never ranked cheapest', () => {
+    const { priced, cheapestId } = compareOffers(items, offers);
+    expect(priced.map((o) => o.id)).toEqual(['typed', 'pdf']);
+    expect(cheapestId).toBe('typed');
   });
 });

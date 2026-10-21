@@ -28,9 +28,12 @@ export function offerTotals(items: RequestItem[], offer: Offer) {
   return { exVat, vat, incVat: round2(exVat + vat) };
 }
 
-/** Offers that carry prices: submitted, or already decided on. */
+/** An offer sent as a PDF whose prices Nodi read but the supplier has not confirmed: shown, never ranked. */
+export const readFromPdf = (o: Offer) => o.status === 'invited' && Boolean(o.offerFile) && Object.keys(o.prices).length > 0;
+
+/** Offers that carry prices: submitted, already decided on, or read from the supplier's PDF. */
 export function pricedOffers(offers: Offer[]): Offer[] {
-  return offers.filter((o) => o.status === 'submitted' || o.status === 'awarded' || o.status === 'not_selected');
+  return offers.filter((o) => o.status === 'submitted' || o.status === 'awarded' || o.status === 'not_selected' || readFromPdf(o));
 }
 
 export function compareOffers(items: RequestItem[], offers: Offer[]) {
@@ -40,6 +43,7 @@ export function compareOffers(items: RequestItem[], offers: Offer[]) {
   let cheapestId: string | null = null;
   let fastestId: string | null = null;
   for (const o of priced) {
+    if (readFromPdf(o)) continue;
     if (cheapestId === null || totals.get(o.id)!.exVat < totals.get(cheapestId)!.exVat) cheapestId = o.id;
     if (o.leadTimeDays !== null) {
       const best = fastestId === null ? null : priced.find((p) => p.id === fastestId)!.leadTimeDays!;

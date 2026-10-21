@@ -198,6 +198,8 @@ export const nl: Dictionary = {
     totalExVat: 'Totaal excl. btw',
     vat: 'Btw 21 %',
     totalIncVat: 'Totaal incl. btw',
+    fromPdf: 'Uit zijn pdf',
+    fromPdfHint: 'Prijzen door Nodi gelezen in de pdf van de leverancier, na te kijken. Hij kan ze online bevestigen.',
     bestPrice: 'Beste prijs',
     fastest: 'Snelste',
     choose: 'Deze offerte kiezen',

@@ -11,7 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
 import type { OrderStatus } from '@/lib/orders';
-import { compareOffers, type Offer, type RequestItem } from '@/lib/quotes';
+import { compareOffers, readFromPdf, type Offer, type RequestItem } from '@/lib/quotes';
 import { supabase } from '@/lib/supabase';
 
 type Request = {
@@ -104,7 +104,7 @@ export default function CompareScreen() {
     .map((o) => ({ quoteId: o.id, supplierName: o.supplierName, messages: messages.filter((m) => m.quote_id === o.id) }))
     .filter((c) => c.messages.length > 0);
   // A supplier who sent their quote as a PDF has answered, even before the prices are typed in.
-  const pdfOnly = offers.filter((o) => o.status === 'invited' && o.offerFile);
+  const pdfOnly = offers.filter((o) => o.status === 'invited' && o.offerFile && !readFromPdf(o));
   const waiting = offers.filter((o) => (o.status === 'invited' && !o.offerFile) || o.status === 'declined');
   const eur = (n: number) => formatEuro(n, locale);
   const cell = (highlight: boolean) => [styles.cell, highlight && { backgroundColor: theme.goodBackground }];
@@ -175,6 +175,7 @@ export default function CompareScreen() {
                         {o.id === cheapestId ? <Chip label={t.compare.bestPrice} tone="good" /> : null}
                         {o.id === fastestId ? <Chip label={t.compare.fastest} tone="brand" /> : null}
                         {o.status === 'awarded' ? <Chip label={t.compare.chosen} tone="warn" /> : null}
+                        {readFromPdf(o) ? <Chip label={t.compare.fromPdf} tone="neutral" /> : null}
                       </View>
                     ))}
                   </View>
@@ -269,7 +270,11 @@ export default function CompareScreen() {
                     <Line label="" border={rowBorder}>
                       {priced.map((o) => (
                         <View key={o.id} style={[styles.cell, { gap: Spacing.one }]}>
-                          {confirming === o.id ? (
+                          {readFromPdf(o) ? (
+                            <ThemedText type="small" themeColor="textSecondary" style={styles.right}>
+                              {t.compare.fromPdfHint}
+                            </ThemedText>
+                          ) : confirming === o.id ? (
                             <>
                               <ThemedText type="small">{t.compare.confirm(o.supplierName)}</ThemedText>
                               <Button label={t.compare.choose} variant="signal" small busy={busy} onPress={() => award(o.id)} />

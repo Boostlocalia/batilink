@@ -1,7 +1,7 @@
 // A supplier who simply replies to the price request with their quote as a PDF:
 // the PDF is fetched from Brevo, stored on the offer, and Nodi reads its prices.
 // When every requested item is priced the offer counts as submitted; otherwise the
-// contractor still sees the PDF next to the waiting offer.
+// prices it has go into the comparison marked as read from the PDF, to be checked.
 
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
@@ -72,7 +72,10 @@ export async function saveEmailedOffer(admin: SupabaseClient, quoteId: string, f
   const path = `${quote.id}/${crypto.randomUUID()}.pdf`;
   const { error } = await admin.storage.from('quote-files').upload(path, bytes, { contentType: 'application/pdf' });
   if (error) return 'failed';
-  await admin.from('quotes').update({ offer_file_path: path, offer_reads: quote.offer_reads + 1 }).eq('id', quote.id);
+  await admin
+    .from('quotes')
+    .update({ offer_file_path: path, offer_reads: quote.offer_reads + 1 })
+    .eq('id', quote.id);
 
   // Nodi reads the prices; the offer is submitted only when every item has one.
   const { data: items } = await admin.from('request_items').select('id, label, quantity, unit').eq('request_id', request.id).order('position');
@@ -101,6 +104,14 @@ export async function saveEmailedOffer(admin: SupabaseClient, quoteId: string, f
       .eq('id', quote.id)
       .eq('status', 'invited');
     await logEvent(admin, { kind: 'quote_submitted', company_id: quote.supplier_id, request_id: request.id, quote_id: quote.id, data: { total_ex_vat: total, via: 'email' } });
+  } else if (quote.status === 'invited' && prices.size) {
+    // Some lines only: the prices go into the comparison as "read from the PDF", the offer stays open.
+    await admin.from('quote_items').upsert([...prices].map(([itemId, unitPrice]) => ({ quote_id: quote.id, item_id: itemId, unit_price: unitPrice })));
+    await admin
+      .from('quotes')
+      .update({ delivery_fee: reading?.delivery_fee ?? null, lead_time_days: reading?.lead_time_days ?? null, valid_until: reading?.valid_until ?? null })
+      .eq('id', quote.id)
+      .eq('status', 'invited');
   }
 
   // The contractor hears about the offer once, when it first arrives.
@@ -135,9 +146,7 @@ export async function recoverEmailedOffers(admin: SupabaseClient): Promise<numbe
     const sent = new Date(m.created_at);
     // Brevo refuses an end date after today.
     const end = new Date(Math.min(sent.getTime() + 86_400_000, Date.now()));
-    const list = await brevo(
-      `/inbound/events?sender=${encodeURIComponent(m.sender_email)}&startDate=${day(new Date(sent.getTime() - 86_400_000))}&endDate=${day(end)}&limit=50`,
-    );
+    const list = await brevo(`/inbound/events?sender=${encodeURIComponent(m.sender_email)}&startDate=${day(new Date(sent.getTime() - 86_400_000))}&endDate=${day(end)}&limit=50`);
     const events = list ? (((await list.json()) as { events?: { uuid?: string }[] }).events ?? []) : [];
     for (const e of events) {
       if (!e.uuid) continue;

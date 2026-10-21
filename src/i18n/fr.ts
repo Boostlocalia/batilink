@@ -197,6 +197,8 @@ export const fr = {
     totalExVat: 'Total HTVA',
     vat: 'TVA 21 %',
     totalIncVat: 'Total TVAC',
+    fromPdf: 'Lu dans son PDF',
+    fromPdfHint: 'Prix lus par Nodi dans le PDF du fournisseur, à vérifier. Il peut les confirmer en ligne.',
     bestPrice: 'Meilleur prix',
     fastest: 'Le plus rapide',
     choose: 'Choisir cette offre',
