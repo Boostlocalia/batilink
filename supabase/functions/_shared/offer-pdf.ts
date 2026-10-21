@@ -48,6 +48,8 @@ const SYSTEM = `You read a building-material supplier's quote (a PDF) on BatiNod
 
 - If the quote prices a different unit (e.g. per pallet, per m² instead of per piece), convert only when the quote states the conversion; otherwise leave unit_price null and mention it in the note.
 - If the quote answers an item with a quantity in its own packaging meant to cover the request (e.g. 12 buckets of 6 kg for 50 m²), give that lines' total excluding VAT as line_total.
+- If the quote prices one package (bucket, bag, roll) and states its coverage or consumption (e.g. 6 kg bucket, 1.5 to 2.1 kg/m²), work out the packages needed for the requested quantity with the highest consumption, rounded up to whole packages, and give packages × package price as line_total. Write the calculation in offered (e.g. "18 seaux de 6 kg × 223,56 € (2,1 kg/m²)").
+- An offer whose validity date is already past is still read; say in the note that it has expired and the prices must be confirmed.
 - For every item the quote prices, fill offered with the supplier's own quantity, packaging and unit price, so the contractor sees the real unit prices.
 - Compare carefully what is offered with what was asked: thickness, dimensions, strength class, reference, colour, coverage. Offers are compared side by side, so any difference goes in mismatch, even a small one.
 - The note is shown to the contractor: write it in the language of the requested items, and state what the supplier offers when it differs from the request.
