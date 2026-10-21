@@ -201,7 +201,7 @@ export const growthNl: typeof growthFr = {
         'De plaats wordt toegekend bij uw eerste betaling, in volgorde van aankomst.',
       ],
       offerAfter:
-        'De lanceringsprijs is -50 %. Na de eerste 50 plaatsen verdubbelen de prijzen voor nieuwe abonnees (Starter 139,98 €, Premium 259,98 € excl. btw per maand). De uwe blijft vast. De garantie vervalt bij opzegging, bij een overstap naar een lagere formule of bij een tweede wijziging.',
+        'Na de lanceringsfase kunnen de prijzen voor nieuwe abonnees stijgen. De uwe blijft vast. De garantie vervalt bij opzegging, bij een overstap naar een lagere formule of bij een tweede wijziging.',
       faqTitle: 'Uw vragen, eerlijk beantwoord',
       faq: [
         {
