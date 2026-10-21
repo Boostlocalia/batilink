@@ -58,10 +58,10 @@ export async function saveEmailedOffer(admin: SupabaseClient, quoteId: string, f
 
   const { data: quote } = await admin
     .from('quotes')
-    .select('id, status, supplier_id, offer_reads, supplier:companies(name), request:price_requests(id, title, status, company:companies(email, language))')
+    .select('id, status, supplier_id, offer_reads, comment, supplier:companies(name), request:price_requests(id, title, status, company:companies(email, language))')
     .eq('id', quoteId)
     .single();
-  const request = quote?.request as unknown as { id: string; title: string; status: string; company: { email: string | null; language: Lang } } | undefined;
+  const request = quote?.request as unknown as RequestRow | undefined;
   if (!quote || !request || request.status !== 'sent' || !['invited', 'submitted'].includes(quote.status)) return 'closed';
 
   const res = await brevo(`/inbound/attachments/${encodeURIComponent(file.downloadToken)}`);
@@ -77,12 +77,30 @@ export async function saveEmailedOffer(admin: SupabaseClient, quoteId: string, f
     .update({ offer_file_path: path, offer_reads: quote.offer_reads + 1 })
     .eq('id', quote.id);
 
-  // Nodi reads the prices; the offer is submitted only when every item has one.
+  const result = await applyReading(admin, quote as unknown as QuoteRow, request, bytes);
+  // The contractor hears about the offer once, when it first arrives.
+  if (quote.status === 'invited' && quote.offer_reads === 0) await tellContractor(quote as unknown as QuoteRow, request);
+  return result;
+}
+
+type QuoteRow = { id: string; status: string; supplier_id: string; offer_reads: number; comment?: string | null; supplier: unknown };
+type RequestRow = { id: string; title: string; status: string; company: { email: string | null; language: Lang } };
+
+async function tellContractor(quote: QuoteRow, request: RequestRow) {
+  if (!request.company.email) return;
+  const supplier = (quote.supplier as { name: string } | null)?.name ?? '';
+  await sendMail(newQuoteMail(request.company.language, request.company.email, supplier, request.title, `${appUrl()}/demande/${request.id}`)).catch(console.error);
+}
+
+/** Nodi reads the prices; the offer is submitted only when every item has one. */
+async function applyReading(admin: SupabaseClient, quote: QuoteRow, request: RequestRow, bytes: Uint8Array): Promise<'attached' | 'submitted'> {
   const { data: items } = await admin.from('request_items').select('id, label, quantity, unit').eq('request_id', request.id).order('position');
   const requested = (items ?? []).map((i) => ({ id: i.id, label: i.label, quantity: Number(i.quantity), unit: i.unit }));
   const reading = await readOfferPdf(bytes, requested, new Date().toISOString().slice(0, 10));
   const prices = new Map((reading?.items ?? []).filter((i) => i.unit_price !== null).map((i) => [i.item_id, i.unit_price as number]));
   const complete = quote.status === 'invited' && requested.length > 0 && requested.every((i) => prices.has(i.id));
+  // What the supplier actually offers when it differs from the request (e.g. 12 buckets of 6 kg for 50 m²).
+  const comment = quote.comment || reading?.note || null;
 
   if (complete) {
     const deliveryFee = reading?.delivery_fee ?? 0;
@@ -100,6 +118,7 @@ export async function saveEmailedOffer(admin: SupabaseClient, quoteId: string, f
         valid_until: reading?.valid_until ?? null,
         submitted_at: new Date().toISOString(),
         total_ex_vat: total,
+        comment,
       })
       .eq('id', quote.id)
       .eq('status', 'invited');
@@ -109,17 +128,45 @@ export async function saveEmailedOffer(admin: SupabaseClient, quoteId: string, f
     await admin.from('quote_items').upsert([...prices].map(([itemId, unitPrice]) => ({ quote_id: quote.id, item_id: itemId, unit_price: unitPrice })));
     await admin
       .from('quotes')
-      .update({ delivery_fee: reading?.delivery_fee ?? null, lead_time_days: reading?.lead_time_days ?? null, valid_until: reading?.valid_until ?? null })
+      .update({ delivery_fee: reading?.delivery_fee ?? null, lead_time_days: reading?.lead_time_days ?? null, valid_until: reading?.valid_until ?? null, comment })
       .eq('id', quote.id)
       .eq('status', 'invited');
   }
-
-  // The contractor hears about the offer once, when it first arrives.
-  if (quote.status === 'invited' && quote.offer_reads === 0 && request.company.email) {
-    const supplier = (quote.supplier as unknown as { name: string } | null)?.name ?? '';
-    await sendMail(newQuoteMail(request.company.language, request.company.email, supplier, request.title, `${appUrl()}/demande/${request.id}`)).catch(console.error);
-  }
   return complete ? 'submitted' : 'attached';
+}
+
+/**
+ * PDFs already on an offer that gave no price (read before Nodi understood other units,
+ * or when the reading failed): read once more. offer_reads caps it.
+ */
+export async function rereadOffers(admin: SupabaseClient): Promise<number> {
+  const { data: quotes } = await admin
+    .from('quotes')
+    .select(
+      'id, status, supplier_id, offer_reads, comment, offer_file_path, supplier:companies(name), quote_items(item_id), request:price_requests!inner(id, title, status, company:companies(email, language))',
+    )
+    .eq('status', 'invited')
+    .not('offer_file_path', 'is', null)
+    .lt('offer_reads', 2)
+    .eq('request.status', 'sent')
+    .limit(10);
+  let submitted = 0;
+  for (const q of quotes ?? []) {
+    if ((q.quote_items as unknown[]).length) continue;
+    const { data: file } = await admin.storage.from('quote-files').download(q.offer_file_path as string);
+    await admin
+      .from('quotes')
+      .update({ offer_reads: q.offer_reads + 1 })
+      .eq('id', q.id);
+    if (!file) continue;
+    const request = q.request as unknown as RequestRow;
+    const result = await applyReading(admin, q as unknown as QuoteRow, request, new Uint8Array(await file.arrayBuffer()));
+    if (result === 'submitted') {
+      submitted++;
+      await tellContractor(q as unknown as QuoteRow, request);
+    }
+  }
+  return submitted;
 }
 
 /**

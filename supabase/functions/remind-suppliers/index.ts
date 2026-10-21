@@ -7,7 +7,7 @@
 import { isCron } from '../_shared/cron.ts';
 import { SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
 import { contractorAddress, invitationMail, sendMail, type Lang } from '../_shared/email.ts';
-import { recoverEmailedOffers } from '../_shared/emailed-offer.ts';
+import { recoverEmailedOffers, rereadOffers } from '../_shared/emailed-offer.ts';
 import { relaunchMissing } from '../_shared/relaunch.ts';
 import { isTestCompany, testMail } from '../_shared/test-mode.ts';
 import { logEvent } from '../_shared/events.ts';
@@ -43,6 +43,8 @@ Deno.serve(async (req) => {
 
   // Quotes sent back as a PDF by e-mail whose file was not saved on arrival.
   const recovered = await recoverEmailedOffers(admin);
+  // PDFs that gave no price yet, read once more.
+  const reread = await rereadOffers(admin);
 
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
   const { data: due } = await admin
@@ -126,5 +128,5 @@ Deno.serve(async (req) => {
   if (completed) await logEvent(admin, { kind: 'request_completed', data: { count: completed } });
   if (closed?.length) await logEvent(admin, { kind: 'requests_closed', data: { count: closed.length } });
   if (reminded) await logEvent(admin, { kind: 'supplier_reminded', data: { count: reminded } });
-  return json({ completed, relaunched, closed: closed?.length ?? 0, reminded, recovered });
+  return json({ completed, relaunched, closed: closed?.length ?? 0, reminded, recovered, reread });
 });
