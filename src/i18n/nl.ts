@@ -206,8 +206,6 @@ export const nl: Dictionary = {
     deliveryUnknown: 'Niet vermeld',
     fromPdf: 'Uit zijn pdf',
     perPackage: (price: string, size: string) => `${price} / ${size}`,
-    forPackages: (count: number, size: string, total: string) => `${count} × ${size}: ${total}`,
-    forQuantity: (quantity: string, total: string) => `Voor ${quantity}: ${total}`,
     unitBasis: 'De offertes worden gerangschikt op hun eenheidsprijzen, toegepast op dezelfde hoeveelheden voor allemaal.',
     fromPdfHint: 'Prijzen door Nodi gelezen in de pdf van de leverancier, na te kijken. Hij kan ze online bevestigen.',
     bestPrice: 'Beste prijs',

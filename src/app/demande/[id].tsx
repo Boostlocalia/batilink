@@ -202,7 +202,6 @@ export default function CompareScreen() {
                         const line = linePrice(item, o, basis);
                         const unitLabel = (unit: string) => t.units[unit as keyof typeof t.units] ?? unit;
                         const pack = o.packages?.[item.id];
-                        const common = basis[item.id]?.offers.includes(o.id) ? basis[item.id] : null;
                         return (
                           <View key={o.id} style={cell(line !== undefined && line === lowestLine[item.id])}>
                             {line === undefined ? (
@@ -219,18 +218,8 @@ export default function CompareScreen() {
                                     ≈ {eur(line / item.quantity)} / {unitLabel(item.unit)}
                                   </ThemedText>
                                 ) : null}
-                                <ThemedText type="small" themeColor="textSecondary" style={styles.right}>
-                                  {common
-                                    ? t.compare.forPackages(common.count, common.size, eur(line))
-                                    : t.compare.forQuantity(`${item.quantity} ${unitLabel(item.unit)}`, eur(line))}
-                                </ThemedText>
-                                {o.details?.[item.id]?.offered ? (
-                                  <ThemedText type="small" themeColor="textSecondary" style={styles.right}>
-                                    {o.details[item.id].offered}
-                                  </ThemedText>
-                                ) : null}
                                 {o.details?.[item.id]?.mismatch ? (
-                                  <ThemedText type="small" themeColor="warn" style={styles.right}>
+                                  <ThemedText type="small" themeColor="warn" style={styles.right} numberOfLines={2}>
                                     ⚠ {o.details[item.id].mismatch}
                                   </ThemedText>
                                 ) : null}

@@ -205,8 +205,6 @@ export const fr = {
     deliveryUnknown: 'Non précisée',
     fromPdf: 'Lu dans son PDF',
     perPackage: (price: string, size: string) => `${price} / ${size}`,
-    forPackages: (count: number, size: string, total: string) => `${count} × ${size} : ${total}`,
-    forQuantity: (quantity: string, total: string) => `Pour ${quantity} : ${total}`,
     unitBasis: 'Les offres sont classées sur leurs prix unitaires, appliqués aux mêmes quantités pour toutes.',
     fromPdfHint: 'Prix lus par Nodi dans le PDF du fournisseur, à vérifier. Il peut les confirmer en ligne.',
     bestPrice: 'Meilleur prix',
