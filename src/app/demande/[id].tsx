@@ -93,7 +93,9 @@ export default function CompareScreen() {
   const conversations: Conversation[] = offers
     .map((o) => ({ quoteId: o.id, supplierName: o.supplierName, messages: messages.filter((m) => m.quote_id === o.id) }))
     .filter((c) => c.messages.length > 0);
-  const waiting = offers.filter((o) => o.status === 'invited' || o.status === 'declined');
+  // A supplier who sent their quote as a PDF has answered, even before the prices are typed in.
+  const pdfOnly = offers.filter((o) => o.status === 'invited' && o.offerFile);
+  const waiting = offers.filter((o) => (o.status === 'invited' && !o.offerFile) || o.status === 'declined');
   const eur = (n: number) => formatEuro(n, locale);
   const cell = (highlight: boolean) => [styles.cell, highlight && { backgroundColor: theme.goodBackground }];
   const rowBorder = { borderTopWidth: 1, borderTopColor: theme.line };
@@ -127,7 +129,7 @@ export default function CompareScreen() {
           <View style={{ gap: Spacing.one }}>
             <ThemedText type="title">{request.title}</ThemedText>
             <ThemedText themeColor="textSecondary">
-              {request.postal_code} {request.city ?? ''} · {t.compare.lead(priced.length, offers.length)}
+              {request.postal_code} {request.city ?? ''} · {t.compare.lead(priced.length + pdfOnly.length, offers.length)}
             </ThemedText>
           </View>
 

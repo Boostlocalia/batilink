@@ -17,13 +17,13 @@ export type RequestRow = {
   postal_code: string;
   city: string | null;
   reply_by: string;
-  quotes: { status: string }[];
+  quotes: { status: string; offer_file_path: string | null }[];
 };
 
 const STATUS_TONE = { draft: 'neutral', sent: 'warn', closed: 'neutral', awarded: 'good' } as const;
 
-/** Offers a supplier actually sent (not just invited, not declined). */
-export const receivedOffers = (r: RequestRow) => r.quotes.filter((q) => q.status !== 'invited' && q.status !== 'declined').length;
+/** Offers a supplier actually sent: priced, or at least their PDF quote (not declined). */
+export const receivedOffers = (r: RequestRow) => r.quotes.filter((q) => q.status !== 'declined' && (q.status !== 'invited' || q.offer_file_path)).length;
 
 /** The company's price requests, newest first, reloaded each time the screen shows. */
 export function useMyRequests() {
@@ -34,7 +34,7 @@ export function useMyRequests() {
     setFailed(false);
     const { data, error } = await supabase
       .from('price_requests')
-      .select('id, title, status, postal_code, city, reply_by, quotes(status)')
+      .select('id, title, status, postal_code, city, reply_by, quotes(status, offer_file_path)')
       .order('created_at', { ascending: false })
       .limit(50);
     if (error) return setFailed(true);
