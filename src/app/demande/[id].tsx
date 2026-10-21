@@ -200,6 +200,7 @@ export default function CompareScreen() {
                       </View>
                       {priced.map((o) => {
                         const line = linePrice(item, o, basis);
+                        const unitLabel = (unit: string) => t.units[unit as keyof typeof t.units] ?? unit;
                         const pack = o.packages?.[item.id];
                         const common = basis[item.id]?.offers.includes(o.id) ? basis[item.id] : null;
                         return (
@@ -211,20 +212,17 @@ export default function CompareScreen() {
                             ) : (
                               <>
                                 <ThemedText type="number" style={styles.right}>
-                                  {eur(line)}
+                                  {pack ? t.compare.perPackage(eur(pack.price), pack.size) : `${eur(o.prices[item.id])} / ${unitLabel(item.unit)}`}
                                 </ThemedText>
                                 {pack ? (
                                   <ThemedText type="small" themeColor="textSecondary" style={styles.right}>
-                                    {t.compare.perPackage(eur(pack.price), pack.size)}
-                                  </ThemedText>
-                                ) : null}
-                                {common ? (
-                                  <ThemedText type="small" themeColor="textSecondary" style={styles.right}>
-                                    {t.compare.sameBasis(common.count, common.size)}
+                                    ≈ {eur(line / item.quantity)} / {unitLabel(item.unit)}
                                   </ThemedText>
                                 ) : null}
                                 <ThemedText type="small" themeColor="textSecondary" style={styles.right}>
-                                  {eur(line / item.quantity)} / {t.units[item.unit as keyof typeof t.units] ?? item.unit}
+                                  {common
+                                    ? t.compare.forPackages(common.count, common.size, eur(line))
+                                    : t.compare.forQuantity(`${item.quantity} ${unitLabel(item.unit)}`, eur(line))}
                                 </ThemedText>
                                 {o.details?.[item.id]?.offered ? (
                                   <ThemedText type="small" themeColor="textSecondary" style={styles.right}>
@@ -327,6 +325,9 @@ export default function CompareScreen() {
                   ) : null}
                 </View>
               </ScrollView>
+              <ThemedText type="small" themeColor="textSecondary" style={{ paddingHorizontal: Spacing.three }}>
+                {t.compare.unitBasis}
+              </ThemedText>
             </Card>
           )}
 
