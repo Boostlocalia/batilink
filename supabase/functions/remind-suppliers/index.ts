@@ -1,7 +1,7 @@
 // Run hourly by a cron job (see README). Completes requests BatiNode was asked to
 // send to 5 suppliers when fewer were found at sending, relaunches those short of answers
 // after 48 h (see relaunch.ts), reminds suppliers who have
-// not answered 24 h after the invitation, once, and closes requests past their reply date.
+// not answered the next early afternoon (weekdays, at least 18 h after the invitation), once, and closes requests past their reply date.
 // Only the stored hash of a reply link is known, so a reminder carries a fresh link.
 
 import { isCron } from '../_shared/cron.ts';
@@ -9,6 +9,7 @@ import { SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
 import { contractorAddress, invitationMail, sendMail, type Lang } from '../_shared/email.ts';
 import { recoverEmailedOffers, rereadOffers } from '../_shared/emailed-offer.ts';
 import { relaunchMissing } from '../_shared/relaunch.ts';
+import { isReminderTime } from '../_shared/send-window.ts';
 import { isTestCompany, testMail } from '../_shared/test-mode.ts';
 import { logEvent } from '../_shared/events.ts';
 import { relayAddress } from '../_shared/relay-address.ts';
@@ -46,16 +47,20 @@ Deno.serve(async (req) => {
   // PDFs that gave no price yet, read once more.
   const reread = await rereadOffers(admin);
 
-  const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
-  const { data: due } = await admin
-    .from('quotes')
-    .select(
-      'id, reply_key, supplier:companies(email, quote_email, language, commission_rate, requests_stopped_at), request:price_requests!inner(id, company_id, title, note, postal_code, city, needed_by, reply_by, fulfilment, status, company:companies(name, contact_name, verified_at, vat_number, street, postal_code, city))',
-    )
-    .eq('status', 'invited')
-    .is('reminded_at', null)
-    .lt('created_at', dayAgo)
-    .eq('request.status', 'sent');
+  // 18 h rather than 24 so that a request sent the day before still gets its reminder the next early afternoon.
+  const dayAgo = new Date(Date.now() - 18 * 3_600_000).toISOString();
+  // Reminders wait for early afternoon on a weekday (see send-window.ts).
+  const { data: due } = !isReminderTime(new Date())
+    ? { data: [] }
+    : await admin
+        .from('quotes')
+        .select(
+          'id, reply_key, supplier:companies(email, quote_email, language, commission_rate, requests_stopped_at), request:price_requests!inner(id, company_id, title, note, postal_code, city, needed_by, reply_by, fulfilment, status, company:companies(name, contact_name, verified_at, vat_number, street, postal_code, city))',
+        )
+        .eq('status', 'invited')
+        .is('reminded_at', null)
+        .lt('created_at', dayAgo)
+        .eq('request.status', 'sent');
 
   let reminded = 0;
   for (const q of due ?? []) {
