@@ -4,7 +4,7 @@
 // Each e-mail is checked against the quote's supplier or contractor, then relayed.
 // support@ also sends a copy here: a supplier's PDF sent there lands on their offer.
 
-import { emailedFiles, saveEmailedOffer } from '../_shared/emailed-offer.ts';
+import { emailedFiles, placeEmailedOffers, saveEmailedOffer } from '../_shared/emailed-offer.ts';
 import { logEvent } from '../_shared/events.ts';
 import { sameSecret } from '../_shared/limits.ts';
 import { DEFAULT_RELAY_DOMAIN, parseRelayAddress, senderMatches, stripQuoted } from '../_shared/relay-address.ts';
@@ -119,31 +119,32 @@ async function supportCopy(admin: Admin, item: InboundItem, from: string, domain
     const { data } = await (link ? query.eq('id', link.quote_id) : query.eq('token_hash', hash)).maybeSingle();
     if (data) found.push(data as unknown as Candidate);
   }
-  let quote = found.find((q) => q.request.status === 'sent' && senderMatches(from, q.supplier.email));
+  // The sender's open offers: same address, or a colleague at the same company.
+  const senderDomain = from.split('@')[1]?.toLowerCase() ?? '';
+  const { data } = await admin
+    .from('quotes')
+    .select(CANDIDATE)
+    .in('status', ['invited', 'submitted'])
+    .eq('request.status', 'sent')
+    .ilike('supplier.email', `%@${senderDomain.replace(/[%_]/g, '')}`)
+    .limit(50);
+  const open = ((data ?? []) as unknown as Candidate[]).filter((q) => senderMatches(from, q.supplier.email));
+  const quoted = found.find((q) => q.request.status === 'sent' && senderMatches(from, q.supplier.email));
+  const picked = pickOpenQuote(
+    from,
+    text,
+    open.map((q) => ({ id: q.id, supplierEmail: q.supplier.email, title: q.request.title, invitedAt: q.created_at })),
+  );
+  const guess = quoted ?? open.find((q) => q.id === picked?.id);
+  if (!guess) return 'support_unmatched';
 
-  if (!quote) {
-    // Otherwise the sender's open offers: same address or same company domain.
-    const senderDomain = from.split('@')[1]?.toLowerCase() ?? '';
-    const { data } = await admin
-      .from('quotes')
-      .select(CANDIDATE)
-      .in('status', ['invited', 'submitted'])
-      .eq('request.status', 'sent')
-      .ilike('supplier.email', `%@${senderDomain.replace(/[%_]/g, '')}`)
-      .limit(50);
-    const open = (data ?? []) as unknown as Candidate[];
-    const picked = pickOpenQuote(
-      from,
-      text,
-      open.map((q) => ({ id: q.id, supplierEmail: q.supplier.email, title: q.request.title, invitedAt: q.created_at })),
-    );
-    quote = open.find((q) => q.id === picked?.id);
-  }
-  if (!quote) return 'support_unmatched';
-
+  // Each PDF goes to the request its lines answer; the quoted request is the fallback.
+  const pool = [guess.id, ...open.filter((q) => q.id !== guess.id).map((q) => q.id)];
+  const placed = await placeEmailedOffers(admin, pool, guess.id, files);
+  const quoteId = placed.quotes[0] ?? guess.id;
+  const requestId = open.find((q) => q.id === quoteId)?.request_id ?? guess.request_id;
   const body = stripQuoted(item.ExtractedMarkdownMessage || item.RawTextBody || '');
-  await relayMessage(admin, { quoteId: quote.id, author: 'supplier', channel: 'email', body, senderEmail: from, sourceMessageId: item.MessageId ?? null });
-  const offer = await saveEmailedOffer(admin, quote.id, files);
-  await logEvent(admin, { kind: 'offer_via_support', request_id: quote.request_id, quote_id: quote.id, data: { offer } });
-  return `support+${offer}`;
+  await relayMessage(admin, { quoteId, author: 'supplier', channel: 'email', body, senderEmail: from, sourceMessageId: item.MessageId ?? null });
+  await logEvent(admin, { kind: 'offer_via_support', request_id: requestId, quote_id: quoteId, data: { offer: placed.result, quotes: placed.quotes } });
+  return `support+${placed.result}`;
 }
