@@ -11,7 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
 import type { OrderStatus } from '@/lib/orders';
-import { compareOffers, readFromPdf, type Offer, type RequestItem } from '@/lib/quotes';
+import { compareOffers, differs, readFromPdf, type Offer, type RequestItem } from '@/lib/quotes';
 import { supabase } from '@/lib/supabase';
 
 type Request = {
@@ -22,6 +22,7 @@ type Request = {
   city: string | null;
   supplier_choice: 'own' | 'batinode' | 'mix';
   relaunched_at: string | null;
+  fulfilment: 'delivery' | 'pickup';
 };
 
 const LABEL_WIDTH = 190;
@@ -42,11 +43,13 @@ export default function CompareScreen() {
 
   const load = useCallback(async () => {
     const [req, its, qs, msgs, po] = await Promise.all([
-      supabase.from('price_requests').select('id, title, status, postal_code, city, supplier_choice, relaunched_at').eq('id', id).single(),
+      supabase.from('price_requests').select('id, title, status, postal_code, city, supplier_choice, relaunched_at, fulfilment').eq('id', id).single(),
       supabase.from('request_items').select('id, label, quantity, unit').eq('request_id', id).order('position'),
       supabase
         .from('quotes')
-        .select('id, status, delivery_fee, lead_time_days, valid_until, comment, offer_file_path, reminded_at, supplier:companies(name), quote_items(item_id, unit_price)')
+        .select(
+          'id, status, delivery_fee, lead_time_days, valid_until, comment, offer_file_path, reminded_at, supplier:companies(name), quote_items(item_id, unit_price, offered, mismatch)',
+        )
         .eq('request_id', id)
         .order('created_at'),
       supabase
@@ -75,6 +78,7 @@ export default function CompareScreen() {
         remindedAt: q.reminded_at,
         offerFile: q.offer_file_path,
         prices: Object.fromEntries((q.quote_items ?? []).map((p) => [p.item_id, Number(p.unit_price)])),
+        details: Object.fromEntries((q.quote_items ?? []).map((p) => [p.item_id, { offered: p.offered, mismatch: p.mismatch }])),
       })),
     );
   }, [id]);
@@ -176,6 +180,7 @@ export default function CompareScreen() {
                         {o.id === fastestId ? <Chip label={t.compare.fastest} tone="brand" /> : null}
                         {o.status === 'awarded' ? <Chip label={t.compare.chosen} tone="warn" /> : null}
                         {readFromPdf(o) ? <Chip label={t.compare.fromPdf} tone="neutral" /> : null}
+                        {differs(o) ? <Chip label={t.compare.differs} tone="warn" /> : null}
                       </View>
                     ))}
                   </View>
@@ -204,6 +209,16 @@ export default function CompareScreen() {
                                 <ThemedText type="small" themeColor="textSecondary" style={styles.right}>
                                   {eur(unit)} / {t.units[item.unit as keyof typeof t.units] ?? item.unit}
                                 </ThemedText>
+                                {o.details?.[item.id]?.offered ? (
+                                  <ThemedText type="small" themeColor="textSecondary" style={styles.right}>
+                                    {o.details[item.id].offered}
+                                  </ThemedText>
+                                ) : null}
+                                {o.details?.[item.id]?.mismatch ? (
+                                  <ThemedText type="small" themeColor="warn" style={styles.right}>
+                                    ⚠ {o.details[item.id].mismatch}
+                                  </ThemedText>
+                                ) : null}
                               </>
                             )}
                           </View>
@@ -216,7 +231,13 @@ export default function CompareScreen() {
                     {priced.map((o) => (
                       <View key={o.id} style={styles.cell}>
                         <ThemedText type="number" style={styles.right}>
-                          {!o.deliveryFee ? t.common.free : eur(o.deliveryFee)}
+                          {request.fulfilment === 'pickup'
+                            ? t.compare.pickup
+                            : o.deliveryFee === null
+                              ? t.compare.deliveryUnknown
+                              : o.deliveryFee === 0
+                                ? t.common.free
+                                : eur(o.deliveryFee)}
                         </ThemedText>
                       </View>
                     ))}

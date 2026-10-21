@@ -98,16 +98,19 @@ async function applyReading(admin: SupabaseClient, quote: QuoteRow, request: Req
   const requested = (items ?? []).map((i) => ({ id: i.id, label: i.label, quantity: Number(i.quantity), unit: i.unit }));
   const reading = await readOfferPdf(bytes, requested, new Date().toISOString().slice(0, 10));
   const prices = new Map((reading?.items ?? []).filter((i) => i.unit_price !== null).map((i) => [i.item_id, i.unit_price as number]));
+  const details = new Map((reading?.items ?? []).map((i) => [i.item_id, { offered: i.offered || null, mismatch: i.mismatch || null }]));
+  const line = (itemId: string, unitPrice: number) => ({ quote_id: quote.id, item_id: itemId, unit_price: unitPrice, ...details.get(itemId) });
   const complete = quote.status === 'invited' && requested.length > 0 && requested.every((i) => prices.has(i.id));
   // What the supplier actually offers when it differs from the request (e.g. 12 buckets of 6 kg for 50 m²).
   const comment = quote.comment || reading?.note || null;
 
   if (complete) {
-    const deliveryFee = reading?.delivery_fee ?? 0;
-    await admin.from('quote_items').upsert(requested.map((i) => ({ quote_id: quote.id, item_id: i.id, unit_price: prices.get(i.id)! })));
+    // Not stated in the PDF stays unknown: never shown as free delivery.
+    const deliveryFee = reading?.delivery_fee ?? null;
+    await admin.from('quote_items').upsert(requested.map((i) => line(i.id, prices.get(i.id)!)));
     const total = offerTotalExVat(
       requested.map((i) => ({ quantity: i.quantity, unitPrice: prices.get(i.id)! })),
-      deliveryFee,
+      deliveryFee ?? 0,
     );
     await admin
       .from('quotes')
@@ -125,7 +128,7 @@ async function applyReading(admin: SupabaseClient, quote: QuoteRow, request: Req
     await logEvent(admin, { kind: 'quote_submitted', company_id: quote.supplier_id, request_id: request.id, quote_id: quote.id, data: { total_ex_vat: total, via: 'email' } });
   } else if (quote.status === 'invited' && prices.size) {
     // Some lines only: the prices go into the comparison as "read from the PDF", the offer stays open.
-    await admin.from('quote_items').upsert([...prices].map(([itemId, unitPrice]) => ({ quote_id: quote.id, item_id: itemId, unit_price: unitPrice })));
+    await admin.from('quote_items').upsert([...prices].map(([itemId, unitPrice]) => line(itemId, unitPrice)));
     await admin
       .from('quotes')
       .update({ delivery_fee: reading?.delivery_fee ?? null, lead_time_days: reading?.lead_time_days ?? null, valid_until: reading?.valid_until ?? null, comment })

@@ -17,7 +17,12 @@ export type Offer = {
   offerFile?: string | null;
   /** Unit price per request item id, excluding VAT. */
   prices: Record<string, number>;
+  /** Per request item id, read from the supplier's PDF: their own line, and how it differs from the request. */
+  details?: Record<string, { offered: string | null; mismatch: string | null }>;
 };
+
+/** The supplier offers a different product on at least one line (thickness, size, reference...). */
+export const differs = (o: Offer) => Object.values(o.details ?? {}).some((d) => Boolean(d.mismatch));
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -43,7 +48,7 @@ export function compareOffers(items: RequestItem[], offers: Offer[]) {
   let cheapestId: string | null = null;
   let fastestId: string | null = null;
   for (const o of priced) {
-    if (readFromPdf(o)) continue;
+    if (readFromPdf(o) || differs(o)) continue;
     if (cheapestId === null || totals.get(o.id)!.exVat < totals.get(cheapestId)!.exVat) cheapestId = o.id;
     if (o.leadTimeDays !== null) {
       const best = fastestId === null ? null : priced.find((p) => p.id === fastestId)!.leadTimeDays!;
@@ -51,10 +56,13 @@ export function compareOffers(items: RequestItem[], offers: Offer[]) {
     }
   }
 
-  /** For each item, the lowest unit price among priced offers. */
+  /** For each item, the lowest unit price among priced offers of the requested product. */
   const lowestUnitPrice: Record<string, number> = {};
   for (const item of items) {
-    const prices = priced.map((o) => o.prices[item.id]).filter((p): p is number => p !== undefined);
+    const prices = priced
+      .filter((o) => !differs(o))
+      .map((o) => o.prices[item.id])
+      .filter((p): p is number => p !== undefined);
     if (prices.length) lowestUnitPrice[item.id] = Math.min(...prices);
   }
 

@@ -20,7 +20,16 @@ const Reading = z.object({
           .describe(
             'When the quote offers this item in another unit (buckets, bags, pallets, rolls) as a quantity meant to cover the request: the total of those lines excluding VAT, in euros. Otherwise null.',
           ),
-        supplier_quantity: z.string().describe('What the quote offers for this item when it differs from the request, e.g. "12 seaux de 6 kg". Empty otherwise.'),
+        offered: z
+          .string()
+          .describe(
+            'The supplier\'s own line for this item, short, with their quantity, packaging and unit price, e.g. "12 seaux de 6 kg × 239,97 €". Empty when the quote has no line for it.',
+          ),
+        mismatch: z
+          .string()
+          .describe(
+            'How the offered product differs from the requested one (thickness, dimensions, grade, reference, colour, coverage), e.g. "épaisseur 8 cm au lieu de 10 cm". Empty when it matches.',
+          ),
       }),
     )
     .describe('One entry per requested item.'),
@@ -38,7 +47,9 @@ export type RequestedItem = { id: string; label: string; quantity: number; unit:
 const SYSTEM = `You read a building-material supplier's quote (a PDF) on BatiNode, a Belgian platform. A contractor asked for prices on a list of items; the supplier attached their own quote instead of typing prices. Match each requested item to the quote's lines and give the unit price excluding VAT for the requested unit.
 
 - If the quote prices a different unit (e.g. per pallet, per m² instead of per piece), convert only when the quote states the conversion; otherwise leave unit_price null and mention it in the note.
-- If the quote answers an item with a quantity in its own packaging meant to cover the request (e.g. 12 buckets of 6 kg for 50 m²), give that lines' total excluding VAT as line_total and describe it in supplier_quantity.
+- If the quote answers an item with a quantity in its own packaging meant to cover the request (e.g. 12 buckets of 6 kg for 50 m²), give that lines' total excluding VAT as line_total.
+- For every item the quote prices, fill offered with the supplier's own quantity, packaging and unit price, so the contractor sees the real unit prices.
+- Compare carefully what is offered with what was asked: thickness, dimensions, strength class, reference, colour, coverage. Offers are compared side by side, so any difference goes in mismatch, even a small one.
 - The note is shown to the contractor: write it in the language of the requested items, and state what the supplier offers when it differs from the request.
 - If the quote shows prices including VAT only, divide by 1.21 and mention it in the note.
 - Never invent a price. Use null when the quote does not give one.
@@ -81,8 +92,10 @@ export async function readOfferPdf(pdf: Uint8Array, items: RequestedItem[], toda
         i.unit_price = Math.round((i.line_total / item.quantity) * 10000) / 10000;
       }
     }
-    const offered = result.items.filter((i) => i.supplier_quantity.trim()).map((i) => i.supplier_quantity.trim());
-    if (offered.length && !offered.every((o) => result.note.includes(o))) result.note = `${offered.join(' ; ')}. ${result.note}`.trim();
+    for (const i of result.items) {
+      i.offered = i.offered.trim().slice(0, 200);
+      i.mismatch = i.mismatch.trim().slice(0, 300);
+    }
     result.note = result.note.slice(0, 500);
     return result;
   } catch (error) {

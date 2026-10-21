@@ -72,3 +72,19 @@ describe('offers read from a PDF', () => {
     expect(cheapestId).toBe('typed');
   });
 });
+
+describe('a different product', () => {
+  const items: RequestItem[] = [{ id: 'pir', label: 'PIR 120 mm', quantity: 10, unit: 'm2' }];
+  const base = { deliveryFee: null, leadTimeDays: null, validUntil: null, comment: null, remindedAt: null };
+  const offers: Offer[] = [
+    { ...base, id: 'right', supplierName: 'A', status: 'submitted', prices: { pir: 14 } },
+    { ...base, id: 'thinner', supplierName: 'B', status: 'submitted', prices: { pir: 11 }, details: { pir: { offered: null, mismatch: '100 mm au lieu de 120 mm' } } },
+  ];
+
+  it('is shown but not ranked against the requested one', () => {
+    const { priced, cheapestId, lowestUnitPrice } = compareOffers(items, offers);
+    expect(priced).toHaveLength(2);
+    expect(cheapestId).toBe('right');
+    expect(lowestUnitPrice).toEqual({ pir: 14 });
+  });
+});
