@@ -359,8 +359,35 @@ export type OrderMailData = {
   url: string;
 };
 
+/** Where the client finds the goods: the store the supplier named, its phone and a route link. */
+export type StoreInfo = { address: string | null; phone: string | null; pickup: boolean };
+
+/** Google Maps search for the store (works on every phone, no key needed). */
+export function mapsUrl(name: string, address: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name}, ${address}`)}`;
+}
+
+function storeLines(d: OrderMailData, store: StoreInfo | undefined, lang: Lang): string[] {
+  if (!store?.address) return store?.phone ? [lang === 'fr' ? `Téléphone : ${store.phone}` : `Telefoon: ${store.phone}`] : [];
+  const lines =
+    lang === 'fr'
+      ? [`Adresse du magasin ${d.other} :\n${store.address}`, ...(store.phone ? [`Téléphone : ${store.phone}`] : []), `Itinéraire : ${mapsUrl(d.other, store.address)}`]
+      : [`Adres van de winkel ${d.other}:\n${store.address}`, ...(store.phone ? [`Telefoon: ${store.phone}`] : []), `Route: ${mapsUrl(d.other, store.address)}`];
+  return lines;
+}
+
 /** To the contractor: the supplier confirmed, with or without a deposit to pay first. */
-export function orderConfirmedMail(d: OrderMailData, deposit: { amount: number; iban: string | null } | null): Mail {
+export function orderConfirmedMail(d: OrderMailData, deposit: { amount: number; iban: string | null } | null, store?: StoreInfo & { inStock: boolean }): Mail {
+  const stock = (lang: Lang) =>
+    !store
+      ? []
+      : store.inStock
+        ? [lang === 'fr' ? 'Tout le matériel est en stock.' : 'Al het materiaal is op voorraad.']
+        : [
+            lang === 'fr'
+              ? `Une partie du matériel doit encore être commandée : ${d.other} vous prévient par e-mail dès qu'il est en stock.`
+              : `Een deel van het materiaal moet nog besteld worden: ${d.other} verwittigt u per e-mail zodra het op voorraad is.`,
+          ];
   const fr: Localized = deposit
     ? {
         subject: `Acompte demandé : ${d.title} (${d.number})`,
@@ -369,12 +396,14 @@ export function orderConfirmedMail(d: OrderMailData, deposit: { amount: number; 
           deposit.iban
             ? `Payez-le directement au fournisseur, par virement au compte ${deposit.iban} avec la communication ${d.number}, puis déposez la preuve du virement (capture d'écran ou PDF) dans l'application. Nous la transmettons au fournisseur.`
             : "Payez-le directement au fournisseur, puis déposez la preuve du virement (capture d'écran ou PDF) dans l'application. Nous la transmettons au fournisseur.",
+          ...stock('fr'),
+          ...storeLines(d, store, 'fr'),
         ],
         cta: { label: 'Envoyer la preuve', url: d.url },
       }
     : {
         subject: `Commande confirmée : ${d.title} (${d.number})`,
-        paragraphs: [`${d.other} a confirmé la commande ${d.number} et la prépare.`],
+        paragraphs: [`${d.other} a confirmé la commande ${d.number} et la prépare.`, ...stock('fr'), ...storeLines(d, store, 'fr')],
         cta: { label: 'Suivre la commande', url: d.url },
       };
   const nl: Localized = deposit
@@ -385,15 +414,43 @@ export function orderConfirmedMail(d: OrderMailData, deposit: { amount: number; 
           deposit.iban
             ? `Betaal het rechtstreeks aan de leverancier, via overschrijving naar ${deposit.iban} met mededeling ${d.number}, en laad daarna het betalingsbewijs op in de app (schermafbeelding of pdf). Wij bezorgen het aan de leverancier.`
             : 'Betaal het rechtstreeks aan de leverancier en laad daarna het betalingsbewijs op in de app (schermafbeelding of pdf). Wij bezorgen het aan de leverancier.',
+          ...stock('nl'),
+          ...storeLines(d, store, 'nl'),
         ],
         cta: { label: 'Bewijs opladen', url: d.url },
       }
     : {
         subject: `Bestelling bevestigd: ${d.title} (${d.number})`,
-        paragraphs: [`${d.other} heeft bestelling ${d.number} bevestigd en bereidt ze voor.`],
+        paragraphs: [`${d.other} heeft bestelling ${d.number} bevestigd en bereidt ze voor.`, ...stock('nl'), ...storeLines(d, store, 'nl')],
         cta: { label: 'Bestelling volgen', url: d.url },
       };
   return notice(d.lang, d.to, { fr, nl });
+}
+
+/** To the contractor: goods that were not in stock have arrived at the supplier. */
+export function orderReadyMail(d: OrderMailData, store: StoreInfo, note: string | null): Mail {
+  return notice(d.lang, d.to, {
+    fr: {
+      subject: `Matériel en stock : ${d.title} (${d.number})`,
+      paragraphs: [
+        `${d.other} a reçu le matériel de votre commande ${d.number} : tout est en stock.`,
+        store.pickup ? 'Vous pouvez passer le chercher au magasin.' : 'Le fournisseur organise maintenant la livraison.',
+        ...(note ? [`Message du fournisseur : ${note}`] : []),
+        ...storeLines(d, store, 'fr'),
+      ],
+      cta: { label: 'Voir la commande', url: d.url },
+    },
+    nl: {
+      subject: `Materiaal op voorraad: ${d.title} (${d.number})`,
+      paragraphs: [
+        `${d.other} heeft het materiaal van uw bestelling ${d.number} ontvangen: alles is op voorraad.`,
+        store.pickup ? 'U kunt het in de winkel ophalen.' : 'De leverancier regelt nu de levering.',
+        ...(note ? [`Bericht van de leverancier: ${note}`] : []),
+        ...storeLines(d, store, 'nl'),
+      ],
+      cta: { label: 'Bestelling bekijken', url: d.url },
+    },
+  });
 }
 
 /** To the supplier: the contractor sent proof of the deposit. */

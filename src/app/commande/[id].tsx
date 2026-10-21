@@ -1,6 +1,6 @@
 import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Screen } from '@/components/ui';
@@ -8,14 +8,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
-import {
-  formatIban,
-  ORDER_DOCUMENT_COLUMNS,
-  pickAndUpload,
-  type DocumentKind,
-  type OrderDocument,
-  type OrderStatus,
-} from '@/lib/orders';
+import { formatIban, ORDER_DOCUMENT_COLUMNS, pickAndUpload, type DocumentKind, type OrderDocument, type OrderStatus } from '@/lib/orders';
 import { supabase } from '@/lib/supabase';
 
 type Order = {
@@ -36,8 +29,16 @@ type Order = {
   delivered_at: string | null;
   payment_reported_at: string | null;
   cancel_reason: string | null;
+  store_address: string | null;
+  in_stock: boolean | null;
+  ready_at: string | null;
   supplier: { name: string } | null;
 };
+
+/** The supplier's store, readable only by the client of the order (order_supplier_contact). */
+type Store = { name: string; address: string | null; phone: string | null };
+
+const mapsUrl = (name: string, address: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name}, ${address}`)}`;
 
 const STATUS_TONE = {
   awaiting_supplier: 'warn',
@@ -56,25 +57,28 @@ export default function OrderScreen() {
   const theme = useTheme();
   const [order, setOrder] = useState<Order | null>(null);
   const [docs, setDocs] = useState<OrderDocument[]>([]);
+  const [store, setStore] = useState<Store | null>(null);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ text: string; tone: 'good' | 'danger' } | null>(null);
 
   const load = useCallback(async () => {
-    const [o, d] = await Promise.all([
+    const [o, d, c] = await Promise.all([
       supabase
         .from('purchase_orders')
         .select(
-          'id, number, title, status, total_ex_vat, vat, total_inc_vat, created_at, supplier_confirmed_at, deposit_inc_vat, supplier_iban, deposit_proof_sent_at, deposit_received_at, deposit_rejected_reason, delivered_at, payment_reported_at, cancel_reason, supplier:companies!purchase_orders_supplier_id_fkey(name)',
+          'id, number, title, status, total_ex_vat, vat, total_inc_vat, created_at, supplier_confirmed_at, deposit_inc_vat, supplier_iban, deposit_proof_sent_at, deposit_received_at, deposit_rejected_reason, delivered_at, payment_reported_at, cancel_reason, store_address, in_stock, ready_at, supplier:companies!purchase_orders_supplier_id_fkey(name)',
         )
         .eq('id', id)
         .single(),
       supabase.from('order_documents').select(ORDER_DOCUMENT_COLUMNS).eq('order_id', id).order('created_at'),
+      supabase.rpc('order_supplier_contact', { p_order: id }),
     ]);
     if (o.error) return setFailed(true);
     setFailed(false);
     setOrder(o.data as unknown as Order);
     setDocs((d.data ?? []) as OrderDocument[]);
+    setStore((c.data as Store | null) ?? null);
   }, [id]);
 
   useFocusEffect(
@@ -129,6 +133,7 @@ export default function OrderScreen() {
   const steps: [string, string | null][] = [
     [t.orders.steps.ordered, order.created_at],
     [t.orders.steps.confirmed, order.supplier_confirmed_at],
+    ...(order.in_stock === false ? ([[t.orders.steps.inStock, order.ready_at]] as [string, string | null][]) : []),
     ...(Number(order.deposit_inc_vat) > 0 ? ([[t.orders.steps.deposit, order.deposit_received_at]] as [string, string | null][]) : []),
     [t.orders.steps.delivered, order.delivered_at],
     [t.orders.steps.paid, order.payment_reported_at],
@@ -180,6 +185,26 @@ export default function OrderScreen() {
           </ThemedText>
         </Card>
       )}
+
+      {order.supplier_confirmed_at && order.status !== 'cancelled' && store ? (
+        <Card>
+          <ThemedText type="subtitle">{t.orders.storeTitle}</ThemedText>
+          <ThemedText type="smallBold" themeColor={order.ready_at ? 'good' : 'warn'}>
+            {order.ready_at ? t.orders.stockReady : t.orders.stockOrdered}
+          </ThemedText>
+          <ThemedText>{store.name}</ThemedText>
+          {store.address ? <ThemedText type="small">{store.address}</ThemedText> : null}
+          {store.phone ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              {store.phone}
+            </ThemedText>
+          ) : null}
+          <View style={styles.wrap}>
+            {store.address ? <Button label={t.orders.route} variant="signal" small onPress={() => Linking.openURL(mapsUrl(store.name, store.address!))} /> : null}
+            {store.phone ? <Button label={t.orders.call} variant="ghost" small onPress={() => Linking.openURL(`tel:${store.phone!.replace(/[^+\d]/g, '')}`)} /> : null}
+          </View>
+        </Card>
+      ) : null}
 
       {order.status === 'awaiting_supplier' ? (
         <View style={{ alignSelf: 'flex-start', gap: Spacing.one }}>

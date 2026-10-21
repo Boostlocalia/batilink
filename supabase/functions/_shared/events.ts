@@ -14,6 +14,7 @@ type Event = {
     | 'inbound_rejected'
     | 'agreement_checked'
     | 'order_confirmed'
+    | 'order_ready'
     | 'order_declined'
     | 'order_cancelled'
     | 'deposit_proof_sent'

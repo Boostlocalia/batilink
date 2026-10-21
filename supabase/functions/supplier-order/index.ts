@@ -2,12 +2,15 @@
 // GET  ?token=…  returns the order, its lines, the contractor and the proofs sent
 //                (deposit, delivery note, payment). The contractor pays the supplier directly.
 // POST { token, action, … } with action:
-//   confirm           { deposit_inc_vat, iban? }  confirms the order, optionally asking a deposit
+//   confirm           { deposit_inc_vat, iban?, in_stock, store_address? }
+//                     confirms the order, optionally asking a deposit; says where the client finds
+//                     the goods and whether everything is in stock
 //   decline           { reason? }                 cannot deliver: the order and commission are cancelled
 //   deposit_received                              the deposit arrived: the order starts
 //   deposit_rejected  { reason }                  the deposit did not arrive
+//   ready             { note? }                   goods that were not in stock have arrived
 
-import { depositAnsweredMail, orderConfirmedMail, orderDeclinedMail, sendMail, type Lang } from '../_shared/email.ts';
+import { depositAnsweredMail, orderConfirmedMail, orderDeclinedMail, orderReadyMail, sendMail, type Lang, type StoreInfo } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
 import { contractorOrderUrl, documentLink, orderIdFromLink } from '../_shared/order-docs.ts';
 import { canDo, normalizeIban, statusAfterConfirm, type OrderStatus } from '../_shared/orders.ts';
@@ -16,7 +19,7 @@ import { adminClient, corsHeaders, json } from '../_shared/supabase.ts';
 type Admin = ReturnType<typeof adminClient>;
 
 const ORDER_COLUMNS =
-  'id, number, quote_id, request_id, contractor_id, supplier_id, title, total_ex_vat, vat, total_inc_vat, status, supplier_confirmed_at, deposit_inc_vat, supplier_iban, deposit_proof_sent_at, deposit_received_at, deposit_rejected_reason, delivered_at, payment_reported_at, cancelled_at, created_at';
+  'id, number, quote_id, request_id, contractor_id, supplier_id, title, total_ex_vat, vat, total_inc_vat, status, supplier_confirmed_at, deposit_inc_vat, supplier_iban, deposit_proof_sent_at, deposit_received_at, deposit_rejected_reason, delivered_at, payment_reported_at, cancelled_at, created_at, store_address, in_stock, ready_at';
 
 async function findOrder(admin: Admin, token: unknown) {
   const orderId = await orderIdFromLink(admin, token);
@@ -38,6 +41,20 @@ async function move(admin: Admin, order: Order, patch: Record<string, unknown>) 
   return Boolean(data?.length);
 }
 
+function companyAddress(c: { street: string | null; postal_code: string | null; city: string | null }): string | null {
+  const place = [c.postal_code, c.city].filter(Boolean).join(' ');
+  return [c.street, place].filter(Boolean).join(', ') || null;
+}
+
+/** Where the client finds the goods: the address the supplier gave, else its company address. */
+async function storeOf(admin: Admin, order: Order, storeAddress: string | null): Promise<StoreInfo> {
+  const [{ data: c }, { data: r }] = await Promise.all([
+    admin.from('companies').select('street, postal_code, city, phone').eq('id', order.supplier_id).single(),
+    admin.from('price_requests').select('fulfilment').eq('id', order.request_id).single(),
+  ]);
+  return { address: storeAddress || (c ? companyAddress(c) : null), phone: c?.phone || null, pickup: r?.fulfilment === 'pickup' };
+}
+
 async function contractorOf(admin: Admin, order: Order) {
   const { data } = await admin.from('companies').select('name, email, language').eq('id', order.contractor_id).single();
   return data as { name: string; email: string | null; language: Lang } | null;
@@ -55,7 +72,7 @@ Deno.serve(async (req) => {
       admin.from('price_requests').select('postal_code, city, needed_by, fulfilment, note').eq('id', order.request_id).single(),
       admin.from('request_items').select('id, label, quantity, unit').eq('request_id', order.request_id).order('position'),
       admin.from('quote_items').select('item_id, unit_price').eq('quote_id', order.quote_id),
-      admin.from('companies').select('name, language').eq('id', order.supplier_id).single(),
+      admin.from('companies').select('name, language, street, postal_code, city').eq('id', order.supplier_id).single(),
       contractorOf(admin, order),
       admin
         .from('order_documents')
@@ -78,7 +95,7 @@ Deno.serve(async (req) => {
       order,
       request,
       items: (items ?? []).map((i) => ({ ...i, unit_price: Number(prices?.find((p) => p.item_id === i.id)?.unit_price ?? 0) })),
-      supplier,
+      supplier: supplier && { name: supplier.name, language: supplier.language, address: companyAddress(supplier) },
       // The supplier needs to reach the contractor to deliver: the order is the agreement.
       contractor: contractor && { name: contractor.name, email: contractor.email },
       documents,
@@ -107,16 +124,32 @@ Deno.serve(async (req) => {
       iban = normalizeIban(body.iban);
       if (!iban) return json({ error: 'invalid_iban' }, 400);
     }
+    if (typeof body.in_stock !== 'boolean') return json({ error: 'stock_required' }, 400);
+    const inStock = body.in_stock;
+    const storeAddress = typeof body.store_address === 'string' ? body.store_address.trim().replace(/\s+/g, ' ').slice(0, 300) || null : null;
     const next = statusAfterConfirm(deposit);
+    const now = new Date().toISOString();
     const ok = await move(admin, order, {
       status: next,
-      supplier_confirmed_at: new Date().toISOString(),
+      supplier_confirmed_at: now,
       deposit_inc_vat: deposit,
       supplier_iban: iban,
+      store_address: storeAddress,
+      in_stock: inStock,
+      ready_at: inStock ? now : null,
     });
     if (!ok) return json({ error: 'wrong_step' }, 409);
-    await logEvent(admin, { kind: 'order_confirmed', company_id: order.supplier_id, request_id: order.request_id, quote_id: order.quote_id, data: { order: order.number, deposit } });
-    if (mailData) await sendMail(orderConfirmedMail(mailData, deposit > 0 ? { amount: deposit, iban } : null)).catch(console.error);
+    await logEvent(admin, {
+      kind: 'order_confirmed',
+      company_id: order.supplier_id,
+      request_id: order.request_id,
+      quote_id: order.quote_id,
+      data: { order: order.number, deposit, in_stock: inStock },
+    });
+    if (mailData) {
+      const store = await storeOf(admin, order, storeAddress);
+      await sendMail(orderConfirmedMail(mailData, deposit > 0 ? { amount: deposit, iban } : null, { ...store, inStock })).catch(console.error);
+    }
     return json({ ok: true, status: next });
   }
 
@@ -152,6 +185,22 @@ Deno.serve(async (req) => {
     await logEvent(admin, { kind: 'deposit_rejected', company_id: order.supplier_id, quote_id: order.quote_id, data: { order: order.number, reason } });
     if (mailData) await sendMail(depositAnsweredMail(mailData, false, reason)).catch(console.error);
     return json({ ok: true, status: 'awaiting_deposit' });
+  }
+
+  if (body.action === 'ready') {
+    if (!canDo('supplier_ready', status) || order.ready_at) return json({ error: 'wrong_step' }, 409);
+    const note = typeof body.note === 'string' ? body.note.trim().slice(0, 500) || null : null;
+    const { data: moved } = await admin
+      .from('purchase_orders')
+      .update({ ready_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', order.id)
+      .eq('status', order.status)
+      .is('ready_at', null)
+      .select('id');
+    if (!moved?.length) return json({ error: 'wrong_step' }, 409);
+    await logEvent(admin, { kind: 'order_ready', company_id: order.supplier_id, request_id: order.request_id, quote_id: order.quote_id, data: { order: order.number } });
+    if (mailData) await sendMail(orderReadyMail(mailData, await storeOf(admin, order, order.store_address), note)).catch(console.error);
+    return json({ ok: true, status });
   }
 
   return json({ error: 'unknown_action' }, 400);

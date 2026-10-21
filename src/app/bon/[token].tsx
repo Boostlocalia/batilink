@@ -27,10 +27,13 @@ type Payload = {
     deposit_received_at: string | null;
     delivered_at: string | null;
     payment_reported_at: string | null;
+    store_address: string | null;
+    in_stock: boolean | null;
+    ready_at: string | null;
   };
   request: { postal_code: string; city: string | null; needed_by: string | null; fulfilment: 'delivery' | 'pickup'; note: string | null } | null;
   items: { id: string; label: string; quantity: number; unit: string; unit_price: number }[];
-  supplier: { name: string; language: Language } | null;
+  supplier: { name: string; language: Language; address: string | null } | null;
   contractor: { name: string; email: string | null } | null;
   documents: { id: string; kind: 'deposit_proof' | 'delivery_note' | 'payment_proof'; file_name: string; created_at: string; url: string | null }[];
 };
@@ -54,6 +57,9 @@ export default function SupplierOrderScreen() {
   const [withDeposit, setWithDeposit] = useState(false);
   const [deposit, setDeposit] = useState('');
   const [iban, setIban] = useState('');
+  const [inStock, setInStock] = useState<boolean | null>(null);
+  const [store, setStore] = useState<string | null>(null);
+  const [note, setNote] = useState('');
   const [reason, setReason] = useState('');
   const [mode, setMode] = useState<'decline' | 'reject' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,11 +100,20 @@ export default function SupplierOrderScreen() {
     setBusy(null);
     const json = res ? ((await res.json().catch(() => ({}))) as { error?: string }) : {};
     if (!res?.ok) {
-      setError(json.error === 'invalid_iban' ? t.supplierOrder.invalidIban : json.error === 'invalid_deposit' ? t.supplierOrder.invalidDeposit : t.common.error);
+      setError(
+        json.error === 'invalid_iban'
+          ? t.supplierOrder.invalidIban
+          : json.error === 'invalid_deposit'
+            ? t.supplierOrder.invalidDeposit
+            : json.error === 'stock_required'
+              ? t.supplierOrder.stockRequired
+              : t.common.error,
+      );
       return;
     }
     setMode(null);
     setReason('');
+    setNote('');
     load();
   };
 
@@ -140,7 +155,9 @@ export default function SupplierOrderScreen() {
     const amount = withDeposit ? parseAmount(deposit) : 0;
     if (amount === null || amount < 0 || amount > Number(order.total_inc_vat)) return setError(t.supplierOrder.invalidDeposit);
     if (iban.trim() && !normalizeIban(iban)) return setError(t.supplierOrder.invalidIban);
-    post('confirm', { action: 'confirm', deposit_inc_vat: amount, iban: iban.trim() || undefined });
+    if (inStock === null) return setError(t.supplierOrder.stockRequired);
+    const address = (store ?? data.supplier?.address ?? '').trim();
+    post('confirm', { action: 'confirm', deposit_inc_vat: amount, iban: iban.trim() || undefined, in_stock: inStock, store_address: address || undefined });
   };
 
   return (
@@ -219,6 +236,23 @@ export default function SupplierOrderScreen() {
               <Field label={t.supplierOrder.iban} hint={t.supplierOrder.ibanHint} value={iban} onChangeText={setIban} autoCapitalize="characters" />
             </View>
           ) : null}
+          <ThemedText type="small">{t.supplierOrder.stockAsk}</ThemedText>
+          <View style={styles.wrap}>
+            <Option label={t.supplierOrder.allInStock} selected={inStock === true} onPress={() => setInStock(true)} />
+            <Option label={t.supplierOrder.toOrder} selected={inStock === false} onPress={() => setInStock(false)} />
+          </View>
+          {inStock === false ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              {t.supplierOrder.toOrderHint}
+            </ThemedText>
+          ) : null}
+          <Field
+            label={t.supplierOrder.storeAddress}
+            hint={t.supplierOrder.storeAddressHint}
+            value={store ?? data.supplier?.address ?? ''}
+            onChangeText={setStore}
+            autoComplete="street-address"
+          />
           <ThemedText type="small" themeColor="textSecondary">
             {t.supplierOrder.invoiceRef(order.number)}
           </ThemedText>
@@ -282,6 +316,25 @@ export default function SupplierOrderScreen() {
             />
             <Button label={t.common.cancel} variant="ghost" small onPress={() => setMode(null)} />
           </View>
+        </Card>
+      ) : null}
+
+      {order.in_stock === false && !order.ready_at && ['awaiting_deposit', 'deposit_proof_sent', 'in_progress'].includes(order.status) ? (
+        <Card style={{ borderColor: theme.signal }}>
+          <ThemedText type="subtitle">{t.supplierOrder.readyTitle}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {request?.fulfilment === 'pickup' ? t.supplierOrder.readyLeadPickup : t.supplierOrder.readyLeadDelivery}
+          </ThemedText>
+          <Field label={t.supplierOrder.readyNote} value={note} onChangeText={setNote} multiline style={{ minHeight: 60, textAlignVertical: 'top' }} />
+          <View style={{ alignSelf: 'flex-start' }}>
+            <Button label={t.supplierOrder.readySend} variant="signal" busy={busy === 'ready'} onPress={() => post('ready', { action: 'ready', note: note.trim() || undefined })} />
+          </View>
+        </Card>
+      ) : null}
+
+      {order.ready_at && order.in_stock === false && order.status !== 'cancelled' ? (
+        <Card>
+          <ThemedText type="small">{t.supplierOrder.readySent(formatDate(order.ready_at.slice(0, 10), locale))}</ThemedText>
         </Card>
       ) : null}
 
