@@ -1,5 +1,6 @@
 // Run hourly by a cron job (see README). Completes requests BatiNode was asked to
-// send to 5 suppliers when fewer were found at sending, reminds suppliers who have
+// send to 5 suppliers when fewer were found at sending, relaunches those short of answers
+// after 48 h (see relaunch.ts), reminds suppliers who have
 // not answered 24 h after the invitation, once, and closes requests past their reply date.
 // Only the stored hash of a reply link is known, so a reminder carries a fresh link.
 
@@ -7,6 +8,7 @@ import { isCron } from '../_shared/cron.ts';
 import { SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
 import { contractorAddress, invitationMail, sendMail, type Lang } from '../_shared/email.ts';
 import { recoverEmailedOffers } from '../_shared/emailed-offer.ts';
+import { relaunchMissing } from '../_shared/relaunch.ts';
 import { isTestCompany, testMail } from '../_shared/test-mode.ts';
 import { logEvent } from '../_shared/events.ts';
 import { relayAddress } from '../_shared/relay-address.ts';
@@ -19,12 +21,10 @@ Deno.serve(async (req) => {
   if (!(await isCron(req, admin))) return json({ error: 'unauthorized' }, 401);
   const today = new Date().toISOString().slice(0, 10);
 
-  const { data: closed } = await admin
-    .from('price_requests')
-    .update({ status: 'closed' })
-    .eq('status', 'sent')
-    .lt('reply_by', today)
-    .select('id');
+  // Before closing: requests short of answers after 48 h go to other suppliers, with 48 h more.
+  const relaunched = await relaunchMissing(admin);
+
+  const { data: closed } = await admin.from('price_requests').update({ status: 'closed' }).eq('status', 'sent').lt('reply_by', today).select('id');
 
   // Requests still open that BatiNode promised to send to 5 suppliers.
   const { data: open } = await admin
@@ -93,35 +93,31 @@ Deno.serve(async (req) => {
       .from('quotes')
       .update({ token_hash: await hashToken(token), token_expires_at: tokenExpiry(), reminded_at: new Date().toISOString() })
       .eq('id', q.id);
-    const { data: items } = await admin
-      .from('request_items')
-      .select('label, quantity, unit')
-      .eq('request_id', request.id)
-      .order('position');
+    const { data: items } = await admin.from('request_items').select('label, quantity, unit').eq('request_id', request.id).order('position');
     const mail = invitationMail(
-        {
-          lang: supplier.language,
-          to: supplier.quote_email ?? supplier.email,
-          contractor: request.company?.name ?? '',
-          contractorVerified: Boolean(request.company?.verified_at),
-          contractorVat: request.company?.vat_number ?? null,
-          contractorAddress: contractorAddress(request.company),
-          contactName: request.company?.contact_name ?? null,
-          note: request.note,
-          title: request.title,
-          postalCode: request.postal_code,
-          city: request.city,
-          items: items ?? [],
-          neededBy: request.needed_by,
-          replyBy: request.reply_by,
-          delivery: request.fulfilment === 'delivery',
-          url: `${appUrl()}/offre/${token}`,
-          unsubscribeUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/supplier-quote?token=${token}&unsubscribe=1`,
-          commissionRate: SUPPLIER_COMMISSION_ACTIVE ? Number(supplier.commission_rate) : null,
-          replyTo: relayAddress('supplier', q.reply_key, Deno.env.get('RELAY_EMAIL_DOMAIN') ?? undefined),
-        },
-        true,
-      );
+      {
+        lang: supplier.language,
+        to: supplier.quote_email ?? supplier.email,
+        contractor: request.company?.name ?? '',
+        contractorVerified: Boolean(request.company?.verified_at),
+        contractorVat: request.company?.vat_number ?? null,
+        contractorAddress: contractorAddress(request.company),
+        contactName: request.company?.contact_name ?? null,
+        note: request.note,
+        title: request.title,
+        postalCode: request.postal_code,
+        city: request.city,
+        items: items ?? [],
+        neededBy: request.needed_by,
+        replyBy: request.reply_by,
+        delivery: request.fulfilment === 'delivery',
+        url: `${appUrl()}/offre/${token}`,
+        unsubscribeUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/supplier-quote?token=${token}&unsubscribe=1`,
+        commissionRate: SUPPLIER_COMMISSION_ACTIVE ? Number(supplier.commission_rate) : null,
+        replyTo: relayAddress('supplier', q.reply_key, Deno.env.get('RELAY_EMAIL_DOMAIN') ?? undefined),
+      },
+      true,
+    );
     await sendMail((await isTestCompany(admin, request.company_id)) ? testMail(mail) : mail)
       .then(() => reminded++)
       .catch(console.error);
@@ -130,5 +126,5 @@ Deno.serve(async (req) => {
   if (completed) await logEvent(admin, { kind: 'request_completed', data: { count: completed } });
   if (closed?.length) await logEvent(admin, { kind: 'requests_closed', data: { count: closed.length } });
   if (reminded) await logEvent(admin, { kind: 'supplier_reminded', data: { count: reminded } });
-  return json({ completed, closed: closed?.length ?? 0, reminded, recovered });
+  return json({ completed, relaunched, closed: closed?.length ?? 0, reminded, recovered });
 });

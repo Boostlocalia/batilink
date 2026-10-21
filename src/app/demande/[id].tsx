@@ -21,6 +21,7 @@ type Request = {
   postal_code: string;
   city: string | null;
   supplier_choice: 'own' | 'batinode' | 'mix';
+  relaunched_at: string | null;
 };
 
 const LABEL_WIDTH = 190;
@@ -41,7 +42,7 @@ export default function CompareScreen() {
 
   const load = useCallback(async () => {
     const [req, its, qs, msgs, po] = await Promise.all([
-      supabase.from('price_requests').select('id, title, status, postal_code, city, supplier_choice').eq('id', id).single(),
+      supabase.from('price_requests').select('id, title, status, postal_code, city, supplier_choice, relaunched_at').eq('id', id).single(),
       supabase.from('request_items').select('id, label, quantity, unit').eq('request_id', id).order('position'),
       supabase
         .from('quotes')
@@ -115,7 +116,7 @@ export default function CompareScreen() {
       {request && request.supplier_choice !== 'own' && request.status === 'sent' ? (
         <Card style={{ backgroundColor: theme.goodBackground, borderColor: theme.goodBackground }}>
           <ThemedText type="smallBold" themeColor="good">
-            {t.request.batinodeSearching(offers.length)}
+            {request.relaunched_at ? t.request.relaunched(offers.length) : t.request.batinodeSearching(offers.length)}
           </ThemedText>
         </Card>
       ) : sent ? (

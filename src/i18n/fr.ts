@@ -144,6 +144,8 @@ export const fr = {
     choiceMixHelp:
       'Cochez un ou plusieurs fournisseurs que vous connaissez. BatiNode complète avec des fournisseurs de votre région, pour que votre demande parte chez 5 fournisseurs en tout.',
     sendMix: (n: number, total: number) => `Envoyer à ${n} fournisseur${n > 1 ? 's' : ''} + ${total - n} trouvé${total - n > 1 ? 's' : ''} par BatiNode`,
+    relaunched: (found: number) =>
+      `Tous les fournisseurs n'ont pas répondu en 48 heures : BatiNode a relancé la recherche auprès d'autres fournisseurs. Votre demande est maintenant chez ${found} fournisseurs, qui ont 48 heures de plus pour répondre.`,
     batinodeSearching: (found: number) =>
       `BatiNode a envoyé votre demande à ${found} fournisseur${found > 1 ? 's' : ''} de votre région. Les fournisseurs ont 48 heures pour vous répondre ici.`,
     suppliers: 'Fournisseurs de votre zone',

@@ -37,6 +37,7 @@ type Event = {
     | 'network_deal'
     | 'news_published'
     | 'quota_alert'
+    | 'request_relaunched'
     | 'account_deleted';
   company_id?: string | null;
   request_id?: string | null;

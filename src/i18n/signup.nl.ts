@@ -120,8 +120,7 @@ export const signupNl: typeof signupFr = {
     email: 'Dit e-mailadres lijkt niet te kloppen.',
     terms: 'Aanvaard de voorwaarden om verder te gaan.',
     commission: 'Aanvaard de commissie om aanvragen te ontvangen.',
-    vat_taken:
-      'Er bestaat al een bedrijf met dit btw-nummer. Vraag uw collega om u uit te nodigen, of schrijf ons als dit een vergissing is.',
+    vat_taken: 'Er bestaat al een bedrijf met dit btw-nummer. Vraag uw collega om u uit te nodigen, of schrijf ons als dit een vergissing is.',
   },
   later: {
     guideStart: 'Mijn fiche invullen',

@@ -145,6 +145,8 @@ export const nl: Dictionary = {
     choiceMix: 'Allebei',
     choiceMixHelp: 'Vink een of meer leveranciers aan die u kent. BatiNode vult aan met leveranciers uit uw regio, zodat uw aanvraag in totaal naar 5 leveranciers gaat.',
     sendMix: (n: number, total: number) => `Versturen naar ${n} leverancier${n > 1 ? 's' : ''} + ${total - n} gevonden door BatiNode`,
+    relaunched: (found: number) =>
+      `Niet alle leveranciers antwoordden binnen 48 uur: BatiNode heeft andere leveranciers aangeschreven. Uw aanvraag ligt nu bij ${found} leveranciers, die 48 uur extra hebben om te antwoorden.`,
     batinodeSearching: (found: number) =>
       `BatiNode heeft uw aanvraag naar ${found} leverancier${found > 1 ? 's' : ''} in uw regio gestuurd. De leveranciers hebben 48 uur om u hier te antwoorden.`,
     suppliers: 'Leveranciers in uw regio',

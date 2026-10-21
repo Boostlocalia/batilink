@@ -118,8 +118,7 @@ export const signupFr = {
     email: 'Cette adresse e-mail semble incorrecte.',
     terms: 'Acceptez les conditions pour continuer.',
     commission: 'Acceptez la commission pour recevoir des demandes.',
-    vat_taken:
-      'Une entreprise avec ce numéro de TVA existe déjà. Demandez à votre collègue de vous inviter, ou écrivez-nous si c’est une erreur.',
+    vat_taken: 'Une entreprise avec ce numéro de TVA existe déjà. Demandez à votre collègue de vous inviter, ou écrivez-nous si c’est une erreur.',
   },
   later: {
     guideStart: 'Compléter ma fiche',

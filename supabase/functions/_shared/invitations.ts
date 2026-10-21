@@ -87,7 +87,7 @@ export async function inviteSuppliers(admin: SupabaseClient, request: SentReques
 }
 
 /**
- * The suppliers BatiNode picks for a request: those of its category within 50 km of
+ * The suppliers BatiNode picks for a request: those of its category within 50 km of (25 km for pickup at the shop)
  * the site, nearest first (in 10 km bands), then those asked least recently, so the
  * same suppliers are not always the ones solicited. Only suppliers with an e-mail
  * address who did not unsubscribe, never one already invited to this request.

@@ -114,12 +114,28 @@ export const bannersFr = {
       { kicker: 'Réseau d’entrepreneurs', title: 'Que des entreprises en règle', text: 'TVA et BCE vérifiées pour chaque entrepreneur, fournisseur et architecte.' },
       { kicker: 'Essai', title: '7 jours gratuits, sans carte', text: 'Créez votre compte et testez tout Premium dès aujourd’hui.' },
     ],
-    request: { kicker: 'Demande de prix', title: 'Listez, envoyez, comparez', text: 'Les fournisseurs de votre zone ont 48 h pour répondre. Vous choisissez l’offre qui vous convient.' },
+    request: {
+      kicker: 'Demande de prix',
+      title: 'Listez, envoyez, comparez',
+      text: 'Les fournisseurs de votre zone ont 48 h pour répondre. Vous choisissez l’offre qui vous convient.',
+    },
     network: [
-      { kicker: 'Sous-traitance et partenariats', title: 'Trouvez du renfort pour vos chantiers', text: 'Publiez une mission : des entrepreneurs vérifiés de votre région vous répondent.' },
+      {
+        kicker: 'Sous-traitance et partenariats',
+        title: 'Trouvez du renfort pour vos chantiers',
+        text: 'Publiez une mission : des entrepreneurs vérifiés de votre région vous répondent.',
+      },
       { kicker: 'Projets', title: 'Des architectes cherchent des entrepreneurs', text: 'Répondez à leurs projets et décrochez de nouveaux chantiers.' },
     ],
-    plans: { kicker: 'Premium', title: 'Rentabilisé dès la première commande', text: 'Comparer trois offres sur un seul chantier fait souvent économiser plus que le prix d’un mois.' },
-    settings: { kicker: 'Parrainage', title: 'Un collègue invité = un mois offert', text: 'Partagez votre lien plus bas : vous recevez chacun un mois de Premium dès que son entreprise est vérifiée.' },
+    plans: {
+      kicker: 'Premium',
+      title: 'Rentabilisé dès la première commande',
+      text: 'Comparer trois offres sur un seul chantier fait souvent économiser plus que le prix d’un mois.',
+    },
+    settings: {
+      kicker: 'Parrainage',
+      title: 'Un collègue invité = un mois offert',
+      text: 'Partagez votre lien plus bas : vous recevez chacun un mois de Premium dès que son entreprise est vérifiée.',
+    },
   },
 };

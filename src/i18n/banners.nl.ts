@@ -115,12 +115,20 @@ export const bannersNl: typeof bannersFr = {
       { kicker: 'Ondernemersnetwerk', title: 'Enkel bedrijven die in orde zijn', text: 'Btw en KBO gecontroleerd voor elke aannemer, leverancier en architect.' },
       { kicker: 'Proef', title: '7 dagen gratis, zonder bankkaart', text: 'Maak uw account aan en test vandaag nog alles van Premium.' },
     ],
-    request: { kicker: 'Prijsaanvraag', title: 'Oplijsten, versturen, vergelijken', text: 'De leveranciers in uw regio hebben 48 u om te antwoorden. U kiest de offerte die u past.' },
+    request: {
+      kicker: 'Prijsaanvraag',
+      title: 'Oplijsten, versturen, vergelijken',
+      text: 'De leveranciers in uw regio hebben 48 u om te antwoorden. U kiest de offerte die u past.',
+    },
     network: [
       { kicker: 'Onderaanneming en partnerschappen', title: 'Vind versterking voor uw werven', text: 'Publiceer een opdracht: geverifieerde aannemers uit uw regio reageren.' },
       { kicker: 'Projecten', title: 'Architecten zoeken aannemers', text: 'Reageer op hun projecten en haal nieuwe werven binnen.' },
     ],
     plans: { kicker: 'Premium', title: 'Terugverdiend vanaf de eerste bestelling', text: 'Drie offertes vergelijken op één werf levert vaak meer op dan de prijs van een maand.' },
-    settings: { kicker: 'Peterschap', title: 'Eén collega uitgenodigd = één maand gratis', text: 'Deel uw link hieronder: u krijgt elk een maand Premium zodra het bedrijf geverifieerd is.' },
+    settings: {
+      kicker: 'Peterschap',
+      title: 'Eén collega uitgenodigd = één maand gratis',
+      text: 'Deel uw link hieronder: u krijgt elk een maand Premium zodra het bedrijf geverifieerd is.',
+    },
   },
 };
