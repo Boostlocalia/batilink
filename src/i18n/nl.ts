@@ -209,6 +209,8 @@ export const nl: Dictionary = {
     unitBasis: 'De offertes worden gerangschikt op hun eenheidsprijzen, toegepast op dezelfde hoeveelheden voor allemaal.',
     fromPdfHint: 'Prijzen door Nodi gelezen in de pdf van de leverancier, na te kijken. Hij kan ze online bevestigen.',
     bestPrice: 'Beste prijs',
+    relaunched: 'Aanvraag opnieuw verstuurd voor dit product',
+    nodiPick: 'De keuze van Nodi',
     fastest: 'Snelste',
     choose: 'Deze offerte kiezen',
     chosen: 'Offerte gekozen',

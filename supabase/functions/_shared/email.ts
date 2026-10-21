@@ -90,7 +90,7 @@ export type InvitationData = {
 };
 
 const pct = (rate: number, lang: Lang) => new Intl.NumberFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { style: 'percent', maximumFractionDigits: 2 }).format(rate);
-const eur = (n: number, lang: Lang) => new Intl.NumberFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { style: 'currency', currency: 'EUR' }).format(n);
+export const eur = (n: number, lang: Lang) => new Intl.NumberFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { style: 'currency', currency: 'EUR' }).format(n);
 
 const UNITS: Record<Lang, Record<string, string>> = {
   fr: { piece: 'pièce(s)', bag: 'sac(s)', t: 't', kg: 'kg', m: 'm', m2: 'm²', m3: 'm³', l: 'l', pallet: 'palette(s)' },
@@ -339,7 +339,12 @@ export type Localized = { subject: string; paragraphs: string[]; cta?: { label: 
 /** A short bilingual notice; paragraphs are plain text (escaped here). */
 export function notice(lang: Lang, to: string, content: Record<Lang, Localized>): Mail {
   const c = content[lang];
-  const html = layout(c.paragraphs.map(esc), c.cta, undefined, lang);
+  const html = layout(
+    c.paragraphs.map((p) => esc(p).replace(/\n/g, '<br>')),
+    c.cta,
+    undefined,
+    lang,
+  );
   const text = [...c.paragraphs, ...(c.cta ? [c.cta.url] : [])].join('\n\n');
   return { to, subject: c.subject, html, text };
 }

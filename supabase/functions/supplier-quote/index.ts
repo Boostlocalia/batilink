@@ -10,6 +10,7 @@
 
 import { offerTotalExVat, SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
 import { newQuoteMail, sendMail, type Lang } from '../_shared/email.ts';
+import { followUpMaterials } from '../_shared/corrections.ts';
 import { logEvent } from '../_shared/events.ts';
 import { adminClient, appUrl, corsHeaders, json } from '../_shared/supabase.ts';
 import { readOfferPdf } from '../_shared/offer-pdf.ts';
@@ -176,7 +177,10 @@ Deno.serve(async (req) => {
     data: { total_ex_vat: totalExVat, lead_time_days: leadTime, update: !firstSubmission },
   });
 
-  if (firstSubmission) {
+  // A product other than the one asked: the supplier is asked to correct it, and the client
+  // told of the offer in the same e-mail. Read details only: typed prices alone say nothing.
+  const followed = read.size ? await followUpMaterials(admin, quote.id) : null;
+  if (firstSubmission && followed !== 'asked') {
     const [{ data: contractor }, { data: supplier }] = await Promise.all([
       admin.from('companies').select('email, language').eq('id', request.company_id).single(),
       admin.from('companies').select('name').eq('id', quote.supplier_id).single(),

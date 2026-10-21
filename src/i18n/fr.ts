@@ -208,6 +208,8 @@ export const fr = {
     unitBasis: 'Les offres sont classées sur leurs prix unitaires, appliqués aux mêmes quantités pour toutes.',
     fromPdfHint: 'Prix lus par Nodi dans le PDF du fournisseur, à vérifier. Il peut les confirmer en ligne.',
     bestPrice: 'Meilleur prix',
+    relaunched: 'Demande relancée pour ce produit',
+    nodiPick: 'Le choix de Nodi',
     fastest: 'Le plus rapide',
     choose: 'Choisir cette offre',
     chosen: 'Offre retenue',

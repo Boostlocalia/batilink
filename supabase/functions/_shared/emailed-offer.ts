@@ -7,6 +7,7 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
 import { offerTotalExVat } from './commission.ts';
 import { newQuoteMail, sendMail, type Lang } from './email.ts';
+import { followUpMaterials } from './corrections.ts';
 import { logEvent } from './events.ts';
 import { readOfferPdf, whichRequests, type OfferReading, type OpenRequest } from './offer-pdf.ts';
 import { appUrl } from './supabase.ts';
@@ -157,7 +158,9 @@ export async function saveEmailedOffer(admin: SupabaseClient, quoteId: string, f
 async function saveOfferPdf(admin: SupabaseClient, quoteId: string, bytes: Uint8Array): Promise<Placed> {
   const { data: quote } = await admin
     .from('quotes')
-    .select('id, status, supplier_id, offer_reads, comment, supplier:companies(name), request:price_requests(id, title, status, company:companies(email, language))')
+    .select(
+      'id, status, supplier_id, offer_reads, comment, correction_requested_at, supplier:companies(name), request:price_requests(id, title, status, company:companies(email, language))',
+    )
     .eq('id', quoteId)
     .single();
   const request = quote?.request as unknown as RequestRow | undefined;
@@ -172,12 +175,14 @@ async function saveOfferPdf(admin: SupabaseClient, quoteId: string, bytes: Uint8
     .eq('id', quote.id);
 
   const result = await applyReading(admin, quote as unknown as QuoteRow, request, bytes);
-  // The contractor hears about the offer once, when it first arrives.
-  if (quote.status === 'invited' && quote.offer_reads === 0) await tellContractor(quote as unknown as QuoteRow, request);
+  // A wrong product: the supplier is asked to correct it, and the client told of the offer with it.
+  const followed = await followUpMaterials(admin, quote.id);
+  // Otherwise the contractor hears about the offer once, when it first arrives.
+  if (quote.status === 'invited' && quote.offer_reads === 0 && followed !== 'asked') await tellContractor(quote as unknown as QuoteRow, request);
   return result;
 }
 
-type QuoteRow = { id: string; status: string; supplier_id: string; offer_reads: number; comment?: string | null; supplier: unknown };
+type QuoteRow = { id: string; status: string; supplier_id: string; offer_reads: number; comment?: string | null; correction_requested_at?: string | null; supplier: unknown };
 type RequestRow = { id: string; title: string; status: string; company: { email: string | null; language: Lang } };
 
 async function tellContractor(quote: QuoteRow, request: RequestRow) {
@@ -205,7 +210,10 @@ async function applyReading(admin: SupabaseClient, quote: QuoteRow, request: Req
   const prices = new Map((reading?.items ?? []).filter((i) => i.unit_price !== null).map((i) => [i.item_id, i.unit_price as number]));
   const details = new Map((reading?.items ?? []).map((i) => [i.item_id, itemDetails(i)]));
   const line = (itemId: string, unitPrice: number) => ({ quote_id: quote.id, item_id: itemId, unit_price: unitPrice, ...details.get(itemId) });
-  const complete = quote.status === 'invited' && requested.length > 0 && requested.every((i) => prices.has(i.id));
+  // A supplier asked to correct a product sends a new PDF: it replaces the offer's lines.
+  const replacing = quote.status === 'submitted' && Boolean(quote.correction_requested_at);
+  const open = quote.status === 'invited' || replacing;
+  const complete = open && requested.length > 0 && requested.every((i) => prices.has(i.id));
   // What the supplier actually offers when it differs from the request (e.g. 12 buckets of 6 kg for 50 m²).
   const comment = quote.comment || reading?.note || null;
   if (reading) await admin.from('quotes').update({ checked_at: new Date().toISOString() }).eq('id', quote.id);
@@ -230,8 +238,25 @@ async function applyReading(admin: SupabaseClient, quote: QuoteRow, request: Req
         comment,
       })
       .eq('id', quote.id)
-      .eq('status', 'invited');
-    await logEvent(admin, { kind: 'quote_submitted', company_id: quote.supplier_id, request_id: request.id, quote_id: quote.id, data: { total_ex_vat: total, via: 'email' } });
+      .eq('status', quote.status);
+    await logEvent(admin, {
+      kind: 'quote_submitted',
+      company_id: quote.supplier_id,
+      request_id: request.id,
+      quote_id: quote.id,
+      data: { total_ex_vat: total, via: 'email', update: replacing },
+    });
+  } else if (replacing && prices.size) {
+    // Only the corrected lines: the others keep their price, the total follows.
+    await admin.from('quote_items').upsert([...prices].map(([itemId, unitPrice]) => line(itemId, unitPrice)));
+    const { data: rows } = await admin.from('quote_items').select('item_id, unit_price').eq('quote_id', quote.id);
+    const { data: current } = await admin.from('quotes').select('delivery_fee').eq('id', quote.id).single();
+    const quantity = new Map(requested.map((i) => [i.id, i.quantity]));
+    const total = offerTotalExVat(
+      (rows ?? []).filter((r) => quantity.has(r.item_id)).map((r) => ({ quantity: quantity.get(r.item_id)!, unitPrice: Number(r.unit_price) })),
+      Number(current?.delivery_fee ?? 0),
+    );
+    await admin.from('quotes').update({ total_ex_vat: total, comment }).eq('id', quote.id).eq('status', 'submitted');
   } else if (quote.status === 'invited' && prices.size) {
     // Some lines only: the prices go into the comparison as "read from the PDF", the offer stays open.
     await admin.from('quote_items').upsert([...prices].map(([itemId, unitPrice]) => line(itemId, unitPrice)));
@@ -350,7 +375,10 @@ export async function checkOffers(admin: SupabaseClient): Promise<number> {
       if (!lines.has(i.item_id)) continue;
       await admin.from('quote_items').update(itemDetails(i)).eq('quote_id', q.id).eq('item_id', i.item_id);
     }
-    if (reading) checked++;
+    if (reading) {
+      checked++;
+      await followUpMaterials(admin, q.id);
+    }
   }
   return checked;
 }

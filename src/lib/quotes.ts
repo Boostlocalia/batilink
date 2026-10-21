@@ -13,6 +13,8 @@ export type Offer = {
   validUntil: string | null;
   comment: string | null;
   remindedAt: string | null;
+  /** BatiNode asked the supplier to price the requested product instead. */
+  correctionAsked?: boolean;
   /** The supplier's own quote (PDF) in the private quote-files bucket, if attached. */
   offerFile?: string | null;
   /** Unit price per request item id, excluding VAT. */

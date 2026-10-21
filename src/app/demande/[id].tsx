@@ -2,11 +2,13 @@ import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router
 import { useCallback, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import { Image } from 'expo-image';
 
 import { Questions, type Conversation, type QuoteMessage } from '@/components/questions';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Screen } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
+import { mediaUrl } from '@/lib/banners';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
@@ -26,6 +28,23 @@ type Request = {
 };
 
 const LABEL_WIDTH = 190;
+
+/** Nodi pointing up at the button of the best offer. */
+function NodiPick({ label }: { label: string }) {
+  const theme = useTheme();
+  return (
+    <View style={styles.pick}>
+      <ThemedText type="small" themeColor="signal">
+        {label}
+      </ThemedText>
+      <ThemedText style={styles.pickHand}>☝️</ThemedText>
+      <View style={[styles.pickFace, { borderColor: theme.signal }]}>
+        <Image source={{ uri: mediaUrl('assistant.jpg') }} contentFit="cover" style={StyleSheet.absoluteFill} accessibilityLabel="Nodi" />
+      </View>
+    </View>
+  );
+}
+
 const OFFER_WIDTH = 168;
 
 export default function CompareScreen() {
@@ -48,7 +67,7 @@ export default function CompareScreen() {
       supabase
         .from('quotes')
         .select(
-          'id, status, delivery_fee, lead_time_days, valid_until, comment, offer_file_path, reminded_at, supplier:companies(name), quote_items(item_id, unit_price, offered, mismatch, package_size, package_price, packages)',
+          'id, status, delivery_fee, lead_time_days, valid_until, comment, offer_file_path, reminded_at, correction_requested_at, supplier:companies(name), quote_items(item_id, unit_price, offered, mismatch, package_size, package_price, packages)',
         )
         .eq('request_id', id)
         .order('created_at'),
@@ -77,6 +96,7 @@ export default function CompareScreen() {
         comment: q.comment,
         remindedAt: q.reminded_at,
         offerFile: q.offer_file_path,
+        correctionAsked: Boolean(q.correction_requested_at),
         prices: Object.fromEntries((q.quote_items ?? []).map((p) => [p.item_id, Number(p.unit_price)])),
         details: Object.fromEntries((q.quote_items ?? []).map((p) => [p.item_id, { offered: p.offered, mismatch: p.mismatch }])),
         packages: Object.fromEntries(
@@ -223,6 +243,11 @@ export default function CompareScreen() {
                                     ⚠ {o.details[item.id].mismatch}
                                   </ThemedText>
                                 ) : null}
+                                {o.details?.[item.id]?.mismatch && o.correctionAsked ? (
+                                  <ThemedText type="small" themeColor="textSecondary" style={styles.right} numberOfLines={2}>
+                                    ↻ {t.compare.relaunched}
+                                  </ThemedText>
+                                ) : null}
                               </>
                             )}
                           </View>
@@ -306,8 +331,9 @@ export default function CompareScreen() {
                               <Button label={t.common.cancel} variant="ghost" small onPress={() => setConfirming(null)} />
                             </>
                           ) : (
-                            <Button label={t.compare.choose} small onPress={() => setConfirming(o.id)} />
+                            <Button label={t.compare.choose} variant="signal" small onPress={() => setConfirming(o.id)} />
                           )}
+                          {o.id === cheapestId && confirming !== o.id ? <NodiPick label={t.compare.nodiPick} /> : null}
                         </View>
                       ))}
                     </Line>
@@ -383,6 +409,9 @@ function Line({ label, strong, border, children }: { label: string; strong?: boo
 }
 
 const styles = StyleSheet.create({
+  pick: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
+  pickHand: { fontSize: 18, lineHeight: 22 },
+  pickFace: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, overflow: 'hidden' },
   orderRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, flexWrap: 'wrap' },
   row: { flexDirection: 'row', alignItems: 'stretch' },
   label: { width: LABEL_WIDTH, paddingVertical: Spacing.two, paddingRight: Spacing.two, justifyContent: 'center' },

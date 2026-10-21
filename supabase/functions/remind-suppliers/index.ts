@@ -7,6 +7,7 @@
 import { isCron } from '../_shared/cron.ts';
 import { SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
 import { contractorAddress, invitationMail, sendMail, type Lang } from '../_shared/email.ts';
+import { requestCorrections } from '../_shared/corrections.ts';
 import { checkOffers, recoverEmailedOffers, rereadOffers } from '../_shared/emailed-offer.ts';
 import { relaunchMissing } from '../_shared/relaunch.ts';
 import { isReminderTime } from '../_shared/send-window.ts';
@@ -48,6 +49,7 @@ Deno.serve(async (req) => {
   const reread = await rereadOffers(admin);
   // Offers whose PDF was never compared with the request (material, sizes).
   const checked = await checkOffers(admin);
+  const corrections = await requestCorrections(admin);
 
   // 18 h rather than 24 so that a request sent the day before still gets its reminder the next working day.
   const dayAgo = new Date(Date.now() - 18 * 3_600_000).toISOString();
@@ -135,5 +137,5 @@ Deno.serve(async (req) => {
   if (completed) await logEvent(admin, { kind: 'request_completed', data: { count: completed } });
   if (closed?.length) await logEvent(admin, { kind: 'requests_closed', data: { count: closed.length } });
   if (reminded) await logEvent(admin, { kind: 'supplier_reminded', data: { count: reminded } });
-  return json({ completed, relaunched, closed: closed?.length ?? 0, reminded, recovered, reread, checked });
+  return json({ completed, relaunched, closed: closed?.length ?? 0, reminded, recovered, reread, checked, corrections });
 });
