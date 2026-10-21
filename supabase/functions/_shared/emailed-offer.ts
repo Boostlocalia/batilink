@@ -23,7 +23,7 @@ async function brevo(path: string): Promise<Response | null> {
   if (!apiKey) return null;
   const res = await fetch(`${BREVO}${path}`, { headers: { 'api-key': apiKey } });
   if (!res.ok) {
-    console.error('brevo inbound', path.split('/').slice(0, 3).join('/'), res.status);
+    console.error('brevo inbound', path.split('?')[0].split('/').slice(0, 3).join('/'), res.status, (await res.text()).slice(0, 300));
     return null;
   }
   return res;
@@ -133,8 +133,10 @@ export async function recoverEmailedOffers(admin: SupabaseClient): Promise<numbe
     const replyKey = (m.quote as unknown as { reply_key: string }).reply_key;
     const day = (d: Date) => d.toISOString().slice(0, 10);
     const sent = new Date(m.created_at);
+    // Brevo refuses an end date after today.
+    const end = new Date(Math.min(sent.getTime() + 86_400_000, Date.now()));
     const list = await brevo(
-      `/inbound/events?sender=${encodeURIComponent(m.sender_email)}&startDate=${day(new Date(sent.getTime() - 86_400_000))}&endDate=${day(new Date(sent.getTime() + 86_400_000))}&limit=50`,
+      `/inbound/events?sender=${encodeURIComponent(m.sender_email)}&startDate=${day(new Date(sent.getTime() - 86_400_000))}&endDate=${day(end)}&limit=50`,
     );
     const events = list ? (((await list.json()) as { events?: { uuid?: string }[] }).events ?? []) : [];
     for (const e of events) {
