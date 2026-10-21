@@ -1,4 +1,4 @@
-import { APP_NAME, EMAIL_LOGO_URL } from './brand.ts';
+import { APP_NAME, EMAIL_LOGO_LIGHT_URL, EMAIL_LOGO_URL } from './brand.ts';
 
 // Transactional e-mails, sent through Brevo's HTTP API in the recipient's language.
 
@@ -154,6 +154,7 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
         when: `Een antwoord tegen ${dateFmt(d.replyBy, 'nl')} zou mij goed uitkomen.`,
         reply: 'U kunt gewoon op deze e-mail antwoorden met uw prijs of uw offerte in pdf.',
         thanks: 'Alvast bedankt,',
+        tagline: `${APP_NAME}, de oplossing voor bouwondernemers`,
         footer: `Aanvraag verstuurd via ${APP_NAME} namens ${esc(d.contractor)}. Liever online invullen? <a href="${esc(d.url)}" style="color:#888">Offerte invullen</a>. ${
           d.commissionRate ? `Wordt uw offerte gekozen, dan factureert ${APP_NAME} een commissie van ${pct(d.commissionRate, 'nl')} excl. btw. ` : ''
         }Geen aanvragen meer ontvangen via ${APP_NAME}? <a href="${esc(stopUrl)}" style="color:#888">Afmelden</a>.`,
@@ -170,6 +171,7 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
         when: `Une réponse pour le ${dateFmt(d.replyBy, 'fr')} m'arrangerait.`,
         reply: 'Vous pouvez simplement répondre à cet e-mail avec votre prix ou votre offre en PDF.',
         thanks: "Merci d'avance,",
+        tagline: `${APP_NAME}, la solution des entrepreneurs du bâtiment`,
         footer: `Demande envoyée via ${APP_NAME} pour le compte de ${esc(d.contractor)}. Vous préférez remplir l'offre en ligne ? <a href="${esc(d.url)}" style="color:#888">Remplir l'offre</a>. ${
           d.commissionRate ? `Si votre offre est retenue, ${APP_NAME} facture une commission de ${pct(d.commissionRate, 'fr')} HTVA. ` : ''
         }Ne plus recevoir de demandes via ${APP_NAME} : <a href="${esc(stopUrl)}" style="color:#888">se désinscrire</a>.`,
@@ -188,6 +190,7 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
       esc(lines.when),
       esc(lines.reply),
       `${esc(lines.thanks)}<br>${signature.map(esc).join('<br>')}`,
+      `<img src="${EMAIL_LOGO_LIGHT_URL}" width="100" height="24" alt="${APP_NAME}" style="display:block;border:0;width:100px;height:24px;margin-top:8px"><span style="color:#888;font-size:12px">${esc(lines.tagline)}</span>`,
     ],
     lines.footer,
   );
@@ -200,6 +203,7 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
     lines.when,
     lines.reply,
     `${lines.thanks}\n${signature.join('\n')}`,
+    lines.tagline,
     `--\n${lines.footerText}`,
   ].join('\n\n');
   return { to: d.to, subject, html, text, fromName, replyTo: d.replyTo, unsubscribeUrl: d.unsubscribeUrl };

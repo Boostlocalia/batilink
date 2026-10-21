@@ -28,7 +28,8 @@ describe('invitationMail', () => {
     expect(mail.fromName).toBe('Bati Services SRL (via BatiNode)');
     expect(mail.text).toContain('40 sac(s) · Ciment CEM II');
     expect(mail.text).toContain("Merci d'avance,\nMarc Dubois\nBati Services SRL\nTVA BE0403170701\nRue de la Station 12, 1410 Waterloo");
-    expect(mail.html).not.toContain('<img');
+    expect(mail.html).toContain('batinode-logo-email-light.png');
+    expect(mail.text).toContain('BatiNode, la solution des entrepreneurs du bâtiment');
   });
 
   it('writes to a Dutch-speaking supplier in Dutch', () => {
