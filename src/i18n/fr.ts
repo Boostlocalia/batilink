@@ -38,7 +38,8 @@ export const fr = {
     signIn: 'Me connecter',
     signUp: 'Créer mon compte',
     forgot: 'Mot de passe oublié ?',
-    resetSent: (email: string) => `Si un compte existe pour ${email}, un e-mail vient de partir avec un lien pour choisir un nouveau mot de passe. Pensez à regarder dans les indésirables.`,
+    resetSent: (email: string) =>
+      `Si un compte existe pour ${email}, un e-mail vient de partir avec un lien pour choisir un nouveau mot de passe. Pensez à regarder dans les indésirables.`,
     confirmSent: (email: string) => `Compte créé. Confirmez votre adresse en cliquant sur le lien envoyé à ${email}, puis connectez-vous ici.`,
     invalidEmail: 'Entrez une adresse e-mail valide.',
     wrongPassword: 'Adresse e-mail ou mot de passe incorrect.',
@@ -53,7 +54,7 @@ export const fr = {
   },
   onboarding: {
     title: 'Votre entreprise',
-    lead: "Ces informations apparaissent dans les demandes de prix envoyées aux fournisseurs.",
+    lead: 'Ces informations apparaissent dans les demandes de prix envoyées aux fournisseurs.',
     name: "Nom de l'entreprise",
     vat: 'Numéro de TVA',
     vatHint: 'Format BE0123456789',
@@ -68,16 +69,14 @@ export const fr = {
   },
   home: {
     hello: 'Bonjour',
-    lead: (open: number) =>
-      open === 0 ? 'Aucune demande de prix en cours.' : `${open} demande${open > 1 ? 's' : ''} de prix en cours.`,
+    lead: (open: number) => (open === 0 ? 'Aucune demande de prix en cours.' : `${open} demande${open > 1 ? 's' : ''} de prix en cours.`),
     newRequest: 'Demander un prix fournisseur',
     myRequests: 'Mes prix fournisseurs',
     shortcuts: {
       requests: 'Mes prix fournisseurs',
-      requestsLead: (open: number, offers: number) =>
-        `${open} demande${open > 1 ? 's' : ''} en cours · ${offers} prix reçu${offers > 1 ? 's' : ''}`,
+      requestsLead: (open: number, offers: number) => `${open} demande${open > 1 ? 's' : ''} en cours · ${offers} prix reçu${offers > 1 ? 's' : ''}`,
       requestsEmpty: 'Faites votre première demande de prix en 2 minutes.',
-      offersBadge: (n: number) => `${n} prix`,
+      newOffers: (n: number) => (n === 1 ? '1 nouvelle réponse de fournisseur à voir.' : `${n} nouvelles réponses de fournisseurs à voir.`),
       exchanges: 'Mes échanges entrepreneurs',
       exchangesLead: 'Messages, annonces de sous-traitance et accords.',
       unread: (n: number) => `${n} nouveau${n > 1 ? 'x' : ''} message${n > 1 ? 's' : ''}`,
@@ -117,7 +116,8 @@ export const fr = {
     postalCode: 'Code postal du chantier',
     city: 'Commune',
     replyWindow: 'La demande est datée du jour de l’envoi. Les fournisseurs ont 48 heures pour remettre leur offre.',
-    consent: 'En envoyant la demande, vous acceptez que le nom, le numéro de TVA et l’adresse de votre entreprise soient transmis aux fournisseurs choisis. Votre adresse e-mail ne leur est communiquée que si vous retenez leur offre.',
+    consent:
+      'En envoyant la demande, vous acceptez que le nom, le numéro de TVA et l’adresse de votre entreprise soient transmis aux fournisseurs choisis. Votre adresse e-mail ne leur est communiquée que si vous retenez leur offre.',
     fulfilment: 'Livraison ou enlèvement',
     delivery: 'Livraison sur chantier',
     pickup: 'Enlèvement',
@@ -147,8 +147,7 @@ export const fr = {
     batinodeSearching: (found: number) =>
       `BatiNode a envoyé votre demande à ${found} fournisseur${found > 1 ? 's' : ''} de votre région. Les fournisseurs ont 48 heures pour vous répondre ici.`,
     suppliers: 'Fournisseurs de votre zone',
-    noSuppliers:
-      "Aucun fournisseur n'est encore inscrit pour cette catégorie dans votre zone. Nous en démarchons de nouveaux chaque semaine.",
+    noSuppliers: "Aucun fournisseur n'est encore inscrit pour cette catégorie dans votre zone. Nous en démarchons de nouveaux chaque semaine.",
     verified: 'Vérifié',
     send: (n: number) => `Envoyer à ${n} fournisseur${n > 1 ? 's' : ''}`,
     sent: (n: number) => `Demande envoyée à ${n} fournisseur${n > 1 ? 's' : ''}.`,
@@ -220,7 +219,7 @@ export const fr = {
     askHint: 'Votre question lui est transmise ; sa réponse vous arrive par e-mail et s’affiche ici.',
     askField: 'Votre question',
     askSend: 'Envoyer la question',
-    asked: "Question envoyée. Vous recevrez la réponse par e-mail.",
+    asked: 'Question envoyée. Vous recevrez la réponse par e-mail.',
     contractor: 'Entrepreneur',
   },
   plans: {
@@ -242,9 +241,7 @@ export const fr = {
     features: {
       searches: (n: number) => (Number.isFinite(n) ? `${n} recherches d'entreprises par mois` : 'Recherche illimitée'),
       network: (exchanges: number): string =>
-        Number.isFinite(exchanges)
-          ? `Collaborations entre entrepreneurs : ${exchanges} échanges par mois`
-          : 'Collaborations entre entrepreneurs : publier et répondre sans limite',
+        Number.isFinite(exchanges) ? `Collaborations entre entrepreneurs : ${exchanges} échanges par mois` : 'Collaborations entre entrepreneurs : publier et répondre sans limite',
       badge: 'Badge vérifié (TVA, BCE)',
       suppliers: (access: 'preview' | 'none' | 'full'): string =>
         access === 'full'
@@ -349,7 +346,7 @@ export const fr = {
       vat_bad_check_digits: 'Numéro de TVA mal formé',
       vat_register_unavailable: 'Registre TVA injoignable',
       kbo_not_found: 'Entreprise introuvable à la BCE',
-      kbo_not_active: "Entreprise non active à la BCE",
+      kbo_not_active: 'Entreprise non active à la BCE',
       kbo_no_construction_activity: 'Aucune activité de construction déclarée à la BCE',
       kbo_no_architecture_activity: "Aucune activité d'architecture déclarée à la BCE",
       kbo_not_imported: 'Données BCE pas encore chargées',
@@ -368,8 +365,7 @@ export const fr = {
     helloText: 'Posez-moi vos questions : je vous guide pour vos demandes de prix, vos fournisseurs, le réseau d’entrepreneurs et votre fiche.',
     thinking: (name: string) => `${name} réfléchit…`,
     unavailable: "L'assistant n'est pas disponible pour le moment. Réessayez plus tard.",
-    hello: (name: string) =>
-      `Bonjour, je suis ${name}. Je vous explique comment fonctionne l'application et je réponds à vos questions. Que puis-je faire pour vous ?`,
+    hello: (name: string) => `Bonjour, je suis ${name}. Je vous explique comment fonctionne l'application et je réponds à vos questions. Que puis-je faire pour vous ?`,
     suggestions: {
       contractor: ['Comment envoyer une demande de prix ?', 'Comment vérifiez-vous les entreprises ?', 'Que comprend le plan Premium ?'],
       architect: ['Comment publier un projet ?', 'Comment les entrepreneurs sont-ils vérifiés ?', 'Que se passe-t-il quand je mets en relation ?'],
@@ -384,9 +380,12 @@ export const fr = {
     steps: {
       contractor: [
         ['Votre entreprise est vérifiée', 'Nous contrôlons le numéro de TVA et l’inscription active à la BCE. Le résultat est dans Réglages.'],
-        ['Demandez des prix', "Dans « Fournisseurs », listez vos matériaux. Les fournisseurs de votre zone la reçoivent et vous envoient leur prix."],
+        ['Demandez des prix', 'Dans « Fournisseurs », listez vos matériaux. Les fournisseurs de votre zone la reçoivent et vous envoient leur prix.'],
         ['Comparez et choisissez', 'Les offres arrivent côte à côte : meilleur prix et délai le plus court sont mis en avant. Un clic pour retenir.'],
-        ['Sous-traitance et partenariats', 'Dans « Réseau d’entrepreneurs », sous-traitez, proposez un partenariat ou répondez aux annonces et aux projets d’architectes. Chaque accord est revérifié avant confirmation.'],
+        [
+          'Sous-traitance et partenariats',
+          'Dans « Réseau d’entrepreneurs », sous-traitez, proposez un partenariat ou répondez aux annonces et aux projets d’architectes. Chaque accord est revérifié avant confirmation.',
+        ],
       ],
       architect: [
         ['Votre bureau est vérifié', 'Nous contrôlons la TVA et la BCE. Le résultat est dans Réglages.'],
@@ -414,7 +413,7 @@ export const fr = {
     toRequest: 'Demander un prix fournisseur',
     importLines: 'Importer un métré Excel ou CSV',
     importHint: 'Colonnes reconnues : Désignation, Quantité, Unité (ou Omschrijving, Aantal, Eenheid).',
-    imported: (n: number) => (n === 1 ? '1 ligne importée. Vérifiez-la avant d\'envoyer.' : `${n} lignes importées. Vérifiez-les avant d'envoyer.`),
+    imported: (n: number) => (n === 1 ? "1 ligne importée. Vérifiez-la avant d'envoyer." : `${n} lignes importées. Vérifiez-les avant d'envoyer.`),
     size: (mb: string) => `${mb} Mo`,
     errors: {
       type: 'Ce type de fichier ne peut pas être ajouté. Utilisez Excel, CSV, PDF, Word ou une photo.',
@@ -423,7 +422,7 @@ export const fr = {
       xls: "Ce fichier est à l'ancien format Excel (.xls). Enregistrez-le en .xlsx puis réessayez.",
       not_spreadsheet: 'Seuls les fichiers Excel (.xlsx) et CSV peuvent être importés dans une demande.',
       unreadable: "Le fichier n'a pas pu être lu.",
-      empty: 'Aucune ligne avec une désignation et une quantité n\'a été trouvée.',
+      empty: "Aucune ligne avec une désignation et une quantité n'a été trouvée.",
     },
   },
   settings: {
@@ -433,7 +432,8 @@ export const fr = {
     news: 'Nouveaux entrepreneurs',
     newsLead: 'Un e-mail le lundi avec les entrepreneurs vérifiés arrivés sur BatiNode la semaine passée.',
     directory: 'Apparaître dans la liste des entrepreneurs',
-    directoryLead: 'Les membres connectés voient le nom de votre entreprise, votre commune et vos métiers, et peuvent vous écrire. Jamais votre e-mail, votre téléphone ni votre numéro de TVA.',
+    directoryLead:
+      'Les membres connectés voient le nom de votre entreprise, votre commune et vos métiers, et peuvent vous écrire. Jamais votre e-mail, votre téléphone ni votre numéro de TVA.',
     on: 'Activé',
     off: 'Désactivé',
     logo: 'Photo ou logo',
@@ -476,7 +476,8 @@ export const fr = {
     depositTitle: 'Acompte',
     depositLead: (amount: string) => `Le fournisseur demande un acompte de ${amount} avant de lancer la commande.`,
     transferTo: (iban: string, ref: string) => `Virement au compte ${iban}, communication ${ref}.`,
-    proofLead: "Payez l'acompte directement au fournisseur, puis déposez une capture d'écran ou le PDF de votre banque. Nous la transmettons au fournisseur pour qu'il lance la commande.",
+    proofLead:
+      "Payez l'acompte directement au fournisseur, puis déposez une capture d'écran ou le PDF de votre banque. Nous la transmettons au fournisseur pour qu'il lance la commande.",
     sendProof: 'Déposer la preuve de paiement',
     sendAnotherProof: 'Envoyer une autre preuve',
     proofSent: "Preuve transmise au fournisseur. Vous êtes prévenu dès qu'il confirme la réception.",
@@ -502,7 +503,7 @@ export const fr = {
       no_supplier_vat: 'Numéro de TVA du fournisseur absent.',
       supplier_vat_mismatch: "La facture vient d'une autre entreprise que le fournisseur.",
       no_buyer_vat: 'Votre numéro de TVA est absent.',
-      buyer_vat_mismatch: "La facture est adressée à une autre entreprise que la vôtre.",
+      buyer_vat_mismatch: 'La facture est adressée à une autre entreprise que la vôtre.',
       no_order_reference: 'Le numéro de commande ne figure pas sur la facture.',
       order_reference_mismatch: 'La facture mentionne un autre numéro de commande.',
       no_total: 'Montant HTVA absent.',
@@ -510,7 +511,7 @@ export const fr = {
       not_structured: 'Fichier PDF ou photo : vérification manuelle.',
     } as Record<string, string>,
     paymentTitle: 'Paiement',
-    payDirect: "Vous payez le fournisseur directement, à réception de sa facture. Déposez ensuite la preuve de paiement : elle lui est transmise et clôture le dossier.",
+    payDirect: 'Vous payez le fournisseur directement, à réception de sa facture. Déposez ensuite la preuve de paiement : elle lui est transmise et clôture le dossier.',
     sendPaymentProof: 'Déposer la preuve de paiement',
     paymentReported: (date: string) => `Preuve de paiement envoyée le ${date}.`,
     total: 'Total TVAC',
@@ -555,8 +556,8 @@ export const fr = {
     received: 'Acompte reçu, je lance la commande',
     receivedNoProof: "J'ai reçu l'acompte",
     notReceived: "Je ne l'ai pas reçu",
-    rejectReason: 'Que doit vérifier l\'entrepreneur ?',
-    rejectSend: 'Prévenir l\'entrepreneur',
+    rejectReason: "Que doit vérifier l'entrepreneur ?",
+    rejectSend: "Prévenir l'entrepreneur",
     status: {
       awaiting_supplier: 'À confirmer',
       awaiting_deposit: "En attente d'acompte",
@@ -612,8 +613,7 @@ export const fr = {
     closed: 'Cette demande est clôturée.',
     missingPrices: 'Indiquez un prix pour chaque produit.',
     invalidTerms: 'Indiquez un délai en jours et des frais de livraison valides.',
-    acceptCommission: (rate: string) =>
-      `J'accepte que ${APP_NAME} facture une commission de ${rate} HTVA sur le montant de mon offre si elle est retenue. Répondre reste gratuit.`,
+    acceptCommission: (rate: string) => `J'accepte que ${APP_NAME} facture une commission de ${rate} HTVA sur le montant de mon offre si elle est retenue. Répondre reste gratuit.`,
     commissionRequired: 'Acceptez les conditions de commission pour envoyer votre offre.',
   },
   signup: signupFr,

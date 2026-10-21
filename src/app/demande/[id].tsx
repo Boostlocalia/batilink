@@ -14,7 +14,14 @@ import type { OrderStatus } from '@/lib/orders';
 import { compareOffers, type Offer, type RequestItem } from '@/lib/quotes';
 import { supabase } from '@/lib/supabase';
 
-type Request = { id: string; title: string; status: 'draft' | 'sent' | 'closed' | 'awarded'; postal_code: string; city: string | null; supplier_choice: 'own' | 'batinode' | 'mix' };
+type Request = {
+  id: string;
+  title: string;
+  status: 'draft' | 'sent' | 'closed' | 'awarded';
+  postal_code: string;
+  city: string | null;
+  supplier_choice: 'own' | 'batinode' | 'mix';
+};
 
 const LABEL_WIDTH = 190;
 const OFFER_WIDTH = 168;
@@ -74,7 +81,9 @@ export default function CompareScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load]),
+      // Clears the "new" count on the home tile.
+      supabase.rpc('mark_request_seen', { rid: id }).then(() => undefined);
+    }, [load, id]),
   );
 
   const award = async (quoteId: string) => {
@@ -307,11 +316,7 @@ export default function CompareScreen() {
             </Card>
           ) : null}
 
-          <Questions
-            conversations={conversations}
-            canAnswer={request.status === 'sent' || request.status === 'awarded'}
-            onSent={load}
-          />
+          <Questions conversations={conversations} canAnswer={request.status === 'sent' || request.status === 'awarded'} onSent={load} />
 
           {waiting.length ? (
             <Card>

@@ -9,11 +9,12 @@ import { StartChecklist } from '@/components/start-checklist';
 import { SupplierHome } from '@/components/supplier-home';
 import { ThemedText } from '@/components/themed-text';
 import { MyRequests, receivedOffers, useMyRequests, type RequestRow } from '@/components/my-requests';
-import { Button, Chip, Screen } from '@/components/ui';
+import { Button, Screen } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { chat, type ConversationView } from '@/lib/chat';
+import { supabase } from '@/lib/supabase';
 import { useSession } from '@/lib/session';
 
 export default function HomeScreen() {
@@ -67,12 +68,18 @@ function Shortcuts({ requests }: { requests: RequestRow[] | null }) {
   const { t } = useI18n();
   const s = t.home.shortcuts;
   const [unread, setUnread] = useState(0);
+  const [newOffers, setNewOffers] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       chat<{ conversations: ConversationView[] }>({ action: 'list' }).then((res) => {
-        if (active) setUnread((res.data?.conversations ?? []).filter((c) => c.unread).length);
+        // Unread messages, and contact requests waiting for an answer.
+        const waiting = (res.data?.conversations ?? []).filter((c) => c.unread || (c.status === 'pending' && !c.mine));
+        if (active) setUnread(waiting.length);
+      });
+      supabase.rpc('my_unseen_offers').then(({ data }) => {
+        if (active) setNewOffers(typeof data === 'number' ? data : 0);
       });
       return () => {
         active = false;
@@ -86,21 +93,21 @@ function Shortcuts({ requests }: { requests: RequestRow[] | null }) {
     <View style={styles.tiles}>
       <Tile
         title={s.requests}
-        text={requests === null ? '' : requests.length ? s.requestsLead(open.length, offers) : s.requestsEmpty}
-        badge={offers ? s.offersBadge(offers) : null}
+        text={requests === null ? '' : newOffers ? s.newOffers(newOffers) : requests.length ? s.requestsLead(open.length, offers) : s.requestsEmpty}
+        count={newOffers}
         onPress={() => router.push(requests?.length ? '/demandes' : '/nouvelle')}
       />
       <Tile
         title={s.exchanges}
         text={unread ? s.unread(unread) : s.exchangesLead}
-        badge={unread ? String(unread) : null}
+        count={unread}
         onPress={() => router.push({ pathname: '/reseau', params: unread ? { vue: 'messages' } : {} })}
       />
     </View>
   );
 }
 
-function Tile({ title, text, badge, onPress }: { title: string; text: string; badge: string | null; onPress: () => void }) {
+function Tile({ title, text, count, onPress }: { title: string; text: string; count: number; onPress: () => void }) {
   const theme = useTheme();
   return (
     <Pressable
@@ -109,7 +116,13 @@ function Tile({ title, text, badge, onPress }: { title: string; text: string; ba
       style={({ pressed }) => [styles.tile, { backgroundColor: theme.backgroundElement, borderColor: theme.line }, pressed && { opacity: 0.7 }]}>
       <View style={styles.tileHead}>
         <ThemedText type="smallBold">{title}</ThemedText>
-        {badge ? <Chip label={badge} tone="good" /> : null}
+        {count > 0 ? (
+          <View style={[styles.count, { backgroundColor: theme.signal }]} accessibilityLabel={String(count)}>
+            <ThemedText type="smallBold" style={{ color: theme.onSignal }}>
+              {count > 9 ? '9+' : count}
+            </ThemedText>
+          </View>
+        ) : null}
       </View>
       <ThemedText type="small" themeColor="textSecondary">
         {text}
@@ -122,6 +135,7 @@ const styles = StyleSheet.create({
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   tile: { flexGrow: 1, flexBasis: 220, gap: Spacing.one, padding: Spacing.three, borderRadius: Spacing.three, borderWidth: 1 },
   tileHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.two },
+  count: { minWidth: 22, height: 22, paddingHorizontal: 6, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   header: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: Spacing.three },
   headerText: { gap: Spacing.one, flexShrink: 1, minWidth: 220 },
 });

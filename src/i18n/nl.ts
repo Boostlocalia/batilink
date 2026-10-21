@@ -40,7 +40,8 @@ export const nl: Dictionary = {
     signIn: 'Aanmelden',
     signUp: 'Mijn account aanmaken',
     forgot: 'Wachtwoord vergeten?',
-    resetSent: (email: string) => `Als er een account bestaat voor ${email}, is er een e-mail verstuurd met een link om een nieuw wachtwoord te kiezen. Kijk ook bij ongewenste e-mail.`,
+    resetSent: (email: string) =>
+      `Als er een account bestaat voor ${email}, is er een e-mail verstuurd met een link om een nieuw wachtwoord te kiezen. Kijk ook bij ongewenste e-mail.`,
     confirmSent: (email: string) => `Account aangemaakt. Bevestig uw adres via de link die naar ${email} is gestuurd en meld u dan hier aan.`,
     invalidEmail: 'Vul een geldig e-mailadres in.',
     wrongPassword: 'E-mailadres of wachtwoord onjuist.',
@@ -70,16 +71,14 @@ export const nl: Dictionary = {
   },
   home: {
     hello: 'Goedendag',
-    lead: (open: number) =>
-      open === 0 ? 'Geen lopende prijsaanvragen.' : `${open} lopende prijsaanvra${open > 1 ? 'gen' : 'ag'}.`,
+    lead: (open: number) => (open === 0 ? 'Geen lopende prijsaanvragen.' : `${open} lopende prijsaanvra${open > 1 ? 'gen' : 'ag'}.`),
     newRequest: 'Leveranciersprijs vragen',
     myRequests: 'Mijn leveranciersprijzen',
     shortcuts: {
       requests: 'Mijn leveranciersprijzen',
-      requestsLead: (open: number, offers: number) =>
-        `${open} lopende aanvra${open > 1 ? 'gen' : 'ag'} · ${offers} prijs${offers === 1 ? '' : 'en'} ontvangen`,
+      requestsLead: (open: number, offers: number) => `${open} lopende aanvra${open > 1 ? 'gen' : 'ag'} · ${offers} prijs${offers === 1 ? '' : 'en'} ontvangen`,
       requestsEmpty: 'Doe uw eerste prijsaanvraag in 2 minuten.',
-      offersBadge: (n: number) => `${n} prijs${n === 1 ? '' : 'en'}`,
+      newOffers: (n: number) => (n === 1 ? '1 nieuw antwoord van een leverancier.' : `${n} nieuwe antwoorden van leveranciers.`),
       exchanges: 'Mijn contacten met ondernemers',
       exchangesLead: 'Berichten, onderaannemingsaankondigingen en akkoorden.',
       unread: (n: number) => `${n} nieuw${n > 1 ? 'e' : ''} bericht${n > 1 ? 'en' : ''}`,
@@ -119,7 +118,8 @@ export const nl: Dictionary = {
     postalCode: 'Postcode van de werf',
     city: 'Gemeente',
     replyWindow: 'De aanvraag krijgt de datum van verzending. Leveranciers hebben 48 uur om hun offerte in te dienen.',
-    consent: 'Door de aanvraag te versturen, gaat u ermee akkoord dat de naam, het btw-nummer en het adres van uw bedrijf aan de gekozen leveranciers worden bezorgd. Uw e-mailadres krijgen ze pas als u hun offerte kiest.',
+    consent:
+      'Door de aanvraag te versturen, gaat u ermee akkoord dat de naam, het btw-nummer en het adres van uw bedrijf aan de gekozen leveranciers worden bezorgd. Uw e-mailadres krijgen ze pas als u hun offerte kiest.',
     fulfilment: 'Levering of afhaling',
     delivery: 'Levering op de werf',
     pickup: 'Afhaling',
@@ -143,14 +143,12 @@ export const nl: Dictionary = {
     choiceOwnHelp: 'U kiest zelf de leveranciers met wie u wilt werken: uw favorieten of die uit uw regio.',
     sendBatinode: 'Aanvraag versturen',
     choiceMix: 'Allebei',
-    choiceMixHelp:
-      'Vink een of meer leveranciers aan die u kent. BatiNode vult aan met leveranciers uit uw regio, zodat uw aanvraag in totaal naar 5 leveranciers gaat.',
+    choiceMixHelp: 'Vink een of meer leveranciers aan die u kent. BatiNode vult aan met leveranciers uit uw regio, zodat uw aanvraag in totaal naar 5 leveranciers gaat.',
     sendMix: (n: number, total: number) => `Versturen naar ${n} leverancier${n > 1 ? 's' : ''} + ${total - n} gevonden door BatiNode`,
     batinodeSearching: (found: number) =>
       `BatiNode heeft uw aanvraag naar ${found} leverancier${found > 1 ? 's' : ''} in uw regio gestuurd. De leveranciers hebben 48 uur om u hier te antwoorden.`,
     suppliers: 'Leveranciers in uw regio',
-    noSuppliers:
-      'Er is nog geen leverancier ingeschreven voor deze categorie in uw regio. We contacteren elke week nieuwe leveranciers.',
+    noSuppliers: 'Er is nog geen leverancier ingeschreven voor deze categorie in uw regio. We contacteren elke week nieuwe leveranciers.',
     verified: 'Geverifieerd',
     send: (n: number) => `Versturen naar ${n} leverancier${n > 1 ? 's' : ''}`,
     sent: (n: number) => `Aanvraag verstuurd naar ${n} leverancier${n > 1 ? 's' : ''}.`,
@@ -243,9 +241,7 @@ export const nl: Dictionary = {
     features: {
       searches: (n: number) => (Number.isFinite(n) ? `${n} bedrijfszoekopdrachten per maand` : 'Onbeperkt zoeken'),
       network: (exchanges: number) =>
-        Number.isFinite(exchanges)
-          ? `Samenwerkingen tussen aannemers: ${exchanges} uitwisselingen per maand`
-          : 'Samenwerkingen tussen aannemers: onbeperkt plaatsen en antwoorden',
+        Number.isFinite(exchanges) ? `Samenwerkingen tussen aannemers: ${exchanges} uitwisselingen per maand` : 'Samenwerkingen tussen aannemers: onbeperkt plaatsen en antwoorden',
       badge: 'Geverifieerd-badge (btw, KBO)',
       suppliers: (access: 'preview' | 'none' | 'full') =>
         access === 'full'
@@ -369,8 +365,7 @@ export const nl: Dictionary = {
     helloText: 'Stel me uw vragen: ik help u met prijsaanvragen, leveranciers, het ondernemersnetwerk en uw fiche.',
     thinking: (name: string) => `${name} denkt na…`,
     unavailable: 'De assistent is nu niet beschikbaar. Probeer het later opnieuw.',
-    hello: (name: string) =>
-      `Goedendag, ik ben ${name}. Ik leg uit hoe de app werkt en beantwoord uw vragen. Wat kan ik voor u doen?`,
+    hello: (name: string) => `Goedendag, ik ben ${name}. Ik leg uit hoe de app werkt en beantwoord uw vragen. Wat kan ik voor u doen?`,
     suggestions: {
       contractor: ['Hoe verstuur ik een prijsaanvraag?', 'Hoe controleert u de bedrijven?', 'Wat houdt het Premium-plan in?'],
       architect: ['Hoe plaats ik een project?', 'Hoe worden aannemers gecontroleerd?', 'Wat gebeurt er als ik in contact breng?'],
@@ -387,7 +382,10 @@ export const nl: Dictionary = {
         ['Uw bedrijf wordt gecontroleerd', 'We controleren het btw-nummer en de actieve inschrijving in de KBO. Het resultaat staat in Instellingen.'],
         ['Vraag prijzen', 'In « Leveranciers » lijst u uw materialen op. Leveranciers uit uw regio ontvangen ze en sturen u hun prijs.'],
         ['Vergelijk en kies', 'De offertes komen naast elkaar: beste prijs en snelste levering worden uitgelicht. Eén klik om te kiezen.'],
-        ['Onderaanneming en partnerschappen', 'In « Ondernemersnetwerk » besteedt u werk uit, stelt u een partnerschap voor of reageert u op zoekertjes en projecten van architecten. Elk akkoord wordt vóór bevestiging opnieuw gecontroleerd.'],
+        [
+          'Onderaanneming en partnerschappen',
+          'In « Ondernemersnetwerk » besteedt u werk uit, stelt u een partnerschap voor of reageert u op zoekertjes en projecten van architecten. Elk akkoord wordt vóór bevestiging opnieuw gecontroleerd.',
+        ],
       ],
       architect: [
         ['Uw bureau wordt gecontroleerd', 'We controleren btw en KBO. Het resultaat staat in Instellingen.'],
@@ -477,7 +475,8 @@ export const nl: Dictionary = {
     depositTitle: 'Voorschot',
     depositLead: (amount: string) => `De leverancier vraagt een voorschot van ${amount} voordat de bestelling start.`,
     transferTo: (iban: string, ref: string) => `Overschrijving naar ${iban}, mededeling ${ref}.`,
-    proofLead: 'Betaal het voorschot rechtstreeks aan de leverancier en laad daarna een schermafbeelding of de pdf van uw bank op. Wij bezorgen het aan de leverancier zodat hij de bestelling start.',
+    proofLead:
+      'Betaal het voorschot rechtstreeks aan de leverancier en laad daarna een schermafbeelding of de pdf van uw bank op. Wij bezorgen het aan de leverancier zodat hij de bestelling start.',
     sendProof: 'Betalingsbewijs opladen',
     sendAnotherProof: 'Ander bewijs sturen',
     proofSent: 'Bewijs bezorgd aan de leverancier. U wordt verwittigd zodra hij de ontvangst bevestigt.',
