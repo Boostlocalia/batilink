@@ -331,7 +331,7 @@ export default function CompareScreen() {
                               <Button label={t.common.cancel} variant="ghost" small onPress={() => setConfirming(null)} />
                             </>
                           ) : (
-                            <Button label={t.compare.choose} variant="signal" small onPress={() => setConfirming(o.id)} />
+                            <Button label={t.compare.choose} variant={o.id === cheapestId ? 'signal' : undefined} small onPress={() => setConfirming(o.id)} />
                           )}
                           {o.id === cheapestId && confirming !== o.id ? <NodiPick label={t.compare.nodiPick} /> : null}
                         </View>
