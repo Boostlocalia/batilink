@@ -162,6 +162,8 @@ Deno.serve(async (req) => {
       valid_until: typeof body.valid_until === 'string' && body.valid_until ? body.valid_until : null,
       comment: typeof body.comment === 'string' ? body.comment.slice(0, 2000) : null,
       submitted_at: new Date().toISOString(),
+      // Nodi already compared their PDF with the request when it was attached.
+      ...(read.size ? { checked_at: new Date().toISOString() } : {}),
       total_ex_vat: totalExVat,
       commission_accepted_at: quote.commission_accepted_at ?? (SUPPLIER_COMMISSION_ACTIVE ? new Date().toISOString() : null),
     })

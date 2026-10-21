@@ -28,7 +28,7 @@ const Reading = z.object({
         mismatch: z
           .string()
           .describe(
-            'How the offered product contradicts the requested one (thickness, dimensions, grade, reference), e.g. "épaisseur 8 cm au lieu de 10 cm". Empty when it matches. Packaging, units and details the request leaves open are not a mismatch.',
+            'How the offered product contradicts the requested one: the material itself (glass wool instead of stone wool, PUR instead of PIR, MDF instead of OSB), thickness, dimensions, grade, reference. E.g. "laine de verre au lieu de laine de roche", "épaisseur 8 cm au lieu de 10 cm". Empty when it matches. Packaging, units and details the request leaves open are not a mismatch.',
           ),
         package_size: z.string().describe('When the item is sold by the package (bucket, bag, roll, pallet): the package, short, e.g. "seau 6 kg", "sac 25 kg". Empty otherwise.'),
         package_price: z.number().nullable().describe('Price of one package excluding VAT, in euros. null when not sold by the package.'),
@@ -54,7 +54,8 @@ const SYSTEM = `You read a building-material supplier's quote (a PDF) on BatiNod
 - If the quote prices one package (bucket, bag, roll) and states its coverage or consumption (e.g. 6 kg bucket, 1.5 to 2.1 kg/m²), work out the packages needed for the requested quantity with the highest consumption, rounded up to whole packages, and give packages × package price as line_total. Write the calculation in offered (e.g. "18 seaux de 6 kg × 223,56 € (2,1 kg/m²)").
 - An offer whose validity date is already past is still read; say in the note that it has expired and the prices must be confirmed.
 - For every item the quote prices, fill offered with the supplier's own quantity, packaging and unit price, so the contractor sees the real unit prices.
-- Compare carefully what is offered with what was asked: thickness, dimensions, strength class, reference. Offers are compared side by side, so any contradiction goes in mismatch, even a small one. A different packaging or unit, or a detail the request leaves open (a colour when none was asked), is not a mismatch: it goes in offered.
+- Check first that the material is the one asked for: glass wool is not stone wool, PUR is not PIR, MDF is not OSB. When a line names only a brand or product reference, work out its material from what you know of that product (e.g. Isover and Knauf Insulation glass wool, Rockwool stone wool) and say in mismatch that it was deduced from the reference.
+- Then compare thickness, dimensions, strength class, reference. Offers are compared side by side, so any contradiction goes in mismatch, even a small one. A different packaging or unit, or a detail the request leaves open (a colour when none was asked), is not a mismatch: it goes in offered.
 - For an item sold by the package, always give package_size, package_price and packages, so offers in different quantities can be compared on the same number of packages. When the package size is not written but the product reference only exists in one size, give that size.
 - The note is shown to the contractor: write it in the language of the requested items, and state what the supplier offers when it differs from the request.
 - If the quote shows prices including VAT only, divide by 1.21 and mention it in the note.

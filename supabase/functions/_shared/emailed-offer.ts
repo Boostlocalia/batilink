@@ -208,6 +208,7 @@ async function applyReading(admin: SupabaseClient, quote: QuoteRow, request: Req
   const complete = quote.status === 'invited' && requested.length > 0 && requested.every((i) => prices.has(i.id));
   // What the supplier actually offers when it differs from the request (e.g. 12 buckets of 6 kg for 50 m²).
   const comment = quote.comment || reading?.note || null;
+  if (reading) await admin.from('quotes').update({ checked_at: new Date().toISOString() }).eq('id', quote.id);
 
   if (complete) {
     // Not stated in the PDF stays unknown: never shown as free delivery.
@@ -318,4 +319,38 @@ export async function recoverEmailedOffers(admin: SupabaseClient): Promise<numbe
     }
   }
   return saved;
+}
+
+/**
+ * Offers with a PDF that Nodi has not compared with the request yet (typed in by the
+ * supplier, or sent before the check existed): the material and sizes of each line
+ * are checked and any difference is shown to the client. Prices are left as they are.
+ */
+export async function checkOffers(admin: SupabaseClient): Promise<number> {
+  const { data: quotes } = await admin
+    .from('quotes')
+    .select('id, offer_file_path, quote_items(item_id), request:price_requests!inner(id, status)')
+    .in('status', ['invited', 'submitted'])
+    .not('offer_file_path', 'is', null)
+    .is('checked_at', null)
+    .eq('request.status', 'sent')
+    .limit(5);
+  let checked = 0;
+  for (const q of quotes ?? []) {
+    await admin.from('quotes').update({ checked_at: new Date().toISOString() }).eq('id', q.id);
+    const lines = new Set((q.quote_items as { item_id: string }[]).map((i) => i.item_id));
+    if (!lines.size) continue;
+    const { data: file } = await admin.storage.from('quote-files').download(q.offer_file_path as string);
+    if (!file) continue;
+    const requestId = (q.request as unknown as { id: string }).id;
+    const { data: items } = await admin.from('request_items').select('id, label, quantity, unit').eq('request_id', requestId).order('position');
+    const requested = (items ?? []).map((i) => ({ id: i.id, label: i.label, quantity: Number(i.quantity), unit: i.unit }));
+    const reading = await readOfferPdf(new Uint8Array(await file.arrayBuffer()), requested, new Date().toISOString().slice(0, 10));
+    for (const i of reading?.items ?? []) {
+      if (!lines.has(i.item_id)) continue;
+      await admin.from('quote_items').update(itemDetails(i)).eq('quote_id', q.id).eq('item_id', i.item_id);
+    }
+    if (reading) checked++;
+  }
+  return checked;
 }
