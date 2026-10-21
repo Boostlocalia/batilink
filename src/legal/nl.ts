@@ -3,7 +3,7 @@ import { OPERATOR as O, type LegalTexts } from "./types";
 const P = `${O.nameNl} (ondernemingsnummer ${O.enterprise}, btw ${O.vat}), ${O.addressNl}`;
 
 export const legalNl: LegalTexts = {
-  updated: "Van kracht sinds 20 oktober 2026",
+  updated: "Van kracht sinds 21 oktober 2026",
   nav: {
     mentions: "Wettelijke vermeldingen",
     conditions: "Algemene voorwaarden",
@@ -191,6 +191,7 @@ export const legalNl: LegalTexts = {
           body: [
             "Leveranciers die een aanvraag ontvangen, zien de naam, het btw-nummer en het adres van het aanvragende bedrijf en de inhoud van de aanvraag. De aannemer ziet de offertes en de naam van de leveranciers. Persoonlijke contactgegevens worden uit doorgestuurde berichten verwijderd.",
             "Onze verwerkers, enkel om BatiNode te laten werken: Supabase (database en bestanden, Frankfurt, EU), GitHub (hosting van de webapplicatie), Brevo (verzending van e-mails, Frankrijk), Stripe (betalingen) en Anthropic (het AI-model van Nodi). Volgens zijn commerciële voorwaarden gebruikt Anthropic deze gegevens niet om zijn modellen te trainen.",
+            "Enkel als u het aanvaardt in de cookiebanner van de webversie: Meta Platforms Ireland (Meta-pixel), om onze Facebook- en Instagram-advertenties te meten. Het ontvangt de bezochte pagina’s en het feit dat een inschrijving of abonnement plaatsvond, nooit uw gegevens, en werkt nooit op de links die naar leveranciers worden gestuurd.",
             "Sommige van deze dienstverleners kunnen gegevens buiten de Europese Unie verwerken, met name in de Verenigde Staten. Die doorgiften gebeuren binnen het EU-VS-kader voor gegevensbescherming of met de standaardcontractbepalingen van de Europese Commissie.",
             "Ingelogde leden van BatiNode zien in de lijst van ingeschreven aannemers de naam van uw bedrijf, uw gemeente, uw vakgebieden en de badges « KBO-geverifieerd » en « Stichter ». Nooit uw e-mail, telefoon of btw-nummer. U kunt die lijst op elk moment verlaten in Instellingen.",
             "Wij verkopen uw gegevens nooit.",
@@ -226,8 +227,8 @@ export const legalNl: LegalTexts = {
         {
           title: "Wat wij gebruiken",
           body: [
-            "BatiNode gebruikt geen reclamecookies en geen tools voor bezoekersmeting.",
-            "De applicatie bewaart in uw browser of op uw telefoon enkel wat nodig is om te werken: uw aanmeldsessie, de gekozen taal en enkele weergavevoorkeuren (bijvoorbeeld een concept van een aanvraag). Die zijn strikt noodzakelijk en vragen dus geen toestemming.",
+            "In de webversie wordt de Meta-pixel (Facebook, Instagram) pas actief als u op “Aanvaarden” klikt in de banner; “Weigeren” is even eenvoudig. Hij dient om onze advertenties te meten: bekeken pagina’s, inschrijving, abonnement, zonder uw gegevens. Hij plaatst de cookie “_fbp” (tot 90 dagen) en stuurt deze gegevens naar Meta Platforms Ireland, dat ze aan uw Facebook- of Instagram-account kan koppelen. Uw keuze wordt 6 maanden bewaard; met de link “Cookiekeuze” onderaan de openbare pagina’s kunt u ze wijzigen. De iPhone- en Android-app gebruikt deze pixel niet.",
+            "Voor de rest bewaart de applicatie in uw browser of op uw telefoon enkel wat nodig is om te werken: uw aanmeldsessie, de gekozen taal en enkele weergavevoorkeuren (bijvoorbeeld een concept van een aanvraag). Die zijn strikt noodzakelijk en vragen dus geen toestemming.",
           ],
         },
         {

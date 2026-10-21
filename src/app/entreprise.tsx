@@ -28,6 +28,7 @@ import {
   type Region,
 } from '@/lib/signup';
 import { clearIntent, readIntent } from '@/lib/signup-intent';
+import { track } from '@/lib/meta-pixel';
 import { supabase } from '@/lib/supabase';
 import { DEFAULT_COMMISSION_RATE, formatRate, SUPPLIER_COMMISSION_ACTIVE } from '../../supabase/functions/_shared/commission';
 
@@ -197,6 +198,7 @@ export default function SignupScreen() {
       }
       return setErrors({ form: t.common.error });
     }
+    track('CompleteRegistration', { content_name: profile });
     await clearIntent();
     // Checks VAT and BCE/KBO; the result shows in Réglages.
     await supabase.functions.invoke('verify-company', { body: {} }).catch(() => undefined);

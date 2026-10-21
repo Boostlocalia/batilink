@@ -8,12 +8,13 @@ const ws = supabase.replace(/^https:/, 'wss:');
 
 const policy = [
   "default-src 'self'",
-  "script-src 'self'",
+  // Meta pixel, loaded only after consent (src/lib/meta-pixel.ts).
+  "script-src 'self' https://connect.facebook.net",
   // react-native-web writes its styles inline.
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${supabase}`,
+  `img-src 'self' data: blob: ${supabase} https://www.facebook.com`,
   "font-src 'self' data:",
-  `connect-src 'self' ${supabase} ${ws}`,
+  `connect-src 'self' ${supabase} ${ws} https://www.facebook.com https://connect.facebook.net`,
   "media-src 'self' blob:",
   "worker-src 'self' blob:",
   "object-src 'none'",

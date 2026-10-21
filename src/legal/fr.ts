@@ -3,7 +3,7 @@ import { OPERATOR as O, type LegalTexts } from "./types";
 const P = `${O.name} (numéro d’entreprise ${O.enterprise}, TVA ${O.vat}), ${O.address}`;
 
 export const legalFr: LegalTexts = {
-  updated: "En vigueur depuis le 20 octobre 2026",
+  updated: "En vigueur depuis le 21 octobre 2026",
   nav: {
     mentions: "Mentions légales",
     conditions: "Conditions générales",
@@ -191,6 +191,7 @@ export const legalFr: LegalTexts = {
           body: [
             "Les fournisseurs à qui une demande est envoyée voient le nom, le numéro de TVA et l’adresse de l’entreprise qui demande, ainsi que le contenu de la demande. L’entrepreneur voit les offres et le nom des fournisseurs. Les coordonnées personnelles sont retirées des messages relayés.",
             "Nos sous-traitants, uniquement pour faire fonctionner BatiNode : Supabase (base de données et fichiers, Francfort, UE), GitHub (hébergement de l’application web), Brevo (envoi des e-mails, France), Stripe (paiements) et Anthropic (le modèle d’intelligence artificielle de Nodi). Selon ses conditions commerciales, Anthropic n’utilise pas ces données pour entraîner ses modèles.",
+            "Uniquement si vous l’acceptez dans le bandeau cookies de la version web : Meta Platforms Ireland (pixel Meta), pour mesurer nos publicités Facebook et Instagram. Il reçoit les pages visitées et le fait qu’une inscription ou un abonnement a eu lieu, jamais vos coordonnées, et ne fonctionne jamais sur les liens envoyés aux fournisseurs.",
             "Certains de ces prestataires peuvent traiter des données hors de l’Union européenne, notamment aux États-Unis. Ces transferts sont encadrés par le cadre de protection des données UE–États-Unis ou par les clauses contractuelles types de la Commission européenne.",
             "Les membres connectés de BatiNode voient, dans la liste des entrepreneurs inscrits, le nom de votre entreprise, votre commune, vos métiers et les badges « Vérifié BCE » et « Fondateur ». Jamais votre e-mail, votre téléphone ni votre numéro de TVA. Vous pouvez quitter cette liste à tout moment dans Réglages.",
             "Nous ne vendons jamais vos données.",
@@ -226,8 +227,8 @@ export const legalFr: LegalTexts = {
         {
           title: "Ce que nous utilisons",
           body: [
-            "BatiNode n’utilise aucun cookie publicitaire ni outil de mesure d’audience.",
-            "L’application garde dans votre navigateur ou votre téléphone uniquement ce qui est nécessaire à son fonctionnement : votre session de connexion, la langue choisie et quelques préférences d’affichage (par exemple un brouillon de demande en cours). Ces éléments sont strictement nécessaires et ne demandent donc pas de consentement.",
+            "Sur la version web, le pixel Meta (Facebook, Instagram) ne s’active que si vous cliquez sur « Accepter » dans le bandeau ; « Refuser » est aussi simple. Il sert à mesurer nos publicités : pages vues, inscription, abonnement, sans vos coordonnées. Il dépose le cookie « _fbp » (jusqu’à 90 jours) et transmet ces informations à Meta Platforms Ireland, qui peut les relier à votre compte Facebook ou Instagram. Votre choix est gardé 6 mois ; le lien « Choix cookies » en bas des pages publiques permet de le changer. L’application iPhone et Android n’utilise pas ce pixel.",
+            "Pour le reste, l’application garde dans votre navigateur ou votre téléphone uniquement ce qui est nécessaire à son fonctionnement : votre session de connexion, la langue choisie et quelques préférences d’affichage (par exemple un brouillon de demande en cours). Ces éléments sont strictement nécessaires et ne demandent donc pas de consentement.",
           ],
         },
         {

@@ -1,5 +1,7 @@
 import { Link } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+
+import { openCookieChoice } from '@/components/cookie-banner';
 
 import { SocialLinks } from '@/components/social-links';
 import { ThemedText } from '@/components/themed-text';
@@ -9,7 +11,7 @@ import { LEGAL_PAGES, legalTexts } from '@/legal';
 
 /** The foot of public screens: social logos, then a small row of links to the legal pages. */
 export function LegalLinks() {
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const { nav } = legalTexts(language);
   return (
     <View>
@@ -22,6 +24,13 @@ export function LegalLinks() {
             </ThemedText>
           </Link>
         ))}
+        {Platform.OS === 'web' ? (
+          <Pressable onPress={openCookieChoice} accessibilityRole="button">
+            <ThemedText type="small" themeColor="textSecondary" style={styles.link}>
+              {t.consent.choice}
+            </ThemedText>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );

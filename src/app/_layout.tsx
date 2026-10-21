@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import { BackButton } from '@/components/back-button';
+import { CookieBanner } from '@/components/cookie-banner';
 import { NewPassword } from '@/components/new-password';
 import { Colors } from '@/constants/theme';
 import { LanguageProvider } from '@/i18n';
@@ -16,9 +17,7 @@ SplashScreen.preventAutoHideAsync();
 // back to its normal size when the fingers are lifted. The browser's own zoom, which stays
 // where it is left, is off, and so is the zoom when a field gets the focus.
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
-  document
-    .querySelector('meta[name="viewport"]')
-    ?.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
+  document.querySelector('meta[name="viewport"]')?.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
   // iOS Safari ignores user-scalable for pinches: stop its gesture events instead.
   for (const type of ['gesturestart', 'gesturechange']) document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
 
@@ -124,6 +123,7 @@ export default function RootLayout() {
       <LanguageProvider>
         <SessionProvider>
           <RootNavigator />
+          {Platform.OS === 'web' ? <CookieBanner /> : null}
         </SessionProvider>
       </LanguageProvider>
     </ThemeProvider>

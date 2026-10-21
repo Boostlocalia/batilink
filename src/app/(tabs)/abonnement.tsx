@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { CompleteProfileCard } from "@/components/complete-profile-card";
@@ -18,6 +18,7 @@ import { PLANS, type Plan } from "@/lib/plans";
 import { useSession } from "@/lib/session";
 import { SELLS_PLANS } from "@/lib/store";
 import { useTrial } from "@/lib/trial";
+import { track } from "@/lib/meta-pixel";
 import { supabase } from "@/lib/supabase";
 
 // No free plan to choose: after the trial a contractor picks one of the paid plans.
@@ -37,6 +38,18 @@ export default function PlansScreen() {
   const [failed, setFailed] = useState<string | null>(null);
 
   const founder = useFounder(company?.id);
+
+  // Back from Stripe after paying: counted once per browser tab for the ads (if accepted).
+  useEffect(() => {
+    if (paiement !== "ok" || typeof sessionStorage === "undefined") return;
+    try {
+      if (sessionStorage.getItem("bn_subscribe_tracked")) return;
+      sessionStorage.setItem("bn_subscribe_tracked", "1");
+    } catch {
+      return;
+    }
+    track("Subscribe", { currency: "EUR" });
+  }, [paiement]);
 
   // Payment happens on Stripe's page; the plan changes once Stripe confirms it.
   const open = async (key: string, body: object) => {

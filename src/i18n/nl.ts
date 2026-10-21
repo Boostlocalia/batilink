@@ -8,6 +8,12 @@ export const nl: Dictionary = {
   social: {
     follow: 'Vergeet ons niet te volgen op sociale media',
   },
+  consent: {
+    text: 'We willen de Meta-pixel (Facebook, Instagram) gebruiken om te meten hoe goed onze advertenties werken: bezoeken en inschrijvingen, zonder uw gegevens. Hij wordt pas actief als u dat aanvaardt.',
+    accept: 'Aanvaarden',
+    refuse: 'Weigeren',
+    choice: 'Cookiekeuze',
+  },
   common: {
     back: '← Terug',
     save: 'Opslaan',

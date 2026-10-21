@@ -6,6 +6,12 @@ export const fr = {
   social: {
     follow: "N'oubliez pas de nous suivre sur les réseaux",
   },
+  consent: {
+    text: "Nous aimerions utiliser le pixel Meta (Facebook, Instagram) pour mesurer l'efficacité de nos publicités : visites et inscriptions, sans vos coordonnées. Il ne s'active que si vous l'acceptez.",
+    accept: 'Accepter',
+    refuse: 'Refuser',
+    choice: 'Choix cookies',
+  },
   common: {
     back: '← Retour',
     save: 'Enregistrer',
