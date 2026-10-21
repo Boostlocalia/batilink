@@ -26,7 +26,10 @@ export function FounderCounter({ cta }: { cta?: 'page' | 'signup' }) {
       <View style={[styles.track, { backgroundColor: theme.line }]}>
         <View style={[styles.fill, { width: `${share * 100}%`, backgroundColor: theme.signal }]} />
       </View>
-      <ThemedText type="smallBold">{f.counter(offer.taken, offer.total)}</ThemedText>
+      <ThemedText type="smallBold">
+        {f.counter(offer.taken, offer.total)}
+        {offer.registered > 0 ? ` · ${f.registered(offer.registered)}` : ''}
+      </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
         {f.counterNote} {offer.open ? f.until(founderLastDay(offer, locale)) : ''}
       </ThemedText>
@@ -36,9 +39,7 @@ export function FounderCounter({ cta }: { cta?: 'page' | 'signup' }) {
             label={cta === 'page' ? f.learn : f.cta}
             variant="signal"
             small
-            onPress={() =>
-              cta === 'page' ? router.push('/fondateurs') : router.push({ pathname: '/connexion', params: { mode: 'inscription' } })
-            }
+            onPress={() => (cta === 'page' ? router.push('/fondateurs') : router.push({ pathname: '/connexion', params: { mode: 'inscription' } }))}
           />
         </View>
       ) : null}

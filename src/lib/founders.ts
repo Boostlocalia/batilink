@@ -6,32 +6,40 @@ import { supabase } from "@/lib/supabase";
 export type FounderOffer = {
   total: number;
   taken: number;
+  /** Contractor companies signed up, paying or not. */
+  registered: number;
   endsAt: string;
   open: boolean;
 };
 
-/** Live count of the places taken; null while loading or if the count is unavailable. */
+/** Live count of the places taken, refreshed every minute; null while loading or if the count is unavailable. */
 export function useFounderOffer(): FounderOffer | null {
   const [offer, setOffer] = useState<FounderOffer | null>(null);
   useEffect(() => {
     let active = true;
-    supabase.rpc("founder_offer").then(({ data }) => {
-      const o = data as {
-        total: number;
-        taken: number;
-        ends_at: string;
-        open: boolean;
-      } | null;
-      if (active && o)
-        setOffer({
-          total: o.total,
-          taken: o.taken,
-          endsAt: o.ends_at,
-          open: o.open,
-        });
-    });
+    const load = () =>
+      supabase.rpc("founder_offer").then(({ data }) => {
+        const o = data as {
+          total: number;
+          taken: number;
+          registered?: number;
+          ends_at: string;
+          open: boolean;
+        } | null;
+        if (active && o)
+          setOffer({
+            total: o.total,
+            taken: o.taken,
+            registered: o.registered ?? 0,
+            endsAt: o.ends_at,
+            open: o.open,
+          });
+      });
+    load();
+    const timer = setInterval(load, 60_000);
     return () => {
       active = false;
+      clearInterval(timer);
     };
   }, []);
   return offer;

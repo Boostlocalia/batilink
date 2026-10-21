@@ -122,6 +122,7 @@ export const growthNl: typeof growthFr = {
   founders: {
     eyebrow: 'Stichtende ambassadeurs',
     counter: (taken: number, total: number) => `${taken} / ${total} stichtersplaatsen toegekend`,
+    registered: (n: number) => (n === 1 ? '1 bedrijf al ingeschreven' : `${n} bedrijven al ingeschreven`),
     counterNote: 'Echte betalende abonnementen, automatisch bijgewerkt.',
     left: (n: number) => (n === 1 ? 'Nog één plaats' : `Nog ${n} plaatsen`),
     until: (date: string) => `Open tot en met ${date}, of tot de 50e plaats.`,
