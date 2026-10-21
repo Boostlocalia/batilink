@@ -26,10 +26,17 @@ export function FounderCounter({ cta }: { cta?: 'page' | 'signup' }) {
       <View style={[styles.track, { backgroundColor: theme.line }]}>
         <View style={[styles.fill, { width: `${share * 100}%`, backgroundColor: theme.signal }]} />
       </View>
-      <ThemedText type="smallBold">
-        {f.counter(offer.taken, offer.total)}
-        {offer.registered > 0 ? ` · ${f.registered(offer.registered)}` : ''}
-      </ThemedText>
+      <ThemedText type="smallBold">{f.counter(offer.taken, offer.total)}</ThemedText>
+      {offer.registered > 0 || offer.suppliers > 0 ? (
+        <ThemedText type="small">
+          {[
+            offer.registered > 0 ? f.registered(offer.registered) + (offer.trial > 0 ? `, ${f.trial(offer.trial)}` : '') : '',
+            offer.suppliers > 0 ? f.suppliers(offer.suppliers) : '',
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        </ThemedText>
+      ) : null}
       <ThemedText type="small" themeColor="textSecondary">
         {f.counterNote} {offer.open ? f.until(founderLastDay(offer, locale)) : ''}
       </ThemedText>

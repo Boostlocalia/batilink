@@ -119,6 +119,8 @@ export const growthFr = {
     eyebrow: 'Ambassadeurs fondateurs',
     counter: (taken: number, total: number) => `${taken} / ${total} places fondateur attribuées`,
     registered: (n: number) => (n === 1 ? '1 entreprise déjà inscrite' : `${n} entreprises déjà inscrites`),
+    trial: (n: number) => `dont ${n} en essai gratuit de 7 jours`,
+    suppliers: (n: number) => `${n} fournisseurs dans le réseau`,
     counterNote: 'Abonnements payants réels, mis à jour automatiquement.',
     left: (n: number) => (n === 1 ? 'Plus qu’une place' : `Plus que ${n} places`),
     until: (date: string) => `Ouvert jusqu’au ${date} inclus, ou jusqu’à la 50e place.`,

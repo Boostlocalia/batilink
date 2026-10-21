@@ -8,6 +8,10 @@ export type FounderOffer = {
   taken: number;
   /** Contractor companies signed up, paying or not. */
   registered: number;
+  /** Of those, companies in their free 7-day trial. */
+  trial: number;
+  /** Suppliers BatiNode can ask for prices. */
+  suppliers: number;
   endsAt: string;
   open: boolean;
 };
@@ -23,6 +27,8 @@ export function useFounderOffer(): FounderOffer | null {
           total: number;
           taken: number;
           registered?: number;
+          trial?: number;
+          suppliers?: number;
           ends_at: string;
           open: boolean;
         } | null;
@@ -31,6 +37,8 @@ export function useFounderOffer(): FounderOffer | null {
             total: o.total,
             taken: o.taken,
             registered: o.registered ?? 0,
+            trial: o.trial ?? 0,
+            suppliers: o.suppliers ?? 0,
             endsAt: o.ends_at,
             open: o.open,
           });
