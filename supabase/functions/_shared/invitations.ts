@@ -27,11 +27,12 @@ export type SentRequest = {
 
 export async function inviteSuppliers(admin: SupabaseClient, request: SentRequest, supplierIds: string[]): Promise<{ sent: string[]; failed: string[] }> {
   if (!supplierIds.length) return { sent: [], failed: [] };
-  const [{ data: items }, { data: contractor }, { data: suppliers }] = await Promise.all([
+  const [{ data: items }, { data: contractor }, { data: suppliers }, { data: details }] = await Promise.all([
     admin.from('request_items').select('label, quantity, unit').eq('request_id', request.id).order('position'),
-    admin.from('companies').select('name, verified_at, vat_number, street, postal_code, city').eq('id', request.company_id).single(),
+    admin.from('companies').select('name, contact_name, verified_at, vat_number, street, postal_code, city').eq('id', request.company_id).single(),
     // Suppliers who unsubscribed from request e-mails are skipped.
     admin.from('companies').select('id, email, quote_email, language, commission_rate').in('id', supplierIds).eq('kind', 'supplier').is('requests_stopped_at', null),
+    admin.from('price_requests').select('note').eq('id', request.id).single(),
   ]);
 
   const test = await isTestCompany(admin, request.company_id);
@@ -61,6 +62,8 @@ export async function inviteSuppliers(admin: SupabaseClient, request: SentReques
           contractorVerified: Boolean(contractor?.verified_at),
           contractorVat: contractor?.vat_number ?? null,
           contractorAddress: contractorAddress(contractor),
+          contactName: contractor?.contact_name ?? null,
+          note: details?.note ?? null,
           title: request.title,
           postalCode: request.postal_code,
           city: request.city,

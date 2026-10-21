@@ -11,6 +11,8 @@ export type Mail = {
   text: string;
   /** Relay address replies should go to, so the platform can pass them on. */
   replyTo?: string;
+  /** Sender name shown to the recipient; BatiNode when not set. */
+  fromName?: string;
   /** One-click unsubscribe endpoint (List-Unsubscribe), for mails the recipient did not sign up for. */
   unsubscribeUrl?: string;
 };
@@ -27,12 +29,12 @@ export async function sendMail(mail: Mail): Promise<void> {
     method: 'POST',
     headers: { 'api-key': apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
-      sender: { email: from, name: APP_NAME },
+      sender: { email: from, name: mail.fromName ?? APP_NAME },
       to: [{ email: mail.to }],
       subject: mail.subject,
       htmlContent: mail.html,
       textContent: mail.text,
-      ...(mail.replyTo ? { replyTo: { email: mail.replyTo, name: APP_NAME } } : {}),
+      ...(mail.replyTo ? { replyTo: { email: mail.replyTo, name: mail.fromName ?? APP_NAME } } : {}),
       ...(mail.unsubscribeUrl
         ? { headers: { 'List-Unsubscribe': `<${mail.unsubscribeUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } }
         : {}),
@@ -67,6 +69,10 @@ export type InvitationData = {
   /** The client's company details, so the supplier recognises a real customer. */
   contractorVat: string | null;
   contractorAddress: string | null;
+  /** The person who signs the request, from the company profile. */
+  contactName?: string | null;
+  /** The contractor's note on the request, if any. */
+  note?: string | null;
   title: string;
   postalCode: string;
   city: string | null;
@@ -111,56 +117,94 @@ export function contractorAddress(c: { street: string | null; postal_code: strin
   return [c.street, town].filter(Boolean).join(', ') || null;
 }
 
+/** A plain, white e-mail as a person writes it: no logo, no button. */
+function plainLayout(paragraphs: string[], footer: string): string {
+  const body = paragraphs.map((p) => `<p style="margin:0 0 12px">${p}</p>`).join('');
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#222">${body}<p style="margin:28px 0 0;color:#888;font-size:12px">${footer}</p></div>`;
+}
+
+/**
+ * The price request a supplier receives. It reads like the contractor's own e-mail
+ * to their merchant, sent in their name "via BatiNode": suppliers took the branded
+ * version for advertising. Replying with a price or a PDF is enough.
+ */
 export function invitationMail(d: InvitationData, reminder = false): Mail {
   const place = `${d.postalCode}${d.city ? ` ${d.city}` : ''}`;
   const items = itemLines(d);
   const stopUrl = `${d.url}?stop=1`;
-  if (d.lang === 'nl') {
-    const client = [d.contractor, d.contractorVat ? `btw ${d.contractorVat}` : null, d.contractorAddress].filter(Boolean).join(' · ');
-    // Only the 48-hour deadline is given, not the contractor's wished date.
-    const when = d.delivery ? 'levering op de werf' : 'afhaling';
-    const intro = `Uw klant <b>${esc(d.contractor)}</b>${d.contractorVerified ? ' (geverifieerd bedrijf)' : ''} vraagt u via ${APP_NAME} een offerte voor ${d.items.length} product(en), werf in ${esc(place)}, ${when}.`;
-    const deadline = `U hebt 48 uur om uw offerte in te dienen (tot ${dateFmt(d.replyBy, 'nl')}). Wij bezorgen ze meteen aan de klant.`;
-    const subject = `${reminder ? 'Herinnering: ' : ''}Prijsaanvraag van ${d.contractor}: ${d.title} (${place})`;
-    const about = `${APP_NAME} is het platform voor bouwondernemers: ze sturen er hun prijsaanvragen naar hun leveranciers. Voor u zijn het klanten uit uw regio die naar u toe komen, zonder prospectie.`;
-    const ask = 'Een vraag over de aanvraag? Beantwoord gewoon deze e-mail: we sturen uw vraag door naar de klant en bezorgen u zijn antwoord.';
-    const terms = d.commissionRate
-      ? `Wordt uw offerte gekozen, dan factureert ${APP_NAME} een commissie van ${pct(d.commissionRate, 'nl')} excl. btw op het bedrag van de offerte.`
-      : 'Antwoorden is gratis, zonder account en zonder verplichting.';
-    const footer = `${terms} Geen aanvragen meer ontvangen via ${APP_NAME}? <a href="${stopUrl}" style="color:#9b9ba6;text-decoration:underline">Afmelden</a>.`;
-    return {
-      to: d.to,
-      subject,
-      html: layout(['Goedendag,', intro, `<b>Klant:</b> ${esc(client)}`, items.html, deadline], { label: 'Mijn offerte indienen', url: d.url }, `${esc(about)}<br><br>${esc(ask)}<br><br>${footer}`),
-      text: `Goedendag,\n\n${d.contractor} vraagt u via ${APP_NAME} een offerte.\nKlant: ${client}\nWerf: ${place}\n${items.text}\n\n${deadline}\nOfferte indienen: ${d.url}\n\n${ask}\n\n${terms}\nAfmelden: ${stopUrl}\n\n${about}`,
-      replyTo: d.replyTo,
-      unsubscribeUrl: d.unsubscribeUrl,
-    };
-  }
-  const client = [d.contractor, d.contractorVat ? `TVA ${d.contractorVat}` : null, d.contractorAddress].filter(Boolean).join(' · ');
-  const when = d.delivery ? 'livraison sur chantier' : 'enlèvement';
-  const intro = `Votre client <b>${esc(d.contractor)}</b>${d.contractorVerified ? ' (entreprise vérifiée)' : ''} vous demande, via ${APP_NAME}, une offre pour ${d.items.length} produit(s), chantier à ${esc(place)}, ${when}.`;
-  const deadline = `Vous avez 48 heures pour remettre votre offre (jusqu'au ${dateFmt(d.replyBy, 'fr')}). Nous la transmettons aussitôt au client.`;
-  const subject = `${reminder ? 'Rappel : ' : ''}Demande de prix de ${d.contractor} : ${d.title} (${place})`;
-  const about = `${APP_NAME} est la plateforme des entrepreneurs du bâtiment : ils y envoient leurs demandes de prix à leurs fournisseurs. Pour vous, ce sont des clients de votre zone qui viennent à vous, sans prospection.`;
-  const ask = "Une question sur la demande ? Répondez simplement à cet e-mail : nous transmettons votre question au client et vous renvoyons sa réponse.";
-  const terms = d.commissionRate
-    ? `Si votre offre est retenue, ${APP_NAME} facture une commission de ${pct(d.commissionRate, 'fr')} HTVA sur le montant de l'offre.`
-    : 'Répondre est gratuit, sans compte et sans engagement.';
-  const footer = `${terms} Vous ne souhaitez plus recevoir de demandes via ${APP_NAME} ? <a href="${stopUrl}" style="color:#9b9ba6;text-decoration:underline">Se désinscrire</a>.`;
-  return {
-    to: d.to,
-    subject,
-    html: layout(['Bonjour,', intro, `<b>Client :</b> ${esc(client)}`, items.html, deadline], { label: 'Remettre mon offre', url: d.url }, `${esc(about)}<br><br>${esc(ask)}<br><br>${footer}`),
-    text: `Bonjour,\n\n${d.contractor} vous demande une offre via ${APP_NAME}.\nClient : ${client}\nChantier : ${place}\n${items.text}\n\n${deadline}\nRemettre mon offre : ${d.url}\n\n${ask}\n\n${terms}\nSe désinscrire : ${stopUrl}\n\n${about}`,
-    replyTo: d.replyTo,
-    unsubscribeUrl: d.unsubscribeUrl,
-  };
+  const fromName = `${d.contractor} (via ${APP_NAME})`;
+  const town = d.city ?? d.postalCode;
+  const nl = d.lang === 'nl';
+  const subject = nl
+    ? `${reminder ? 'Herinnering: ' : ''}Prijsaanvraag – ${d.title} – ${town}`
+    : `${reminder ? 'Rappel : ' : ''}Demande de prix – ${d.title} – ${town}`;
+  const signature = [
+    d.contactName,
+    d.contractor,
+    d.contractorVat ? `${nl ? 'btw' : 'TVA'} ${d.contractorVat}` : null,
+    d.contractorAddress,
+  ].filter(Boolean) as string[];
+  const lines = nl
+    ? {
+        hello: 'Goedendag,',
+        reminder: 'Kleine herinnering voor mijn aanvraag hieronder.',
+        ask: 'Kunt u mij uw beste prijs geven voor:',
+        site: `Werf in ${place}, ${d.delivery ? 'levering op de werf' : 'afhaling'}.`,
+        note: d.note ? `Opmerking: ${d.note}` : null,
+        when: `Een antwoord tegen ${dateFmt(d.replyBy, 'nl')} zou mij goed uitkomen.`,
+        reply: 'U kunt gewoon op deze e-mail antwoorden met uw prijs of uw offerte in pdf.',
+        thanks: 'Alvast bedankt,',
+        footer: `Aanvraag verstuurd via ${APP_NAME} namens ${esc(d.contractor)}. Liever online invullen? <a href="${esc(d.url)}" style="color:#888">Offerte invullen</a>. ${
+          d.commissionRate ? `Wordt uw offerte gekozen, dan factureert ${APP_NAME} een commissie van ${pct(d.commissionRate, 'nl')} excl. btw. ` : ''
+        }Geen aanvragen meer ontvangen via ${APP_NAME}? <a href="${esc(stopUrl)}" style="color:#888">Afmelden</a>.`,
+        footerText: `Aanvraag verstuurd via ${APP_NAME} namens ${d.contractor}.\nOnline invullen: ${d.url}\n${
+          d.commissionRate ? `Wordt uw offerte gekozen, dan factureert ${APP_NAME} een commissie van ${pct(d.commissionRate, 'nl')} excl. btw.\n` : ''
+        }Afmelden: ${stopUrl}`,
+      }
+    : {
+        hello: 'Bonjour,',
+        reminder: 'Petit rappel pour ma demande ci-dessous.',
+        ask: 'Pourriez-vous me faire votre meilleur prix pour :',
+        site: `Chantier à ${place}, ${d.delivery ? 'livraison sur chantier' : 'enlèvement'}.`,
+        note: d.note ? `Remarque : ${d.note}` : null,
+        when: `Une réponse pour le ${dateFmt(d.replyBy, 'fr')} m'arrangerait.`,
+        reply: 'Vous pouvez simplement répondre à cet e-mail avec votre prix ou votre offre en PDF.',
+        thanks: "Merci d'avance,",
+        footer: `Demande envoyée via ${APP_NAME} pour le compte de ${esc(d.contractor)}. Vous préférez remplir l'offre en ligne ? <a href="${esc(d.url)}" style="color:#888">Remplir l'offre</a>. ${
+          d.commissionRate ? `Si votre offre est retenue, ${APP_NAME} facture une commission de ${pct(d.commissionRate, 'fr')} HTVA. ` : ''
+        }Ne plus recevoir de demandes via ${APP_NAME} : <a href="${esc(stopUrl)}" style="color:#888">se désinscrire</a>.`,
+        footerText: `Demande envoyée via ${APP_NAME} pour le compte de ${d.contractor}.\nRemplir l'offre en ligne : ${d.url}\n${
+          d.commissionRate ? `Si votre offre est retenue, ${APP_NAME} facture une commission de ${pct(d.commissionRate, 'fr')} HTVA.\n` : ''
+        }Se désinscrire : ${stopUrl}`,
+      };
+  const html = plainLayout(
+    [
+      lines.hello,
+      ...(reminder ? [lines.reminder] : []),
+      lines.ask,
+      items.html,
+      esc(lines.site),
+      ...(lines.note ? [esc(lines.note)] : []),
+      esc(lines.when),
+      esc(lines.reply),
+      `${esc(lines.thanks)}<br>${signature.map(esc).join('<br>')}`,
+    ],
+    lines.footer,
+  );
+  const text = [
+    lines.hello,
+    ...(reminder ? [lines.reminder] : []),
+    `${lines.ask}\n${items.text}`,
+    lines.site,
+    ...(lines.note ? [lines.note] : []),
+    lines.when,
+    lines.reply,
+    `${lines.thanks}\n${signature.join('\n')}`,
+    `--\n${lines.footerText}`,
+  ].join('\n\n');
+  return { to: d.to, subject, html, text, fromName, replyTo: d.replyTo, unsubscribeUrl: d.unsubscribeUrl };
 }
 
-export type CommissionLine = { base: number; rate: number; amount: number };
-
-/** Offer awarded: the supplier confirms the purchase order (and its deposit) from the link. */
 export function awardedMail(
   lang: Lang,
   to: string,

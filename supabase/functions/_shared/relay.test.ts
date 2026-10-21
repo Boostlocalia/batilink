@@ -59,7 +59,7 @@ describe('relay e-mails', () => {
       replyTo: relayAddress('supplier', key),
     });
     expect(mail.replyTo).toBe(`s-${key}@reply.batinode.be`);
-    expect(mail.text).toContain('Répondez simplement à cet e-mail');
+    expect(mail.text).toContain('répondre à cet e-mail avec votre prix ou votre offre en PDF');
   });
 
   it('relays a question with the reply address of the other side, escaped', () => {

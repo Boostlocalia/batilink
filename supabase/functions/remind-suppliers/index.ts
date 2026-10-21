@@ -6,6 +6,7 @@
 import { isCron } from '../_shared/cron.ts';
 import { SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
 import { contractorAddress, invitationMail, sendMail, type Lang } from '../_shared/email.ts';
+import { recoverEmailedOffers } from '../_shared/emailed-offer.ts';
 import { isTestCompany, testMail } from '../_shared/test-mode.ts';
 import { logEvent } from '../_shared/events.ts';
 import { relayAddress } from '../_shared/relay-address.ts';
@@ -40,11 +41,14 @@ Deno.serve(async (req) => {
     if (ids.length) completed += (await inviteSuppliers(admin, r as unknown as SentRequest, ids)).sent.length;
   }
 
+  // Quotes sent back as a PDF by e-mail whose file was not saved on arrival.
+  const recovered = await recoverEmailedOffers(admin);
+
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
   const { data: due } = await admin
     .from('quotes')
     .select(
-      'id, reply_key, supplier:companies(email, quote_email, language, commission_rate, requests_stopped_at), request:price_requests!inner(id, company_id, title, postal_code, city, needed_by, reply_by, fulfilment, status, company:companies(name, verified_at, vat_number, street, postal_code, city))',
+      'id, reply_key, supplier:companies(email, quote_email, language, commission_rate, requests_stopped_at), request:price_requests!inner(id, company_id, title, note, postal_code, city, needed_by, reply_by, fulfilment, status, company:companies(name, contact_name, verified_at, vat_number, street, postal_code, city))',
     )
     .eq('status', 'invited')
     .is('reminded_at', null)
@@ -64,6 +68,7 @@ Deno.serve(async (req) => {
       id: string;
       company_id: string;
       title: string;
+      note: string | null;
       postal_code: string;
       city: string | null;
       needed_by: string | null;
@@ -71,6 +76,7 @@ Deno.serve(async (req) => {
       fulfilment: string;
       company: {
         name: string;
+        contact_name: string | null;
         verified_at: string | null;
         vat_number: string | null;
         street: string | null;
@@ -79,6 +85,9 @@ Deno.serve(async (req) => {
       } | null;
     };
     if (!supplier?.email || supplier.requests_stopped_at) continue;
+    // A supplier who already answered by e-mail is not reminded.
+    const { count: wrote } = await admin.from('quote_messages').select('id', { count: 'exact', head: true }).eq('quote_id', q.id).eq('author', 'supplier');
+    if (wrote) continue;
     const token = newToken();
     await admin
       .from('quotes')
@@ -97,6 +106,8 @@ Deno.serve(async (req) => {
           contractorVerified: Boolean(request.company?.verified_at),
           contractorVat: request.company?.vat_number ?? null,
           contractorAddress: contractorAddress(request.company),
+          contactName: request.company?.contact_name ?? null,
+          note: request.note,
           title: request.title,
           postalCode: request.postal_code,
           city: request.city,
@@ -119,5 +130,5 @@ Deno.serve(async (req) => {
   if (completed) await logEvent(admin, { kind: 'request_completed', data: { count: completed } });
   if (closed?.length) await logEvent(admin, { kind: 'requests_closed', data: { count: closed.length } });
   if (reminded) await logEvent(admin, { kind: 'supplier_reminded', data: { count: reminded } });
-  return json({ completed, closed: closed?.length ?? 0, reminded });
+  return json({ completed, closed: closed?.length ?? 0, reminded, recovered });
 });

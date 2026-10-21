@@ -3,6 +3,7 @@
 //   https://<project>.functions.supabase.co/inbound-email?secret=<INBOUND_EMAIL_SECRET>
 // Each e-mail is checked against the quote's supplier or contractor, then relayed.
 
+import { emailedFiles, saveEmailedOffer } from '../_shared/emailed-offer.ts';
 import { logEvent } from '../_shared/events.ts';
 import { sameSecret } from '../_shared/limits.ts';
 import { parseRelayAddress, senderMatches, stripQuoted } from '../_shared/relay-address.ts';
@@ -19,6 +20,7 @@ type InboundItem = {
   Subject?: string;
   RawTextBody?: string;
   ExtractedMarkdownMessage?: string;
+  Attachments?: unknown[];
 };
 
 Deno.serve(async (req) => {
@@ -79,7 +81,9 @@ Deno.serve(async (req) => {
       senderEmail: from,
       sourceMessageId: item.MessageId ?? null,
     });
-    results.push(result.status);
+    // A supplier who replies with their quote as a PDF: it becomes their offer.
+    const offer = target.author === 'supplier' ? await saveEmailedOffer(admin, quote.id, emailedFiles(item.Attachments ?? [])) : 'no_pdf';
+    results.push(offer === 'no_pdf' ? result.status : `${result.status}+${offer}`);
   }
 
   // Always 200 once authenticated, so the provider does not retry rejected mail forever.
