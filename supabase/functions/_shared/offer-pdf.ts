@@ -28,8 +28,11 @@ const Reading = z.object({
         mismatch: z
           .string()
           .describe(
-            'How the offered product differs from the requested one (thickness, dimensions, grade, reference, colour, coverage), e.g. "épaisseur 8 cm au lieu de 10 cm". Empty when it matches.',
+            'How the offered product contradicts the requested one (thickness, dimensions, grade, reference), e.g. "épaisseur 8 cm au lieu de 10 cm". Empty when it matches. Packaging, units and details the request leaves open are not a mismatch.',
           ),
+        package_size: z.string().describe('When the item is sold by the package (bucket, bag, roll, pallet): the package, short, e.g. "seau 6 kg", "sac 25 kg". Empty otherwise.'),
+        package_price: z.number().nullable().describe('Price of one package excluding VAT, in euros. null when not sold by the package.'),
+        packages: z.number().nullable().describe('How many packages the supplier offers or are needed for the requested quantity. null when unknown.'),
       }),
     )
     .describe('One entry per requested item.'),
@@ -51,7 +54,8 @@ const SYSTEM = `You read a building-material supplier's quote (a PDF) on BatiNod
 - If the quote prices one package (bucket, bag, roll) and states its coverage or consumption (e.g. 6 kg bucket, 1.5 to 2.1 kg/m²), work out the packages needed for the requested quantity with the highest consumption, rounded up to whole packages, and give packages × package price as line_total. Write the calculation in offered (e.g. "18 seaux de 6 kg × 223,56 € (2,1 kg/m²)").
 - An offer whose validity date is already past is still read; say in the note that it has expired and the prices must be confirmed.
 - For every item the quote prices, fill offered with the supplier's own quantity, packaging and unit price, so the contractor sees the real unit prices.
-- Compare carefully what is offered with what was asked: thickness, dimensions, strength class, reference, colour, coverage. Offers are compared side by side, so any difference goes in mismatch, even a small one.
+- Compare carefully what is offered with what was asked: thickness, dimensions, strength class, reference. Offers are compared side by side, so any contradiction goes in mismatch, even a small one. A different packaging or unit, or a detail the request leaves open (a colour when none was asked), is not a mismatch: it goes in offered.
+- For an item sold by the package, always give package_size, package_price and packages, so offers in different quantities can be compared on the same number of packages. When the package size is not written but the product reference only exists in one size, give that size.
 - The note is shown to the contractor: write it in the language of the requested items, and state what the supplier offers when it differs from the request.
 - If the quote shows prices including VAT only, divide by 1.21 and mention it in the note.
 - Never invent a price. Use null when the quote does not give one.
@@ -95,6 +99,10 @@ export async function readOfferPdf(pdf: Uint8Array, items: RequestedItem[], toda
       }
     }
     for (const i of result.items) {
+      i.package_size = i.package_size.trim().slice(0, 40);
+      if (i.package_price !== null && !(Number.isFinite(i.package_price) && i.package_price >= 0 && i.package_price < 1_000_000)) i.package_price = null;
+      if (i.packages !== null && !(Number.isFinite(i.packages) && i.packages > 0 && i.packages < 100_000)) i.packages = null;
+      if (!i.package_size) i.package_price = i.packages = null;
       i.offered = i.offered.trim().slice(0, 200);
       i.mismatch = i.mismatch.trim().slice(0, 300);
     }

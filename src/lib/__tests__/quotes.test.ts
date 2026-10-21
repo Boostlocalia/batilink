@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { compareOffers, offerTotals, type Offer, type RequestItem } from '../quotes';
+import { compareOffers, offerTotals, packageKey, type Offer, type RequestItem } from '../quotes';
 
 const items: RequestItem[] = [
   { id: 'ciment', label: 'Ciment CEM II 42,5 N', quantity: 40, unit: 'bag' },
@@ -43,8 +43,8 @@ describe('compareOffers', () => {
     expect(fastestId).toBe('brabant');
   });
 
-  it('finds the lowest unit price per product', () => {
-    expect(compareOffers(items, offers).lowestUnitPrice).toEqual({ ciment: 5.95, pir: 13.8 });
+  it('finds the lowest line per product', () => {
+    expect(compareOffers(items, offers).lowestLine).toEqual({ ciment: 238, pir: 1104 });
   });
 
   it('handles a request with no answer yet', () => {
@@ -82,9 +82,39 @@ describe('a different product', () => {
   ];
 
   it('is shown but not ranked against the requested one', () => {
-    const { priced, cheapestId, lowestUnitPrice } = compareOffers(items, offers);
+    const { priced, cheapestId, lowestLine } = compareOffers(items, offers);
     expect(priced).toHaveLength(2);
     expect(cheapestId).toBe('right');
-    expect(lowestUnitPrice).toEqual({ pir: 14 });
+    expect(lowestLine).toEqual({ pir: 140 });
+  });
+});
+
+describe('offers per package in different quantities', () => {
+  const items: RequestItem[] = [{ id: 'sika', label: 'Sikafloor 400 N Elastic', quantity: 50, unit: 'm2' }];
+  const base = { deliveryFee: null, leadTimeDays: null, validUntil: null, comment: null, remindedAt: null, status: 'submitted' as const };
+  const offers: Offer[] = [
+    { ...base, id: 'celis', supplierName: 'Celis', prices: { sika: 57.59 }, packages: { sika: { size: '6 kg', price: 239.97, count: 12 } } },
+    { ...base, id: 'walmat', supplierName: 'Walmat', prices: { sika: 65.46 }, packages: { sika: { size: 'seau 6 kg', price: 204.557, count: 16 } } },
+    { ...base, id: 'gobert', supplierName: 'Gobert', prices: { sika: 80.48 }, packages: { sika: { size: 'Seau de 6 KG', price: 223.56, count: 18 } } },
+  ];
+
+  it('are compared on the same number of packages', () => {
+    const { basis, cheapestId, totals, lowestLine } = compareOffers(items, offers);
+    expect(basis.sika).toMatchObject({ count: 18 });
+    expect(cheapestId).toBe('walmat');
+    expect(totals.get('walmat')!.exVat).toBe(3682.03);
+    expect(totals.get('celis')!.exVat).toBe(4319.46);
+    expect(lowestLine.sika).toBeCloseTo(3682.026);
+  });
+
+  it('recognise the same package however it is written', () => {
+    expect(packageKey('Seau de 6 KG')).toBe('6kg');
+    expect(packageKey('sac 25,5 kg')).toBe('25.5kg');
+  });
+
+  it('keep their own price when no other offer has the same package', () => {
+    const { basis, totals } = compareOffers(items, [offers[0], { ...offers[1], packages: { sika: { size: 'seau 18 kg', price: 600, count: 5 } } }]);
+    expect(basis).toEqual({});
+    expect(totals.get('celis')!.exVat).toBe(2879.5);
   });
 });

@@ -15,7 +15,8 @@ import { adminClient, appUrl, corsHeaders, json } from '../_shared/supabase.ts';
 import { readOfferPdf } from '../_shared/offer-pdf.ts';
 import { sniffType } from '../_shared/order-docs.ts';
 import { MAX_BODY, relayMessage } from '../_shared/relay.ts';
-import { shareOfferPdf } from '../_shared/emailed-offer.ts';
+import { itemDetails, shareOfferPdf } from '../_shared/emailed-offer.ts';
+import type { OfferReading } from '../_shared/offer-pdf.ts';
 import { hashToken } from '../_shared/tokens.ts';
 
 type Admin = ReturnType<typeof adminClient>;
@@ -130,7 +131,10 @@ Deno.serve(async (req) => {
 
   const { data: items } = await admin.from('request_items').select('id, quantity').eq('request_id', request.id);
   const prices = (body.prices ?? {}) as Record<string, unknown>;
-  const rows = (items ?? []).map((i) => ({ quote_id: quote.id, item_id: i.id, unit_price: Number(prices[i.id]) }));
+  // What Nodi read in their PDF (own lines, packages) stays with the prices they typed.
+  const { data: stored } = await admin.from('quotes').select('offer_reading').eq('id', quote.id).single();
+  const read = new Map(((stored?.offer_reading as OfferReading | null)?.items ?? []).map((i) => [i.item_id, itemDetails(i)]));
+  const rows = (items ?? []).map((i) => ({ ...read.get(i.id), quote_id: quote.id, item_id: i.id, unit_price: Number(prices[i.id]) }));
   if (!rows.length || rows.some((r) => !Number.isFinite(r.unit_price) || r.unit_price < 0)) {
     return json({ error: 'missing_prices' }, 400);
   }
@@ -217,6 +221,8 @@ async function attachPdf(admin: Admin, req: Request): Promise<Response> {
     (items ?? []).map((i) => ({ id: i.id, label: i.label, quantity: Number(i.quantity), unit: i.unit })),
     new Date().toISOString().slice(0, 10),
   );
+  // Kept until the supplier sends the form: the comparison shows their own lines and packages.
+  await admin.from('quotes').update({ offer_reading: reading }).eq('id', quote.id);
   // The same PDF may also price this supplier's other open requests.
   const sharing = shareOfferPdf(admin, quote.id, bytes).catch((e) => console.error('share offer pdf', e));
   (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime?.waitUntil(sharing);

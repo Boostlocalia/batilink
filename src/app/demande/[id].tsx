@@ -11,7 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
 import type { OrderStatus } from '@/lib/orders';
-import { compareOffers, differs, readFromPdf, type Offer, type RequestItem } from '@/lib/quotes';
+import { compareOffers, differs, linePrice, readFromPdf, type Offer, type RequestItem } from '@/lib/quotes';
 import { supabase } from '@/lib/supabase';
 
 type Request = {
@@ -48,7 +48,7 @@ export default function CompareScreen() {
       supabase
         .from('quotes')
         .select(
-          'id, status, delivery_fee, lead_time_days, valid_until, comment, offer_file_path, reminded_at, supplier:companies(name), quote_items(item_id, unit_price, offered, mismatch)',
+          'id, status, delivery_fee, lead_time_days, valid_until, comment, offer_file_path, reminded_at, supplier:companies(name), quote_items(item_id, unit_price, offered, mismatch, package_size, package_price, packages)',
         )
         .eq('request_id', id)
         .order('created_at'),
@@ -79,6 +79,11 @@ export default function CompareScreen() {
         offerFile: q.offer_file_path,
         prices: Object.fromEntries((q.quote_items ?? []).map((p) => [p.item_id, Number(p.unit_price)])),
         details: Object.fromEntries((q.quote_items ?? []).map((p) => [p.item_id, { offered: p.offered, mismatch: p.mismatch }])),
+        packages: Object.fromEntries(
+          (q.quote_items ?? [])
+            .filter((p) => p.package_size && p.package_price !== null)
+            .map((p) => [p.item_id, { size: p.package_size as string, price: Number(p.package_price), count: p.packages === null ? null : Number(p.packages) }]),
+        ),
       })),
     );
   }, [id]);
@@ -103,7 +108,7 @@ export default function CompareScreen() {
     load();
   };
 
-  const { priced, totals, cheapestId, fastestId, lowestUnitPrice } = compareOffers(items, offers);
+  const { priced, totals, cheapestId, fastestId, lowestLine, basis } = compareOffers(items, offers);
   const conversations: Conversation[] = offers
     .map((o) => ({ quoteId: o.id, supplierName: o.supplierName, messages: messages.filter((m) => m.quote_id === o.id) }))
     .filter((c) => c.messages.length > 0);
@@ -194,20 +199,32 @@ export default function CompareScreen() {
                         </ThemedText>
                       </View>
                       {priced.map((o) => {
-                        const unit = o.prices[item.id];
+                        const line = linePrice(item, o, basis);
+                        const pack = o.packages?.[item.id];
+                        const common = basis[item.id]?.offers.includes(o.id) ? basis[item.id] : null;
                         return (
-                          <View key={o.id} style={cell(unit !== undefined && unit === lowestUnitPrice[item.id])}>
-                            {unit === undefined ? (
+                          <View key={o.id} style={cell(line !== undefined && line === lowestLine[item.id])}>
+                            {line === undefined ? (
                               <ThemedText type="number" themeColor="textSecondary" style={styles.right}>
                                 –
                               </ThemedText>
                             ) : (
                               <>
                                 <ThemedText type="number" style={styles.right}>
-                                  {eur(unit * item.quantity)}
+                                  {eur(line)}
                                 </ThemedText>
+                                {pack ? (
+                                  <ThemedText type="small" themeColor="textSecondary" style={styles.right}>
+                                    {t.compare.perPackage(eur(pack.price), pack.size)}
+                                  </ThemedText>
+                                ) : null}
+                                {common ? (
+                                  <ThemedText type="small" themeColor="textSecondary" style={styles.right}>
+                                    {t.compare.sameBasis(common.count, common.size)}
+                                  </ThemedText>
+                                ) : null}
                                 <ThemedText type="small" themeColor="textSecondary" style={styles.right}>
-                                  {eur(unit)} / {t.units[item.unit as keyof typeof t.units] ?? item.unit}
+                                  {eur(line / item.quantity)} / {t.units[item.unit as keyof typeof t.units] ?? item.unit}
                                 </ThemedText>
                                 {o.details?.[item.id]?.offered ? (
                                   <ThemedText type="small" themeColor="textSecondary" style={styles.right}>

@@ -202,6 +202,8 @@ export const nl: Dictionary = {
     pickup: 'Afhaling',
     deliveryUnknown: 'Niet vermeld',
     fromPdf: 'Uit zijn pdf',
+    perPackage: (price: string, size: string) => `${price} / ${size}`,
+    sameBasis: (count: number, size: string) => `Vergeleken op ${count} × ${size}`,
     fromPdfHint: 'Prijzen door Nodi gelezen in de pdf van de leverancier, na te kijken. Hij kan ze online bevestigen.',
     bestPrice: 'Beste prijs',
     fastest: 'Snelste',

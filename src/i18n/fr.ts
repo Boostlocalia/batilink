@@ -201,6 +201,8 @@ export const fr = {
     pickup: 'Enlèvement',
     deliveryUnknown: 'Non précisée',
     fromPdf: 'Lu dans son PDF',
+    perPackage: (price: string, size: string) => `${price} / ${size}`,
+    sameBasis: (count: number, size: string) => `Comparé sur ${count} × ${size}`,
     fromPdfHint: 'Prix lus par Nodi dans le PDF du fournisseur, à vérifier. Il peut les confirmer en ligne.',
     bestPrice: 'Meilleur prix',
     fastest: 'Le plus rapide',

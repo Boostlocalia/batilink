@@ -8,7 +8,7 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { offerTotalExVat } from './commission.ts';
 import { newQuoteMail, sendMail, type Lang } from './email.ts';
 import { logEvent } from './events.ts';
-import { readOfferPdf, whichRequests, type OpenRequest } from './offer-pdf.ts';
+import { readOfferPdf, whichRequests, type OfferReading, type OpenRequest } from './offer-pdf.ts';
 import { appUrl } from './supabase.ts';
 
 export type EmailedFile = { name: string; contentType: string; downloadToken: string };
@@ -186,13 +186,24 @@ async function tellContractor(quote: QuoteRow, request: RequestRow) {
   await sendMail(newQuoteMail(request.company.language, request.company.email, supplier, request.title, `${appUrl()}/demande/${request.id}`)).catch(console.error);
 }
 
+/** What the PDF says about one line, beyond its price: stored with the offer's line. */
+export function itemDetails(i: OfferReading['items'][number]) {
+  return {
+    offered: i.offered || null,
+    mismatch: i.mismatch || null,
+    package_size: i.package_size || null,
+    package_price: i.package_price,
+    packages: i.packages,
+  };
+}
+
 /** Nodi reads the prices; the offer is submitted only when every item has one. */
 async function applyReading(admin: SupabaseClient, quote: QuoteRow, request: RequestRow, bytes: Uint8Array): Promise<'attached' | 'submitted'> {
   const { data: items } = await admin.from('request_items').select('id, label, quantity, unit').eq('request_id', request.id).order('position');
   const requested = (items ?? []).map((i) => ({ id: i.id, label: i.label, quantity: Number(i.quantity), unit: i.unit }));
   const reading = await readOfferPdf(bytes, requested, new Date().toISOString().slice(0, 10));
   const prices = new Map((reading?.items ?? []).filter((i) => i.unit_price !== null).map((i) => [i.item_id, i.unit_price as number]));
-  const details = new Map((reading?.items ?? []).map((i) => [i.item_id, { offered: i.offered || null, mismatch: i.mismatch || null }]));
+  const details = new Map((reading?.items ?? []).map((i) => [i.item_id, itemDetails(i)]));
   const line = (itemId: string, unitPrice: number) => ({ quote_id: quote.id, item_id: itemId, unit_price: unitPrice, ...details.get(itemId) });
   const complete = quote.status === 'invited' && requested.length > 0 && requested.every((i) => prices.has(i.id));
   // What the supplier actually offers when it differs from the request (e.g. 12 buckets of 6 kg for 50 m²).
