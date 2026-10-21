@@ -10,7 +10,7 @@ import { sameSecret } from '../_shared/limits.ts';
 import { DEFAULT_RELAY_DOMAIN, parseRelayAddress, senderMatches, stripQuoted } from '../_shared/relay-address.ts';
 import { relayMessage } from '../_shared/relay.ts';
 import { adminClient, json } from '../_shared/supabase.ts';
-import { isSupportCopy, pickOpenQuote, quotedReferences } from '../_shared/support-inbox.ts';
+import { addressesIn, isSupportCopy, pickOpenQuote, quotedReferences } from '../_shared/support-inbox.ts';
 import { hashToken } from '../_shared/tokens.ts';
 
 type Address = { Name?: string | null; Address?: string | null };
@@ -136,7 +136,7 @@ async function supportCopy(admin: Admin, item: InboundItem, from: string, domain
     open.map((q) => ({ id: q.id, supplierEmail: q.supplier.email, title: q.request.title, invitedAt: q.created_at })),
   );
   const guess = quoted ?? open.find((q) => q.id === picked?.id);
-  if (!guess) return 'support_unmatched';
+  if (!guess) return contractorForward(admin, item, from, text, files);
 
   // Each PDF goes to the request its lines answer; the quoted request is the fallback.
   const pool = [guess.id, ...open.filter((q) => q.id !== guess.id).map((q) => q.id)];
@@ -147,4 +147,40 @@ async function supportCopy(admin: Admin, item: InboundItem, from: string, domain
   await relayMessage(admin, { quoteId, author: 'supplier', channel: 'email', body, senderEmail: from, sourceMessageId: item.MessageId ?? null });
   await logEvent(admin, { kind: 'offer_via_support', request_id: requestId, quote_id: quoteId, data: { offer: placed.result, quotes: placed.quotes } });
   return `support+${placed.result}`;
+}
+
+/**
+ * A client forwarding an offer a supplier sent them directly (a supplier who knows
+ * them): the supplier's address in the forward names the offer on the client's own
+ * open requests, and the PDF lines say which of them it prices.
+ */
+async function contractorForward(admin: Admin, item: InboundItem, from: string, text: string, files: ReturnType<typeof emailedFiles>): Promise<string> {
+  const senderDomain = from.split('@')[1]?.toLowerCase() ?? '';
+  const { data: requests } = await admin
+    .from('price_requests')
+    .select('id, company:companies!inner(email)')
+    .eq('status', 'sent')
+    .ilike('company.email', `%@${senderDomain.replace(/[%_]/g, '')}`)
+    .limit(50);
+  const own = (requests ?? []).filter((r) => senderMatches(from, (r.company as unknown as { email: string | null }).email)).map((r) => r.id);
+  if (!own.length) return 'support_unmatched';
+
+  const named = addressesIn(text, ['batinode.be', senderDomain]);
+  if (!named.length) return 'support_unmatched';
+  const { data: quotes } = await admin.from('quotes').select(CANDIDATE).in('request_id', own).in('status', ['invited', 'submitted']);
+  const theirs = ((quotes ?? []) as unknown as Candidate[]).filter((q) => named.some((a) => senderMatches(a, q.supplier.email)));
+  if (!theirs.length) return 'support_unmatched';
+
+  const latest = [...theirs].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  const placed = await placeEmailedOffers(
+    admin,
+    theirs.map((q) => q.id),
+    theirs.length === 1 ? latest.id : null,
+    files,
+  );
+  for (const quoteId of placed.quotes) {
+    const q = theirs.find((t) => t.id === quoteId)!;
+    await logEvent(admin, { kind: 'offer_via_support', request_id: q.request_id, quote_id: quoteId, data: { offer: placed.result, forwardedBy: 'contractor' } });
+  }
+  return `client_forward+${placed.result}`;
 }

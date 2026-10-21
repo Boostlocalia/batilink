@@ -35,3 +35,10 @@ export function pickOpenQuote(from: string, text: string, quotes: OpenQuote[]): 
   const latest = (list: OpenQuote[]) => [...list].sort((a, b) => b.invitedAt.localeCompare(a.invitedAt))[0];
   return latest(named.length ? named : pool);
 }
+
+/** Addresses written in an e-mail (a forward keeps the original sender's), ours left out. */
+export function addressesIn(text: string, ignoreDomains: string[]): string[] {
+  const found = text.toLowerCase().match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/g) ?? [];
+  const ignored = ignoreDomains.map((d) => d.toLowerCase());
+  return [...new Set(found)].filter((a) => !ignored.some((d) => a.endsWith(`@${d}`) || a.endsWith(`.${d}`)));
+}

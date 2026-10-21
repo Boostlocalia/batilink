@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isSupportCopy, pickOpenQuote, quotedReferences } from './support-inbox';
+import { addressesIn, isSupportCopy, pickOpenQuote, quotedReferences } from './support-inbox';
 
 const quotes = [
   { id: 'a', supplierEmail: 'ramillies@walmat.eu', title: 'Produit terrasse', invitedAt: '2026-10-20T08:00:00Z' },
@@ -38,5 +38,10 @@ describe('support inbox', () => {
   it('needs the exact address on a public mailbox', () => {
     expect(pickOpenQuote('autre@gmail.com', 'offre', quotes)).toBeNull();
     expect(pickOpenQuote('negoce@gmail.com', 'offre', quotes)?.id).toBe('d');
+  });
+
+  it('finds the original sender of a forward', () => {
+    const text = 'De : Jean <Jean.Dupont@GobertGroupe.com>\nÀ : support@batinode.be\nCc: s-abc@reply.batinode.be';
+    expect(addressesIn(text, ['batinode.be'])).toEqual(['jean.dupont@gobertgroupe.com']);
   });
 });
