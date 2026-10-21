@@ -32,8 +32,8 @@ const share = [
   `<meta name="description" content="${description}" />`,
   '<meta name="theme-color" content="#09090b" />',
   '<meta name="apple-mobile-web-app-title" content="BatiNode" />',
-  '<link rel="apple-touch-icon" href="/apple-touch-icon.png" />',
-  '<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />',
+  '<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />',
+  '<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=2" />',
   '<link rel="manifest" href="/manifest.webmanifest" />',
   '<meta property="og:type" content="website" />',
   '<meta property="og:site_name" content="BatiNode" />',
@@ -51,5 +51,5 @@ const share = [
 ].join('\n    ');
 const meta = `<meta http-equiv="Content-Security-Policy" content="${policy}" />\n    <meta name="referrer" content="strict-origin-when-cross-origin" />\n    ${share}\n    `;
 // The app opens in French; Dutch speakers switch in the app.
-fs.writeFileSync(file, html.replace('<html lang="en">', '<html lang="fr">').replace('<meta charset="utf-8" />\n    ', `<meta charset="utf-8" />\n    ${meta}`));
+fs.writeFileSync(file, html.replace('<html lang="en">', '<html lang="fr">').replace('href="/favicon.ico"', 'href="/favicon.ico?v=2"').replace('<meta charset="utf-8" />\n    ', `<meta charset="utf-8" />\n    ${meta}`));
 console.log('CSP added to', file);
