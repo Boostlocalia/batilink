@@ -7,7 +7,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Button, Card, Field, Screen, Segmented } from "@/components/ui";
 import { Spacing } from "@/constants/theme";
 import { useI18n, type Language } from "@/i18n";
-import { supabase } from "@/lib/supabase";
+import { supabase, takeSessionExpired } from "@/lib/supabase";
 import { Logo } from "@/components/logo";
 import { SignInBanners } from "@/components/home-banners";
 import { GlowBackdrop } from "@/components/glow-backdrop";
@@ -30,6 +30,7 @@ export default function SignInScreen() {
     initial === "inscription" ? "signup" : "signin",
   );
   const [email, setEmail] = useState("");
+  const [expired] = useState(takeSessionExpired);
   // Two columns on large screens: the form, and the banners beside it.
   const wide = useWindowDimensions().width >= 900;
   const [enter] = useState(() => new Animated.Value(0));
@@ -166,6 +167,13 @@ export default function SignInScreen() {
             key={mode}
             lines={mode === "signin" ? a.nodiSignIn : a.nodiSignUp}
           />
+          {expired ? (
+            <Card>
+              <ThemedText type="smallBold" themeColor="warn">
+                {a.expired}
+              </ThemedText>
+            </Card>
+          ) : null}
           <View style={{ gap: Spacing.two }}>
             <ThemedText type="title">
               {mode === "signin" ? a.title : a.signUpTitle}

@@ -21,6 +21,7 @@ export const fr = {
     network: 'Entrepreneurs',
   },
   auth: {
+    expired: 'Votre session a expiré. Reconnectez-vous pour continuer.',
     nodiSignIn: ['Bonjour 👋 Content de vous revoir !', 'Vos offres fournisseurs vous attendent.', 'Les actus du bâtiment du jour sont prêtes.'],
     nodiSignUp: ['Bienvenue ! Je suis Nodi, votre assistant 👋', '7 jours de Premium offerts, sans carte.', 'Votre première demande de prix en 2 minutes.'],
     title: 'Connexion',

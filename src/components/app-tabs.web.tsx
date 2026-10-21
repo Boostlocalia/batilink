@@ -65,7 +65,7 @@ function SignOut() {
   const { session } = useSession();
   if (!session) return null;
   return (
-    <Pressable accessibilityRole="button" onPress={() => supabase.auth.signOut()} style={styles.signOut}>
+    <Pressable accessibilityRole="button" onPress={() => supabase.auth.signOut({ scope: 'local' })} style={styles.signOut}>
       <ThemedText type="smallBold" themeColor="textSecondary">
         {t.settings.signOut}
       </ThemedText>

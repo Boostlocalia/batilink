@@ -143,7 +143,7 @@ export default function SettingsScreen() {
           <Button label="Admin BatiNode" variant="signal" onPress={() => router.push('/admin')} />
         </View>
       ) : null}
-      <Button label={t.settings.signOut} variant="ghost" onPress={() => supabase.auth.signOut()} />
+      <Button label={t.settings.signOut} variant="ghost" onPress={() => supabase.auth.signOut({ scope: 'local' })} />
       {session ? <DeleteAccountCard /> : null}
       <LegalLinks />
     </Screen>

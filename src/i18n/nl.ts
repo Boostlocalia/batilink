@@ -23,6 +23,7 @@ export const nl: Dictionary = {
     network: 'Ondernemers',
   },
   auth: {
+    expired: 'Uw sessie is verlopen. Meld u opnieuw aan om verder te gaan.',
     nodiSignIn: ['Hallo 👋 Fijn u terug te zien!', 'Uw leveranciersoffertes wachten op u.', 'Het bouwnieuws van vandaag staat klaar.'],
     nodiSignUp: ['Welkom! Ik ben Nodi, uw assistent 👋', '7 dagen Premium gratis, zonder kaart.', 'Uw eerste prijsaanvraag in 2 minuten.'],
     title: 'Aanmelden',

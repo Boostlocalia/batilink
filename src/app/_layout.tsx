@@ -8,6 +8,7 @@ import { NewPassword } from '@/components/new-password';
 import { Colors } from '@/constants/theme';
 import { LanguageProvider } from '@/i18n';
 import { SessionProvider, useSession } from '@/lib/session';
+import { sessionEnded } from '@/lib/supabase';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -72,7 +73,7 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!!session && (!!company || browsing)} redirectTo={session ? '/entreprise' : '/bienvenue'}>
+      <Stack.Protected guard={!!session && (!!company || browsing)} redirectTo={session ? '/entreprise' : sessionEnded() ? '/connexion' : '/bienvenue'}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="demande/[id]" options={INNER} />
         <Stack.Screen name="annonce/nouvelle" options={{ ...INNER, presentation: 'modal' }} />
