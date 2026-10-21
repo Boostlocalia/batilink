@@ -120,6 +120,9 @@ export const nl: Dictionary = {
     replyWindow: 'De aanvraag krijgt de datum van verzending. Leveranciers hebben 48 uur om hun offerte in te dienen.',
     consent:
       'Door de aanvraag te versturen, gaat u ermee akkoord dat de naam, het btw-nummer en het adres van uw bedrijf aan de gekozen leveranciers worden bezorgd. Uw e-mailadres krijgen ze pas als u hun offerte kiest.',
+    siteHint: 'Vul de ligging van de werf correct in: BatiNode zoekt leveranciers rond dit adres.',
+    radiusPickup: 'Afhalen in de winkel: leveranciers op maximaal 25 km van de werf.',
+    radiusDelivery: 'Levering: leveranciers binnen ongeveer 50 km van de werf.',
     fulfilment: 'Levering of afhaling',
     delivery: 'Levering op de werf',
     pickup: 'Afhaling',

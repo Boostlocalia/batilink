@@ -159,7 +159,7 @@ export const growthNl: typeof growthFr = {
         },
       ],
       howTitle: 'Drie stappen, geen telefoontjes',
-      radius: 'Alleen leveranciers binnen ongeveer 50 km rond uw werf worden aangeschreven, de dichtste eerst.',
+      radius: 'Alleen leveranciers dicht bij uw werf worden aangeschreven, de dichtste eerst: ongeveer 25 km als u afhaalt in de winkel, 50 km bij levering.',
       how: [
         {
           title: 'Beschrijf uw materialen',

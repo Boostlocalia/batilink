@@ -118,6 +118,9 @@ export const fr = {
     replyWindow: 'La demande est datée du jour de l’envoi. Les fournisseurs ont 48 heures pour remettre leur offre.',
     consent:
       'En envoyant la demande, vous acceptez que le nom, le numéro de TVA et l’adresse de votre entreprise soient transmis aux fournisseurs choisis. Votre adresse e-mail ne leur est communiquée que si vous retenez leur offre.',
+    siteHint: "Indiquez bien l'emplacement du chantier : BatiNode cherche les fournisseurs autour de cette adresse.",
+    radiusPickup: 'Enlèvement en magasin : fournisseurs à 25 km maximum du chantier.',
+    radiusDelivery: 'Livraison : fournisseurs dans un rayon d’environ 50 km du chantier.',
     fulfilment: 'Livraison ou enlèvement',
     delivery: 'Livraison sur chantier',
     pickup: 'Enlèvement',

@@ -158,7 +158,8 @@ export const growthFr = {
         },
       ],
       howTitle: 'Trois étapes, sans un coup de fil',
-      radius: 'Seuls les fournisseurs situés dans un rayon d’environ 50 km autour de votre chantier sont sollicités, du plus proche au plus loin.',
+      radius:
+        'Seuls les fournisseurs proches de votre chantier sont sollicités, du plus proche au plus loin : environ 25 km si vous enlevez au magasin, 50 km si vous vous faites livrer.',
       how: [
         {
           title: 'Décrivez vos matériaux',

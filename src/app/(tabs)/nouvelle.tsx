@@ -520,6 +520,7 @@ export default function NewRequestScreen() {
 
       {step === 2 ? (
         <Card>
+          <ThemedText type="smallBold">{t.request.siteHint}</ThemedText>
           <View style={styles.wrap}>
             <Field label={t.request.postalCode} value={postalCode} onChangeText={setPostalCode} keyboardType="number-pad" maxLength={4} error={errors.postalCode} />
             <Field label={t.request.city} value={city} onChangeText={setCity} />
@@ -537,6 +538,9 @@ export default function NewRequestScreen() {
                 { value: 'pickup', label: t.request.pickup },
               ]}
             />
+            <ThemedText type="small" themeColor="textSecondary">
+              {fulfilment === 'pickup' ? t.request.radiusPickup : t.request.radiusDelivery}
+            </ThemedText>
           </View>
         </Card>
       ) : null}
