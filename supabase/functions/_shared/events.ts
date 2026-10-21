@@ -38,6 +38,7 @@ type Event = {
     | 'news_published'
     | 'quota_alert'
     | 'request_relaunched'
+    | 'offer_via_support'
     | 'account_deleted';
   company_id?: string | null;
   request_id?: string | null;
