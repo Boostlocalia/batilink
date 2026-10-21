@@ -153,7 +153,7 @@ export const fr = {
     relaunched: (found: number) =>
       `Tous les fournisseurs n'ont pas répondu en 48 heures : BatiNode a relancé la recherche auprès d'autres fournisseurs. Votre demande est maintenant chez ${found} fournisseurs, qui ont 48 heures de plus pour répondre.`,
     batinodeSearching: (found: number) =>
-      `BatiNode a envoyé votre demande à ${found} fournisseur${found > 1 ? 's' : ''} de votre région. Les fournisseurs ont 48 heures pour vous répondre ici.`,
+      `BatiNode a envoyé votre demande à ${found} fournisseur${found > 1 ? 's' : ''} de votre région. Les fournisseurs ont 48 heures pour vous répondre ici. Sans réponse après 48 heures, Nodi relance automatiquement d'autres fournisseurs pour compléter les 5.`,
     suppliers: 'Fournisseurs de votre zone',
     noSuppliers: "Aucun fournisseur n'est encore inscrit pour cette catégorie dans votre zone. Nous en démarchons de nouveaux chaque semaine.",
     verified: 'Vérifié',

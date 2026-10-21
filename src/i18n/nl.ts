@@ -154,7 +154,7 @@ export const nl: Dictionary = {
     relaunched: (found: number) =>
       `Niet alle leveranciers antwoordden binnen 48 uur: BatiNode heeft andere leveranciers aangeschreven. Uw aanvraag ligt nu bij ${found} leveranciers, die 48 uur extra hebben om te antwoorden.`,
     batinodeSearching: (found: number) =>
-      `BatiNode heeft uw aanvraag naar ${found} leverancier${found > 1 ? 's' : ''} in uw regio gestuurd. De leveranciers hebben 48 uur om u hier te antwoorden.`,
+      `BatiNode heeft uw aanvraag naar ${found} leverancier${found > 1 ? 's' : ''} in uw regio gestuurd. De leveranciers hebben 48 uur om u hier te antwoorden. Zonder antwoord na 48 uur schrijft Nodi automatisch andere leveranciers aan om de 5 aan te vullen.`,
     suppliers: 'Leveranciers in uw regio',
     noSuppliers: 'Er is nog geen leverancier ingeschreven voor deze categorie in uw regio. We contacteren elke week nieuwe leveranciers.',
     verified: 'Geverifieerd',
