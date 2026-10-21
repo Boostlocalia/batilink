@@ -15,6 +15,7 @@ import { adminClient, appUrl, corsHeaders, json } from '../_shared/supabase.ts';
 import { readOfferPdf } from '../_shared/offer-pdf.ts';
 import { sniffType } from '../_shared/order-docs.ts';
 import { MAX_BODY, relayMessage } from '../_shared/relay.ts';
+import { shareOfferPdf } from '../_shared/emailed-offer.ts';
 import { hashToken } from '../_shared/tokens.ts';
 
 type Admin = ReturnType<typeof adminClient>;
@@ -49,12 +50,7 @@ Deno.serve(async (req) => {
       admin.from('request_items').select('id, label, quantity, unit').eq('request_id', quote.request_id).order('position'),
       admin.from('companies').select('name, language, commission_rate, requests_stopped_at').eq('id', quote.supplier_id).single(),
       admin.from('quote_items').select('item_id, unit_price').eq('quote_id', quote.id),
-      admin
-        .from('quote_messages')
-        .select('author, body, relayed_body, created_at')
-        .eq('quote_id', quote.id)
-        .not('relayed_at', 'is', null)
-        .order('created_at'),
+      admin.from('quote_messages').select('author, body, relayed_body, created_at').eq('quote_id', quote.id).not('relayed_at', 'is', null).order('created_at'),
     ]);
     return json({
       quote: {
@@ -110,11 +106,7 @@ Deno.serve(async (req) => {
     return json({ ok: true });
   }
 
-  const { data: request } = await admin
-    .from('price_requests')
-    .select('id, title, status, company_id')
-    .eq('id', quote.request_id)
-    .single();
+  const { data: request } = await admin.from('price_requests').select('id, title, status, company_id').eq('id', quote.request_id).single();
   if (!request || request.status !== 'sent' || !['invited', 'submitted'].includes(quote.status)) {
     return json({ error: 'closed' }, 409);
   }
@@ -184,9 +176,7 @@ Deno.serve(async (req) => {
       admin.from('companies').select('name').eq('id', quote.supplier_id).single(),
     ]);
     if (contractor?.email) {
-      await sendMail(
-        newQuoteMail(contractor.language as Lang, contractor.email, supplier?.name ?? '', request.title, `${appUrl()}/demande/${request.id}`),
-      ).catch(console.error);
+      await sendMail(newQuoteMail(contractor.language as Lang, contractor.email, supplier?.name ?? '', request.title, `${appUrl()}/demande/${request.id}`)).catch(console.error);
     }
   }
   return json({ ok: true });
@@ -216,7 +206,10 @@ async function attachPdf(admin: Admin, req: Request): Promise<Response> {
   const path = `${quote.id}/${crypto.randomUUID()}.pdf`;
   const { error: uploadError } = await admin.storage.from('quote-files').upload(path, bytes, { contentType: 'application/pdf' });
   if (uploadError) return json({ error: 'save_failed' }, 500);
-  await admin.from('quotes').update({ offer_file_path: path, offer_reads: (counted?.offer_reads ?? 0) + 1 }).eq('id', quote.id);
+  await admin
+    .from('quotes')
+    .update({ offer_file_path: path, offer_reads: (counted?.offer_reads ?? 0) + 1 })
+    .eq('id', quote.id);
 
   const { data: items } = await admin.from('request_items').select('id, label, quantity, unit').eq('request_id', request.id).order('position');
   const reading = await readOfferPdf(
@@ -224,5 +217,8 @@ async function attachPdf(admin: Admin, req: Request): Promise<Response> {
     (items ?? []).map((i) => ({ id: i.id, label: i.label, quantity: Number(i.quantity), unit: i.unit })),
     new Date().toISOString().slice(0, 10),
   );
+  // The same PDF may also price this supplier's other open requests.
+  const sharing = shareOfferPdf(admin, quote.id, bytes).catch((e) => console.error('share offer pdf', e));
+  (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime?.waitUntil(sharing);
   return json({ attached: true, reading });
 }

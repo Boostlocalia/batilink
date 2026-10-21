@@ -8,7 +8,7 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { offerTotalExVat } from './commission.ts';
 import { newQuoteMail, sendMail, type Lang } from './email.ts';
 import { logEvent } from './events.ts';
-import { readOfferPdf, whichRequest } from './offer-pdf.ts';
+import { readOfferPdf, whichRequests, type OpenRequest } from './offer-pdf.ts';
 import { appUrl } from './supabase.ts';
 
 export type EmailedFile = { name: string; contentType: string; downloadToken: string };
@@ -51,6 +51,18 @@ export function emailedFiles(source: unknown): EmailedFile[] {
   return found;
 }
 
+const OPEN_REQUEST = 'id, request:price_requests!inner(id, title, status, request_items(id, label, quantity, unit, position))';
+type Item = { id: string; label: string; quantity: number; unit: string; position: number };
+
+function asOpenRequest(q: { id: string; request: unknown }): OpenRequest {
+  const r = q.request as { title: string; request_items: Item[] };
+  return {
+    key: q.id,
+    title: r.title,
+    items: [...r.request_items].sort((a, b) => a.position - b.position).map((i) => ({ id: i.id, label: i.label, quantity: Number(i.quantity), unit: i.unit })),
+  };
+}
+
 type Placed = 'no_pdf' | 'closed' | 'failed' | 'attached' | 'submitted';
 const RANK: Placed[] = ['no_pdf', 'closed', 'failed', 'attached', 'submitted'];
 const MAX_PDFS = 3;
@@ -64,8 +76,8 @@ async function downloadPdf(file: EmailedFile): Promise<Uint8Array | null> {
 
 /**
  * Puts the PDFs of a supplier's e-mail on the offers they answer. With one open
- * request that is the one; with several, each PDF's lines say which request it is
- * for, and a PDF that is no quote (terms, catalogue) is left aside. `addressed` is the
+ * request that is the one; with several, each PDF's lines say which requests it
+ * prices (one quote may cover several), and a PDF that is no quote is left aside. `addressed` is the
  * offer the e-mail was sent for, used when the reading cannot tell.
  */
 export async function placeEmailedOffers(
@@ -78,18 +90,11 @@ export async function placeEmailedOffers(
   if (!pdfs.length) return { result: 'no_pdf', quotes: [] };
   const { data: open } = await admin
     .from('quotes')
-    .select('id, request:price_requests!inner(id, title, status, request_items(id, label, quantity, unit, position))')
+    .select(OPEN_REQUEST)
     .in('id', [...new Set(candidates)].slice(0, 10))
     .in('status', ['invited', 'submitted'])
     .eq('request.status', 'sent');
-  const requests = (open ?? []).map((q) => {
-    const r = q.request as unknown as { title: string; request_items: { id: string; label: string; quantity: number; unit: string; position: number }[] };
-    return {
-      key: q.id,
-      title: r.title,
-      items: [...r.request_items].sort((a, b) => a.position - b.position).map((i) => ({ id: i.id, label: i.label, quantity: Number(i.quantity), unit: i.unit })),
-    };
-  });
+  const requests = (open ?? []).map(asOpenRequest);
   if (!requests.length) return { result: 'closed', quotes: [] };
 
   let best: Placed = 'no_pdf';
@@ -100,15 +105,42 @@ export async function placeEmailedOffers(
       best = RANK.indexOf('failed') > RANK.indexOf(best) ? 'failed' : best;
       continue;
     }
-    let quoteId: string | null = requests.length === 1 ? requests[0].key : await whichRequest(bytes, requests);
-    // Several PDFs where the reading cannot tell: the first goes to the addressed offer.
-    if (!quoteId && pdfs.length === 1) quoteId = requests.some((r) => r.key === addressed) ? addressed : null;
-    if (!quoteId || used.has(quoteId)) continue;
-    used.add(quoteId);
-    const result = await saveOfferPdf(admin, quoteId, bytes);
-    if (RANK.indexOf(result) > RANK.indexOf(best)) best = result;
+    let quoteIds = requests.length === 1 ? [requests[0].key] : await whichRequests(bytes, requests);
+    // A single PDF the reading cannot place goes to the offer the e-mail was sent for.
+    if (!quoteIds.length && pdfs.length === 1 && requests.some((r) => r.key === addressed)) quoteIds = [addressed!];
+    for (const quoteId of quoteIds) {
+      if (used.has(quoteId)) continue;
+      used.add(quoteId);
+      const result = await saveOfferPdf(admin, quoteId, bytes);
+      if (RANK.indexOf(result) > RANK.indexOf(best)) best = result;
+    }
   }
   return { result: best, quotes: [...used] };
+}
+
+/**
+ * A PDF uploaded on one offer's page that also prices the supplier's other open
+ * requests: it goes on those offers too. Returns how many it was added to.
+ */
+export async function shareOfferPdf(admin: SupabaseClient, quoteId: string, bytes: Uint8Array): Promise<number> {
+  const { data: quote } = await admin.from('quotes').select('supplier_id').eq('id', quoteId).single();
+  if (!quote) return 0;
+  const { data: others } = await admin
+    .from('quotes')
+    .select(OPEN_REQUEST)
+    .eq('supplier_id', quote.supplier_id)
+    .eq('status', 'invited')
+    .is('offer_file_path', null)
+    .eq('request.status', 'sent')
+    .neq('id', quoteId)
+    .limit(9);
+  if (!others?.length) return 0;
+  const requests = others.map(asOpenRequest);
+  let shared = 0;
+  for (const id of await whichRequests(bytes, requests)) {
+    if (['attached', 'submitted'].includes(await saveOfferPdf(admin, id, bytes))) shared++;
+  }
+  return shared;
 }
 
 /** A supplier's reply to one offer's relay address: their PDF may still be for another of their open requests. */
