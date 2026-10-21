@@ -7,6 +7,16 @@
 import { CHECKOUT_BRANDING, stripeClient } from '../_shared/stripe.ts';
 import { adminClient, appUrl, callerCompanyId, corsHeaders, json } from '../_shared/supabase.ts';
 
+const SELLER_VAT = 'BE 1015.519.625';
+const INVOICE_FR = {
+  custom_fields: [{ name: 'TVA BatiNode', value: SELLER_VAT }],
+  footer: `BatiNode est un service de Modern X Renov SRL, Ruisbroeksesteenweg 9, 1600 Sint-Pieters-Leeuw, Belgique. N° d'entreprise et TVA ${SELLER_VAT}. Questions : support@batinode.be`,
+};
+const INVOICE_NL = {
+  custom_fields: [{ name: 'Btw BatiNode', value: SELLER_VAT }],
+  footer: `BatiNode is een dienst van Modern X Renov BV, Ruisbroeksesteenweg 9, 1600 Sint-Pieters-Leeuw, België. Ondernemings- en btw-nummer ${SELLER_VAT}. Vragen: support@batinode.be`,
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
@@ -53,6 +63,9 @@ Deno.serve(async (req) => {
     customer = created.id;
     await admin.from('companies').update({ stripe_customer_id: customer }).eq('id', company.id);
   }
+
+  // BatiNode's own identity on every invoice: Belgian invoices must carry the seller's VAT number.
+  await stripe.customers.update(customer, { invoice_settings: company.language === 'nl' ? INVOICE_NL : INVOICE_FR }).catch((e) => console.error('invoice settings', e?.message));
 
   const body = (await req.json().catch(() => ({}))) as { plan?: string; action?: string; interval?: string };
   const subscribed = Boolean(sub?.provider_subscription_id) && sub?.status !== 'canceled';
