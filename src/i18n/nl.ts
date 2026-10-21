@@ -72,6 +72,17 @@ export const nl: Dictionary = {
       open === 0 ? 'Geen lopende prijsaanvragen.' : `${open} lopende prijsaanvra${open > 1 ? 'gen' : 'ag'}.`,
     newRequest: 'Leveranciersprijs vragen',
     myRequests: 'Mijn leveranciersprijzen',
+    shortcuts: {
+      requests: 'Mijn leveranciersprijzen',
+      requestsLead: (open: number, offers: number) =>
+        `${open} lopende aanvra${open > 1 ? 'gen' : 'ag'} · ${offers} prijs${offers === 1 ? '' : 'en'} ontvangen`,
+      requestsEmpty: 'Doe uw eerste prijsaanvraag in 2 minuten.',
+      offersBadge: (n: number) => `${n} prijs${n === 1 ? '' : 'en'}`,
+      exchanges: 'Mijn contacten met ondernemers',
+      exchangesLead: 'Berichten, onderaannemingsaankondigingen en akkoorden.',
+      unread: (n: number) => `${n} nieuw${n > 1 ? 'e' : ''} bericht${n > 1 ? 'en' : ''}`,
+      allRequests: 'Al mijn aanvragen bekijken →',
+    },
     contractors: {
       title: 'Ingeschreven aannemers',
       lead: (n: number) => `${n} geverifieerde aannemer${n > 1 ? 's' : ''} op BatiNode, die uit uw regio eerst.`,

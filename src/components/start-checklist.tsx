@@ -38,7 +38,7 @@ export function StartChecklist() {
           { key: 'suppliers', done: (fav.count ?? 0) > 0, href: '/fournisseurs' },
           { key: 'request', done: (sent.count ?? 0) > 0, href: '/nouvelle' },
           { key: 'award', done: (awarded.count ?? 0) > 0, href: '/' },
-          { key: 'invite', done: ((refs.data as unknown[] | null) ?? []).length > 0, href: '/reglages' },
+          { key: 'invite', done: ((refs.data as unknown[] | null) ?? []).length > 0, href: '/parrainage' },
         ]);
       });
     }, []),

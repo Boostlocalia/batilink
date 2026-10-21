@@ -83,7 +83,7 @@ export function RegisteredContractors() {
         <ContractorItem key={r.id} row={r} trades={trades} first={i === 0} />
       ))}
       {total > rows.length ? <Button label={c.all} variant="ghost" small onPress={() => router.push('/entrepreneurs')} /> : null}
-      {total < FEW ? <Button label={c.invite} variant="ghost" small onPress={() => router.push('/reglages')} /> : null}
+      {total < FEW ? <Button label={c.invite} variant="ghost" small onPress={() => router.push('/parrainage')} /> : null}
     </Card>
   );
 }

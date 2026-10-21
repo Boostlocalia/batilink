@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -27,7 +27,14 @@ export default function NetworkScreen() {
   const theme = useTheme();
   const architect = company?.kind === 'architect';
   const left = useNetworkLeft();
-  const [view, setView] = useState<View_>(architect ? 'mine' : 'posts');
+  const { vue } = useLocalSearchParams<{ vue?: string }>();
+  const [view, setView] = useState<View_>(vue === 'messages' ? 'messages' : architect ? 'mine' : 'posts');
+  // The home shortcut opens the messages directly, even when the tab was already open.
+  const [seenVue, setSeenVue] = useState(vue);
+  if (vue !== seenVue) {
+    setSeenVue(vue);
+    if (vue === 'messages') setView('messages');
+  }
   const [trades, setTrades] = useState<Trade[]>([]);
   const [tradeFilter, setTradeFilter] = useState<number | null>(null);
   const [posts, setPosts] = useState<Opportunity[] | null>(null);

@@ -70,6 +70,17 @@ export const fr = {
       open === 0 ? 'Aucune demande de prix en cours.' : `${open} demande${open > 1 ? 's' : ''} de prix en cours.`,
     newRequest: 'Demander un prix fournisseur',
     myRequests: 'Mes prix fournisseurs',
+    shortcuts: {
+      requests: 'Mes prix fournisseurs',
+      requestsLead: (open: number, offers: number) =>
+        `${open} demande${open > 1 ? 's' : ''} en cours · ${offers} prix reçu${offers > 1 ? 's' : ''}`,
+      requestsEmpty: 'Faites votre première demande de prix en 2 minutes.',
+      offersBadge: (n: number) => `${n} prix`,
+      exchanges: 'Mes échanges entrepreneurs',
+      exchangesLead: 'Messages, annonces de sous-traitance et accords.',
+      unread: (n: number) => `${n} nouveau${n > 1 ? 'x' : ''} message${n > 1 ? 's' : ''}`,
+      allRequests: 'Voir toutes mes demandes →',
+    },
     contractors: {
       title: 'Entrepreneurs inscrits',
       lead: (n: number) => `${n} entrepreneur${n > 1 ? 's' : ''} vérifié${n > 1 ? 's' : ''} sur BatiNode, ceux de votre région d’abord.`,

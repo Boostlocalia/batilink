@@ -1,4 +1,4 @@
-import { Link, Redirect, router, useFocusEffect } from 'expo-router';
+import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -8,25 +8,13 @@ import { RegisteredContractors } from '@/components/registered-contractors';
 import { StartChecklist } from '@/components/start-checklist';
 import { SupplierHome } from '@/components/supplier-home';
 import { ThemedText } from '@/components/themed-text';
-import { Button, Card, Chip, Screen } from '@/components/ui';
+import { MyRequests, receivedOffers, useMyRequests, type RequestRow } from '@/components/my-requests';
+import { Button, Chip, Screen } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
-import { formatDate } from '@/lib/format';
+import { chat, type ConversationView } from '@/lib/chat';
 import { useSession } from '@/lib/session';
-import { supabase } from '@/lib/supabase';
-
-type RequestRow = {
-  id: string;
-  title: string;
-  status: 'draft' | 'sent' | 'closed' | 'awarded';
-  postal_code: string;
-  city: string | null;
-  reply_by: string;
-  quotes: { status: string }[];
-};
-
-const STATUS_TONE = { draft: 'neutral', sent: 'warn', closed: 'neutral', awarded: 'good' } as const;
 
 export default function HomeScreen() {
   // Architects have no price requests: their home is the network.
@@ -37,30 +25,10 @@ export default function HomeScreen() {
 }
 
 function ContractorHome() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const { company } = useSession();
-  const theme = useTheme();
-  const [requests, setRequests] = useState<RequestRow[] | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  const load = useCallback(async () => {
-    setFailed(false);
-    const { data, error } = await supabase
-      .from('price_requests')
-      .select('id, title, status, postal_code, city, reply_by, quotes(status)')
-      .order('created_at', { ascending: false })
-      .limit(50);
-    if (error) return setFailed(true);
-    setRequests(data as RequestRow[]);
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
-
-  const open = requests?.filter((r) => r.status === 'sent').length ?? 0;
+  const mine = useMyRequests();
+  const open = mine.requests?.filter((r) => r.status === 'sent').length ?? 0;
 
   return (
     <Screen>
@@ -75,53 +43,17 @@ function ContractorHome() {
         <Button label={t.home.newRequest} variant="signal" onPress={() => router.navigate('/nouvelle')} />
       </View>
 
+      <Shortcuts requests={mine.requests} />
+
       {company ? null : <CompleteProfileCard text={t.signup.later.home} />}
 
       <NewsCarousel />
 
       {company ? <StartChecklist /> : null}
 
-      <RegisteredContractors />
+      <MyRequests {...mine} limit={5} />
 
-      <Card>
-        <ThemedText type="subtitle">{t.home.myRequests}</ThemedText>
-        {failed ? (
-          <View style={{ gap: Spacing.two }}>
-            <ThemedText themeColor="danger">{t.common.error}</ThemedText>
-            <Button label={t.common.retry} variant="ghost" small onPress={load} />
-          </View>
-        ) : requests === null ? (
-          <ThemedText themeColor="textSecondary">{t.common.loading}</ThemedText>
-        ) : requests.length === 0 ? (
-          <ThemedText themeColor="textSecondary">{t.home.empty}</ThemedText>
-        ) : (
-          requests.map((r, i) => {
-            const invited = r.quotes.length;
-            const submitted = r.quotes.filter((q) => q.status !== 'invited' && q.status !== 'declined').length;
-            return (
-              <Link key={r.id} href={{ pathname: '/demande/[id]', params: { id: r.id } }} asChild>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.row,
-                    i > 0 && { borderTopWidth: 1, borderTopColor: theme.line },
-                    pressed && { opacity: 0.7 },
-                  ]}>
-                  <View style={styles.rowText}>
-                    <ThemedText type="smallBold">{r.title}</ThemedText>
-                    <ThemedText type="small" themeColor="textSecondary">
-                      {r.postal_code} {r.city ?? ''} · {formatDate(r.reply_by, locale)}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.rowChips}>
-                    <Chip label={t.home.status[r.status]} tone={STATUS_TONE[r.status]} />
-                    {r.status !== 'draft' ? <Chip label={t.home.offers(submitted, invited)} /> : null}
-                  </View>
-                </Pressable>
-              </Link>
-            );
-          })
-        )}
-      </Card>
+      <RegisteredContractors />
 
       <View style={{ alignSelf: 'flex-start' }}>
         <Button label={t.growth.favourites.open} variant="ghost" onPress={() => router.push('/fournisseurs')} />
@@ -130,10 +62,66 @@ function ContractorHome() {
   );
 }
 
+/** Two big doors at the top of the home: the supplier prices and the exchanges between contractors. */
+function Shortcuts({ requests }: { requests: RequestRow[] | null }) {
+  const { t } = useI18n();
+  const s = t.home.shortcuts;
+  const [unread, setUnread] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      chat<{ conversations: ConversationView[] }>({ action: 'list' }).then((res) => {
+        if (active) setUnread((res.data?.conversations ?? []).filter((c) => c.unread).length);
+      });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
+  const open = requests?.filter((r) => r.status === 'sent') ?? [];
+  const offers = open.reduce((n, r) => n + receivedOffers(r), 0);
+  return (
+    <View style={styles.tiles}>
+      <Tile
+        title={s.requests}
+        text={requests === null ? '' : requests.length ? s.requestsLead(open.length, offers) : s.requestsEmpty}
+        badge={offers ? s.offersBadge(offers) : null}
+        onPress={() => router.push(requests?.length ? '/demandes' : '/nouvelle')}
+      />
+      <Tile
+        title={s.exchanges}
+        text={unread ? s.unread(unread) : s.exchangesLead}
+        badge={unread ? String(unread) : null}
+        onPress={() => router.push({ pathname: '/reseau', params: unread ? { vue: 'messages' } : {} })}
+      />
+    </View>
+  );
+}
+
+function Tile({ title, text, badge, onPress }: { title: string; text: string; badge: string | null; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.tile, { backgroundColor: theme.backgroundElement, borderColor: theme.line }, pressed && { opacity: 0.7 }]}>
+      <View style={styles.tileHead}>
+        <ThemedText type="smallBold">{title}</ThemedText>
+        {badge ? <Chip label={badge} tone="good" /> : null}
+      </View>
+      <ThemedText type="small" themeColor="textSecondary">
+        {text}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  tile: { flexGrow: 1, flexBasis: 220, gap: Spacing.one, padding: Spacing.three, borderRadius: Spacing.three, borderWidth: 1 },
+  tileHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.two },
   header: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: Spacing.three },
   headerText: { gap: Spacing.one, flexShrink: 1, minWidth: 220 },
-  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.two, paddingVertical: Spacing.two },
-  rowText: { flexShrink: 1, minWidth: 200 },
-  rowChips: { flexDirection: 'row', gap: Spacing.one, flexWrap: 'wrap' },
 });

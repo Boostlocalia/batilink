@@ -17,7 +17,7 @@ export async function verifyCompany(
   reason: 'signup' | 'periodic' | 'agreement' | 'manual',
   agreementId?: string,
 ): Promise<CompanyVerification | null> {
-  const { data: company } = await admin.from('companies').select('id, kind, vat_number').eq('id', companyId).maybeSingle();
+  const { data: company } = await admin.from('companies').select('id, kind, vat_number, verification_status, verified_at').eq('id', companyId).maybeSingle();
   if (!company) return null;
   const kind = company.kind as CompanyKind;
   const required = requiredChecks(kind);
@@ -29,8 +29,12 @@ export async function verifyCompany(
     results = await Promise.all([checkVat(company.vat_number), checkKbo(admin, company.vat_number, kind)]);
   }
 
-  const status = decide(results, required);
   const now = new Date().toISOString();
+  let status = decide(results, required);
+  // A register that does not answer is not a reason to withdraw a verification already
+  // granted (by the registers or by the BatiNode team): only a "no" from a register is.
+  const keep = status === 'needs_review' && company.verification_status === 'verified' && !results.some((r) => r.outcome === 'failed');
+  if (keep) status = 'verified';
   await admin.from('company_checks').insert(
     results.map((r) => ({
       company_id: companyId,
@@ -46,7 +50,7 @@ export async function verifyCompany(
     .from('companies')
     .update({
       verification_status: status,
-      verified_at: status === 'verified' ? now : null,
+      verified_at: status === 'verified' ? (keep ? company.verified_at : now) : null,
       last_checked_at: now,
     })
     .eq('id', companyId);
