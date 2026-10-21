@@ -61,7 +61,8 @@ export function CookieBanner() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: Spacing.three, alignItems: 'center' },
+  // Fixed to the window on the web, above the page and the tab bar.
+  wrap: { position: 'fixed' as 'absolute', left: 0, right: 0, bottom: 0, zIndex: 1000, padding: Spacing.three, alignItems: 'center' },
   box: { maxWidth: 560, width: '100%', borderWidth: 1, borderRadius: Radius, padding: Spacing.three, gap: Spacing.two },
   row: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.two, flexWrap: 'wrap' },
 });
