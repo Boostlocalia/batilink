@@ -34,7 +34,7 @@ function NodiPick({ label }: { label: string }) {
   const theme = useTheme();
   return (
     <View style={styles.pick}>
-      <ThemedText type="small" themeColor="signal">
+      <ThemedText type="small" themeColor="signal" numberOfLines={1} style={styles.pickLabel}>
         {label}
       </ThemedText>
       <ThemedText style={styles.pickHand}>☝️</ThemedText>
@@ -319,7 +319,7 @@ export default function CompareScreen() {
                   {request.status === 'sent' ? (
                     <Line label="" border={rowBorder}>
                       {priced.map((o) => (
-                        <View key={o.id} style={[styles.cell, { gap: Spacing.one }]}>
+                        <View key={o.id} style={[styles.cell, styles.actionCell]}>
                           {readFromPdf(o) ? (
                             <ThemedText type="small" themeColor="textSecondary" style={styles.right}>
                               {t.compare.fromPdfHint}
@@ -409,9 +409,12 @@ function Line({ label, strong, border, children }: { label: string; strong?: boo
 }
 
 const styles = StyleSheet.create({
+  // The choose buttons sit on one line at the top of their cells; Nodi's pick goes under the best one.
+  actionCell: { justifyContent: 'flex-start', gap: Spacing.one },
   pick: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
-  pickHand: { fontSize: 18, lineHeight: 22 },
-  pickFace: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, overflow: 'hidden' },
+  pickLabel: { flexShrink: 1, fontSize: 12, lineHeight: 16 },
+  pickHand: { fontSize: 16, lineHeight: 20 },
+  pickFace: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, overflow: 'hidden' },
   orderRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, flexWrap: 'wrap' },
   row: { flexDirection: 'row', alignItems: 'stretch' },
   label: { width: LABEL_WIDTH, paddingVertical: Spacing.two, paddingRight: Spacing.two, justifyContent: 'center' },
