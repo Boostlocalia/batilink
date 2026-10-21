@@ -618,36 +618,39 @@ export default function NewRequestScreen() {
           {suppliers.length === 0 ? (
             <ThemedText themeColor="textSecondary">{t.request.noSuppliers}</ThemedText>
           ) : (
-            suppliers.map((s) => {
-              const selected = picked.has(s.id);
-              return (
-                <Pressable key={s.id} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} onPress={() => togglePick(s.id)} style={styles.supplier}>
-                  <View
-                    style={[
-                      styles.box,
-                      {
-                        borderColor: selected ? theme.brand : theme.line,
-                        backgroundColor: selected ? theme.brand : 'transparent',
-                      },
-                    ]}>
-                    {selected ? (
-                      <ThemedText type="smallBold" themeColor="onBrand">
-                        ✓
-                      </ThemedText>
-                    ) : null}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <ThemedText type="smallBold">{s.name}</ThemedText>
-                    {s.city ? (
-                      <ThemedText type="small" themeColor="textSecondary">
-                        {s.city}
-                      </ThemedText>
-                    ) : null}
-                  </View>
-                  {s.verified ? <Chip label={t.request.verified} tone="good" /> : null}
-                </Pressable>
-              );
-            })
+            // A short box that scrolls on its own, so a long list doesn't push the page down.
+            <ScrollView nestedScrollEnabled style={[styles.scrollBox, { borderColor: theme.line }]} contentContainerStyle={styles.scrollBoxContent}>
+              {suppliers.map((s) => {
+                const selected = picked.has(s.id);
+                return (
+                  <Pressable key={s.id} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} onPress={() => togglePick(s.id)} style={styles.supplier}>
+                    <View
+                      style={[
+                        styles.box,
+                        {
+                          borderColor: selected ? theme.brand : theme.line,
+                          backgroundColor: selected ? theme.brand : 'transparent',
+                        },
+                      ]}>
+                      {selected ? (
+                        <ThemedText type="smallBold" themeColor="onBrand">
+                          ✓
+                        </ThemedText>
+                      ) : null}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <ThemedText type="smallBold">{s.name}</ThemedText>
+                      {s.city ? (
+                        <ThemedText type="small" themeColor="textSecondary">
+                          {s.city}
+                        </ThemedText>
+                      ) : null}
+                    </View>
+                    {s.verified ? <Chip label={t.request.verified} tone="good" /> : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
           )}
           {errors.form ? <ThemedText themeColor="danger">{errors.form}</ThemedText> : null}
           {access !== 'full' ? (
@@ -704,34 +707,38 @@ function SupplierSearch({ onPick, chosen }: { onPick: (s: Supplier) => void; cho
   return (
     <View style={{ gap: Spacing.one }}>
       <Field label={t.request.searchSupplier} placeholder={t.request.searchSupplierPlaceholder} value={query} onChangeText={setQuery} autoCapitalize="words" />
-      {shown.map((s) => (
-        <Pressable
-          key={s.id}
-          accessibilityRole="button"
-          onPress={() => {
-            onPick(s);
-            setQuery('');
-          }}
-          style={[
-            styles.match,
-            {
-              borderColor: theme.line,
-              backgroundColor: theme.backgroundSelected,
-            },
-          ]}>
-          <View style={{ flex: 1 }}>
-            <ThemedText type="smallBold">{s.name}</ThemedText>
-            {s.city ? (
-              <ThemedText type="small" themeColor="textSecondary">
-                {s.city}
+      {shown.length ? (
+        <ScrollView nestedScrollEnabled style={[styles.scrollBox, { borderColor: theme.line }]} contentContainerStyle={styles.scrollBoxContent}>
+          {shown.map((s) => (
+            <Pressable
+              key={s.id}
+              accessibilityRole="button"
+              onPress={() => {
+                onPick(s);
+                setQuery('');
+              }}
+              style={[
+                styles.match,
+                {
+                  borderColor: theme.line,
+                  backgroundColor: theme.backgroundSelected,
+                },
+              ]}>
+              <View style={{ flex: 1 }}>
+                <ThemedText type="smallBold">{s.name}</ThemedText>
+                {s.city ? (
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {s.city}
+                  </ThemedText>
+                ) : null}
+              </View>
+              <ThemedText type="smallBold" themeColor={chosen.has(s.id) ? 'good' : 'signal'}>
+                {chosen.has(s.id) ? '✓' : t.request.addSupplier}
               </ThemedText>
-            ) : null}
-          </View>
-          <ThemedText type="smallBold" themeColor={chosen.has(s.id) ? 'good' : 'signal'}>
-            {chosen.has(s.id) ? '✓' : t.request.addSupplier}
-          </ThemedText>
-        </Pressable>
-      ))}
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : null}
       {query.trim().length >= 2 && !matches.length ? (
         <Pressable accessibilityRole="link" onPress={() => router.push('/fournisseurs')}>
           <ThemedText type="small" themeColor="signal">
@@ -744,6 +751,8 @@ function SupplierSearch({ onPick, chosen }: { onPick: (s: Supplier) => void; cho
 }
 
 const styles = StyleSheet.create({
+  scrollBox: { maxHeight: 280, borderWidth: 1, borderRadius: Radius },
+  scrollBoxContent: { padding: Spacing.two, gap: Spacing.one },
   match: {
     flexDirection: 'row',
     alignItems: 'center',
