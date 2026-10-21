@@ -201,7 +201,7 @@ export const growthFr = {
         'La place est attribuée à votre premier paiement, dans l’ordre d’arrivée.',
       ],
       offerAfter:
-        'Après les 50 premières places, les prix augmentent de 50 % pour les nouveaux abonnés (Starter 104,99 €, Premium 194,99 € HTVA par mois). Le vôtre reste bloqué. La garantie prend fin en cas de résiliation, de retour à une formule inférieure ou de second changement de formule.',
+        'Le prix de lancement est à -50 %. Après les 50 premières places, les prix doublent pour les nouveaux abonnés (Starter 139,98 €, Premium 259,98 € HTVA par mois). Le vôtre reste bloqué. La garantie prend fin en cas de résiliation, de retour à une formule inférieure ou de second changement de formule.',
       faqTitle: 'Vos questions, nos réponses franches',
       faq: [
         {

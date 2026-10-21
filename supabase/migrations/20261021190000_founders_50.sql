@@ -1,5 +1,5 @@
--- The founding offer is now for the first 50 paying companies (was 100). Prices go up
--- by 50 % for later subscribers. No place had been given when this changed.
+-- The founding offer is now for the first 50 paying companies (was 100). Launch prices are
+-- half the normal price; they double for later subscribers. No place had been given when this changed.
 
 alter table public.subscriptions drop constraint if exists subscriptions_founder_number_check;
 alter table public.subscriptions add constraint subscriptions_founder_number_check check (founder_number between 1 and 50);
