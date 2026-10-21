@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type Pres
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useI18n, type Language } from '@/i18n';
 import { useSession } from '@/lib/session';
+import { supabase } from '@/lib/supabase';
 
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
@@ -58,6 +59,20 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
   );
 }
 
+/** Always in the top bar, so nobody has to look for it in Réglages. */
+function SignOut() {
+  const { t } = useI18n();
+  const { session } = useSession();
+  if (!session) return null;
+  return (
+    <Pressable accessibilityRole="button" onPress={() => supabase.auth.signOut()} style={styles.signOut}>
+      <ThemedText type="smallBold" themeColor="textSecondary">
+        {t.settings.signOut}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
 function LanguageSwitch() {
   const { language, setLanguage } = useI18n();
   return (
@@ -84,6 +99,7 @@ export function CustomTabList(props: TabListProps) {
             <Logo />
           </View>
           <LanguageSwitch />
+          <SignOut />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: '100%' }} contentContainerStyle={styles.scrollTabs}>
           {props.children}
@@ -99,6 +115,7 @@ export function CustomTabList(props: TabListProps) {
         </View>
         {props.children}
         <LanguageSwitch />
+        <SignOut />
       </View>
     </ThemedView>
   );
@@ -130,6 +147,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
     borderRadius: Spacing.three,
+  },
+  signOut: {
+    marginLeft: Spacing.two,
   },
   languages: {
     flexDirection: 'row',
