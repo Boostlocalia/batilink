@@ -124,8 +124,8 @@ export const growthNl: typeof growthFr = {
     counter: (taken: number, total: number) => `${taken} / ${total} stichtersplaatsen toegekend`,
     counterNote: 'Echte betalende abonnementen, automatisch bijgewerkt.',
     left: (n: number) => (n === 1 ? 'Nog één plaats' : `Nog ${n} plaatsen`),
-    until: (date: string) => `Open tot en met ${date}, of tot de 100e plaats.`,
-    closed: 'De 100 stichtersplaatsen zijn toegekend.',
+    until: (date: string) => `Open tot en met ${date}, of tot de 50e plaats.`,
+    closed: 'De 50 stichtersplaatsen zijn toegekend.',
     ended: 'Het stichtersaanbod is afgelopen.',
     cta: 'Stichter worden',
     learn: 'Ontdek het stichtersaanbod',
@@ -191,17 +191,17 @@ export const growthNl: typeof growthFr = {
       founderTitle: 'Zoon van een aannemer. Ik zag het probleem van binnenuit.',
       founderText:
         'Mijn vader is aannemer in de bouw. Ik heb een aantal jaren naast hem gewerkt en ik deed de administratie en het beheer van het bedrijf. Bij elke werf hetzelfde verhaal: prijsaanvragen links en rechts, en uit gewoonte altijd dezelfde leveranciers, terwijl hun prijzen niet altijd de voordeligste waren. De oplossing bestond niet, dus heb ik ze gemaakt: BatiNode. Henrique, oprichter (Modern X Renov BV, KBO 1015.519.625).',
-      offerTitle: '100 plaatsen als stichtend ambassadeur. Uw lanceringsprijs, vastgezet.',
+      offerTitle: '50 plaatsen als stichtend ambassadeur. Uw lanceringsprijs, vastgezet.',
       offerPoints: [
         'Starter 69,99 € of Premium 129,99 € per maand excl. btw, gegarandeerd zolang uw abonnement zonder onderbreking actief blijft op hetzelfde plan.',
-        'Uw stichtersnummer, van 1 tot 100, in uw ruimte.',
+        'Uw stichtersnummer, van 1 tot 50, in uw ruimte.',
         'Eén keer overstappen van Starter naar Premium, met behoud van uw stichtersprijs.',
         'Tevreden of terugbetaald: uw eerste betaling wordt volledig terugbetaald als u het binnen 30 dagen vraagt, zonder reden.',
         'Een directe lijn met het team: uw ideeën krijgen voorrang.',
         'De plaats wordt toegekend bij uw eerste betaling, in volgorde van aankomst.',
       ],
       offerAfter:
-        'Na de lanceringsfase kunnen de prijzen voor nieuwe abonnees stijgen. De uwe blijft vast. De garantie vervalt bij opzegging, bij een overstap naar een lagere formule of bij een tweede wijziging.',
+        'Na de eerste 50 plaatsen stijgen de prijzen met 50 % voor nieuwe abonnees (Starter 104,99 €, Premium 194,99 € excl. btw per maand). De uwe blijft vast. De garantie vervalt bij opzegging, bij een overstap naar een lagere formule of bij een tweede wijziging.',
       faqTitle: 'Uw vragen, eerlijk beantwoord',
       faq: [
         {

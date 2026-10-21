@@ -11,9 +11,9 @@ import { APP_NAME, ASSISTANT_NAME } from '@/constants/brand';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
-import { mediaUrl } from '@/lib/banners';
 import { useSession } from '@/lib/session';
 import { anonHeaders, functionsUrl, supabase } from '@/lib/supabase';
+import { NODI_FACE } from '@/constants/nodi';
 
 export type Audience = 'contractor' | 'architect' | 'supplier';
 
@@ -111,7 +111,7 @@ function LauncherButton({ onPress }: { onPress: () => void }) {
         accessibilityLabel={t.assistant.open(ASSISTANT_NAME)}
         onPress={onPress}
         style={[styles.launcherButton, { borderColor: theme.signal, shadowColor: theme.signal }, glow(theme.signal)]}>
-        <Image source={{ uri: mediaUrl('assistant.jpg') }} contentFit="cover" style={StyleSheet.absoluteFill} />
+        <Image source={NODI_FACE} contentFit="cover" style={StyleSheet.absoluteFill} />
       </Pressable>
     </Animated.View>
   );
@@ -313,7 +313,7 @@ function Avatar({ small }: { small?: boolean }) {
   const size = small ? 32 : 64;
   return (
     <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, borderColor: theme.signal }]}>
-      <Image source={{ uri: mediaUrl('assistant.jpg') }} contentFit="cover" style={StyleSheet.absoluteFill} />
+      <Image source={NODI_FACE} contentFit="cover" style={StyleSheet.absoluteFill} />
     </View>
   );
 }

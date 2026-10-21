@@ -8,13 +8,13 @@ import { Questions, type Conversation, type QuoteMessage } from '@/components/qu
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Screen } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
-import { mediaUrl } from '@/lib/banners';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
 import type { OrderStatus } from '@/lib/orders';
 import { compareOffers, differs, linePrice, readFromPdf, type Offer, type RequestItem } from '@/lib/quotes';
 import { supabase } from '@/lib/supabase';
+import { NODI_FACE } from '@/constants/nodi';
 
 type Request = {
   id: string;
@@ -39,7 +39,7 @@ function NodiPick({ label }: { label: string }) {
       </ThemedText>
       <ThemedText style={styles.pickHand}>☝️</ThemedText>
       <View style={[styles.pickFace, { borderColor: theme.signal }]}>
-        <Image source={{ uri: mediaUrl('assistant.jpg') }} contentFit="cover" style={StyleSheet.absoluteFill} accessibilityLabel="Nodi" />
+        <Image source={NODI_FACE} contentFit="cover" style={StyleSheet.absoluteFill} accessibilityLabel="Nodi" />
       </View>
     </View>
   );

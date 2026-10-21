@@ -120,8 +120,8 @@ export const growthFr = {
     counter: (taken: number, total: number) => `${taken} / ${total} places fondateur attribuées`,
     counterNote: 'Abonnements payants réels, mis à jour automatiquement.',
     left: (n: number) => (n === 1 ? 'Plus qu’une place' : `Plus que ${n} places`),
-    until: (date: string) => `Ouvert jusqu’au ${date} inclus, ou jusqu’à la 100e place.`,
-    closed: 'Les 100 places fondateur sont attribuées.',
+    until: (date: string) => `Ouvert jusqu’au ${date} inclus, ou jusqu’à la 50e place.`,
+    closed: 'Les 50 places fondateur sont attribuées.',
     ended: 'L’offre fondateur est terminée.',
     cta: 'Devenir fondateur',
     learn: 'Découvrir l’offre fondateur',
@@ -191,17 +191,17 @@ export const growthFr = {
       founderTitle: 'Fils d’entrepreneur. J’ai vu le problème de l’intérieur.',
       founderText:
         'Mon père est entrepreneur dans le bâtiment. J’ai travaillé plusieurs années à ses côtés, et c’est moi qui m’occupais de l’administration et de la gestion de la société. À chaque chantier, la même histoire : des demandes de prix envoyées à gauche et à droite, et toujours les mêmes fournisseurs par habitude, alors que leurs prix n’étaient pas toujours les plus avantageux. La solution n’existait pas, alors je l’ai créée : BatiNode. Henrique, fondateur (Modern X Renov SRL, BCE 1015.519.625).',
-      offerTitle: '100 places d’ambassadeur fondateur. Votre prix de lancement, bloqué.',
+      offerTitle: '50 places d’ambassadeur fondateur. Votre prix de lancement, bloqué.',
       offerPoints: [
         'Starter 69,99 € ou Premium 129,99 € HTVA par mois, garantis tant que votre abonnement reste actif sans interruption sur le même plan.',
-        'Votre numéro de fondateur, de 1 à 100, dans votre espace.',
+        'Votre numéro de fondateur, de 1 à 50, dans votre espace.',
         'Un passage de Starter à Premium autorisé une fois, en gardant votre prix fondateur.',
         'Satisfait ou remboursé : votre premier paiement est remboursé intégralement si vous le demandez dans les 30 jours, sans justification.',
         'Une ligne directe avec l’équipe : vos idées passent en priorité.',
         'La place est attribuée à votre premier paiement, dans l’ordre d’arrivée.',
       ],
       offerAfter:
-        'Après la phase de lancement, les prix des nouveaux abonnés pourront augmenter. Le vôtre reste bloqué. La garantie prend fin en cas de résiliation, de retour à une formule inférieure ou de second changement de formule.',
+        'Après les 50 premières places, les prix augmentent de 50 % pour les nouveaux abonnés (Starter 104,99 €, Premium 194,99 € HTVA par mois). Le vôtre reste bloqué. La garantie prend fin en cas de résiliation, de retour à une formule inférieure ou de second changement de formule.',
       faqTitle: 'Vos questions, nos réponses franches',
       faq: [
         {

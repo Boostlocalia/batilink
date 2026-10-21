@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { supabase } from "@/lib/supabase";
 
-/** The founding-member offer: 100 numbered places, open until 31 March 2027 (Brussels). */
+/** The founding-member offer: 50 numbered places, open until 31 March 2027 (Brussels). */
 export type FounderOffer = {
   total: number;
   taken: number;

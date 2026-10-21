@@ -5,7 +5,7 @@ import { Animated, Platform, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { mediaUrl } from '@/lib/banners';
+import { NODI_FACE } from '@/constants/nodi';
 
 const LINE_MS = 4200;
 
@@ -30,7 +30,7 @@ export function NodiGreeting({ lines }: { lines: readonly string[] }) {
   return (
     <View style={styles.row}>
       <View style={[styles.face, { borderColor: theme.signal }]}>
-        <Image source={{ uri: mediaUrl('assistant.jpg') }} contentFit="cover" style={StyleSheet.absoluteFill} accessibilityLabel="Nodi" />
+        <Image source={NODI_FACE} contentFit="cover" style={StyleSheet.absoluteFill} accessibilityLabel="Nodi" />
       </View>
       <View style={[styles.bubble, { backgroundColor: theme.backgroundElement, borderColor: theme.signal }]}>
         <Animated.View style={{ opacity }}>
