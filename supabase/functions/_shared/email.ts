@@ -1,4 +1,4 @@
-import { APP_NAME, EMAIL_LOGO_LIGHT_URL, EMAIL_LOGO_URL } from './brand.ts';
+import { APP_NAME, EMAIL_LOGO_LIGHT_URL, EMAIL_LOGO_URL, SOCIAL_ICON_URL, SOCIAL_LINKS } from './brand.ts';
 
 // Transactional e-mails, sent through Brevo's HTTP API in the recipient's language.
 
@@ -35,31 +35,31 @@ export async function sendMail(mail: Mail): Promise<void> {
       htmlContent: mail.html,
       textContent: mail.text,
       ...(mail.replyTo ? { replyTo: { email: mail.replyTo, name: mail.fromName ?? APP_NAME } } : {}),
-      ...(mail.unsubscribeUrl
-        ? { headers: { 'List-Unsubscribe': `<${mail.unsubscribeUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } }
-        : {}),
+      ...(mail.unsubscribeUrl ? { headers: { 'List-Unsubscribe': `<${mail.unsubscribeUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } } : {}),
     }),
   });
   if (!res.ok) throw new Error(`Brevo ${res.status}: ${await res.text()}`);
 }
 
-const esc = (s: string) =>
-  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
-function layout(paragraphs: string[], cta?: { label: string; url: string }, footer?: string): string {
+const FOLLOW_US: Record<Lang, string> = { fr: "N'oubliez pas de nous suivre sur les réseaux", nl: 'Vergeet ons niet te volgen op sociale media' };
+
+function layout(paragraphs: string[], cta?: { label: string; url: string }, footer?: string, lang: Lang = 'fr'): string {
   const body = paragraphs.map((p) => `<p style="margin:0 0 14px">${p}</p>`).join('');
   const button = cta
     ? `<p style="margin:22px 0"><a href="${esc(cta.url)}" style="background:#d4ff3a;color:#09090b;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">${esc(cta.label)}</a></p>`
     : '';
   const foot = footer ? `<p style="margin:24px 0 0;color:#9b9ba6;font-size:12px">${footer}</p>` : '';
+  const social = `<p style="margin:24px 0 8px;color:#9b9ba6;font-size:12px">${esc(FOLLOW_US[lang])}</p><p style="margin:0">${SOCIAL_LINKS.map((n) => {
+    const icon = `<img src="${SOCIAL_ICON_URL(n.key)}" width="22" height="22" alt="${n.label}" style="border:0;width:22px;height:22px;margin-right:14px">`;
+    return n.url ? `<a href="${esc(n.url)}" style="text-decoration:none">${icon}</a>` : icon;
+  }).join('')}</p>`;
   return `<div style="font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#f4f4f6;background:#09090b;padding:28px;border-radius:14px;max-width:560px">
-<p style="margin:0 0 20px"><img src="${EMAIL_LOGO_URL}" width="200" height="47" alt="${APP_NAME}" style="display:block;border:0;width:200px;height:47px;color:#d4ff3a;font-weight:800;font-size:18px"></p>${body}${button}${foot}</div>`;
+<p style="margin:0 0 20px"><img src="${EMAIL_LOGO_URL}" width="200" height="47" alt="${APP_NAME}" style="display:block;border:0;width:200px;height:47px;color:#d4ff3a;font-weight:800;font-size:18px"></p>${body}${button}${foot}${social}</div>`;
 }
 
-const dateFmt = (iso: string, lang: Lang) =>
-  new Intl.DateTimeFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { day: 'numeric', month: 'long' }).format(
-    new Date(`${iso}T12:00:00Z`),
-  );
+const dateFmt = (iso: string, lang: Lang) => new Intl.DateTimeFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { day: 'numeric', month: 'long' }).format(new Date(`${iso}T12:00:00Z`));
 
 export type InvitationData = {
   lang: Lang;
@@ -89,10 +89,8 @@ export type InvitationData = {
   unsubscribeUrl?: string;
 };
 
-const pct = (rate: number, lang: Lang) =>
-  new Intl.NumberFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { style: 'percent', maximumFractionDigits: 2 }).format(rate);
-const eur = (n: number, lang: Lang) =>
-  new Intl.NumberFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { style: 'currency', currency: 'EUR' }).format(n);
+const pct = (rate: number, lang: Lang) => new Intl.NumberFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { style: 'percent', maximumFractionDigits: 2 }).format(rate);
+const eur = (n: number, lang: Lang) => new Intl.NumberFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { style: 'currency', currency: 'EUR' }).format(n);
 
 const UNITS: Record<Lang, Record<string, string>> = {
   fr: { piece: 'pièce(s)', bag: 'sac(s)', t: 't', kg: 'kg', m: 'm', m2: 'm²', m3: 'm³', l: 'l', pallet: 'palette(s)' },
@@ -135,15 +133,8 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
   const fromName = `${d.contractor} (via ${APP_NAME})`;
   const town = d.city ?? d.postalCode;
   const nl = d.lang === 'nl';
-  const subject = nl
-    ? `${reminder ? 'Herinnering: ' : ''}Prijsaanvraag – ${d.title} – ${town}`
-    : `${reminder ? 'Rappel : ' : ''}Demande de prix – ${d.title} – ${town}`;
-  const signature = [
-    d.contactName,
-    d.contractor,
-    d.contractorVat ? `${nl ? 'btw' : 'TVA'} ${d.contractorVat}` : null,
-    d.contractorAddress,
-  ].filter(Boolean) as string[];
+  const subject = nl ? `${reminder ? 'Herinnering: ' : ''}Prijsaanvraag – ${d.title} – ${town}` : `${reminder ? 'Rappel : ' : ''}Demande de prix – ${d.title} – ${town}`;
+  const signature = [d.contactName, d.contractor, d.contractorVat ? `${nl ? 'btw' : 'TVA'} ${d.contractorVat}` : null, d.contractorAddress].filter(Boolean) as string[];
   const lines = nl
     ? {
         hello: 'Goedendag,',
@@ -209,14 +200,7 @@ export function invitationMail(d: InvitationData, reminder = false): Mail {
   return { to: d.to, subject, html, text, fromName, replyTo: d.replyTo, unsubscribeUrl: d.unsubscribeUrl };
 }
 
-export function awardedMail(
-  lang: Lang,
-  to: string,
-  contractor: string,
-  title: string,
-  commission: CommissionLine | null,
-  order: { number: string; url: string },
-): Mail {
+export function awardedMail(lang: Lang, to: string, contractor: string, title: string, commission: CommissionLine | null, order: { number: string; url: string }): Mail {
   if (lang === 'nl') {
     const p = [
       `Goed nieuws: ${esc(contractor)} heeft uw offerte voor « ${esc(title)} » gekozen. Bestelbon: <b>${esc(order.number)}</b>.`,
@@ -229,7 +213,7 @@ export function awardedMail(
     return {
       to,
       subject: `Uw offerte is gekozen: ${title} (${order.number})`,
-      html: layout(p, { label: 'Bestelling bevestigen', url: order.url }),
+      html: layout(p, { label: 'Bestelling bevestigen', url: order.url }, undefined, 'nl'),
       text: `${p.join('\n\n').replace(/<\/?b>/g, '')}\n\n${order.url}`,
     };
   }
@@ -252,7 +236,7 @@ export function awardedMail(
 export function notSelectedMail(lang: Lang, to: string, contractor: string, title: string): Mail {
   if (lang === 'nl') {
     const p = [`${esc(contractor)} heeft voor « ${esc(title)} » een andere offerte gekozen.`, 'Bedankt voor uw antwoord. U ontvangt binnenkort nieuwe aanvragen uit uw regio.'];
-    return { to, subject: `Aanvraag afgesloten: ${title}`, html: layout(p), text: p.join('\n\n') };
+    return { to, subject: `Aanvraag afgesloten: ${title}`, html: layout(p, undefined, undefined, 'nl'), text: p.join('\n\n') };
   }
   const p = [`${esc(contractor)} a retenu une autre offre pour « ${esc(title)} ».`, 'Merci pour votre réponse. Vous recevrez bientôt de nouvelles demandes de votre zone.'];
   return { to, subject: `Demande clôturée : ${title}`, html: layout(p), text: p.join('\n\n') };
@@ -261,7 +245,7 @@ export function notSelectedMail(lang: Lang, to: string, contractor: string, titl
 export function newQuoteMail(lang: Lang, to: string, supplier: string, title: string, url: string): Mail {
   if (lang === 'nl') {
     const p = [`${esc(supplier)} heeft een offerte ingediend voor « ${esc(title)} ».`];
-    return { to, subject: `Nieuwe offerte: ${title}`, html: layout(p, { label: 'Offertes vergelijken', url }), text: `${p[0]}\n\n${url}` };
+    return { to, subject: `Nieuwe offerte: ${title}`, html: layout(p, { label: 'Offertes vergelijken', url }, undefined, 'nl'), text: `${p[0]}\n\n${url}` };
   }
   const p = [`${esc(supplier)} a remis une offre pour « ${esc(title)} ».`];
   return { to, subject: `Nouvelle offre : ${title}`, html: layout(p, { label: 'Comparer les offres', url }), text: `${p[0]}\n\n${url}` };
@@ -274,22 +258,14 @@ const paragraphs = (text: string) =>
     .filter(Boolean);
 
 /** A supplier's question (or news), relayed to the contractor. Replying answers the supplier. */
-export function questionToContractorMail(
-  lang: Lang,
-  to: string,
-  supplier: string,
-  title: string,
-  relayed: string,
-  url: string,
-  replyTo: string,
-): Mail {
+export function questionToContractorMail(lang: Lang, to: string, supplier: string, title: string, relayed: string, url: string, replyTo: string): Mail {
   if (lang === 'nl') {
     const intro = `${esc(supplier)} heeft een vraag over uw prijsaanvraag « ${esc(title)} »:`;
     const hint = 'Beantwoord gewoon deze e-mail, of antwoord in de app. Wij bezorgen uw antwoord aan de leverancier.';
     return {
       to,
       subject: `Vraag van ${supplier}: ${title}`,
-      html: layout([intro, ...paragraphs(relayed), esc(hint)], { label: 'Antwoorden in de app', url }),
+      html: layout([intro, ...paragraphs(relayed), esc(hint)], { label: 'Antwoorden in de app', url }, undefined, 'nl'),
       text: `${intro}\n\n${relayed}\n\n${hint}\n${url}`,
       replyTo,
     };
@@ -363,7 +339,7 @@ export type Localized = { subject: string; paragraphs: string[]; cta?: { label: 
 /** A short bilingual notice; paragraphs are plain text (escaped here). */
 export function notice(lang: Lang, to: string, content: Record<Lang, Localized>): Mail {
   const c = content[lang];
-  const html = layout(c.paragraphs.map(esc), c.cta);
+  const html = layout(c.paragraphs.map(esc), c.cta, undefined, lang);
   const text = [...c.paragraphs, ...(c.cta ? [c.cta.url] : [])].join('\n\n');
   return { to, subject: c.subject, html, text };
 }
@@ -451,7 +427,7 @@ export function depositAnsweredMail(d: OrderMailData, received: boolean, reason?
           paragraphs: [
             `${d.other} n'a pas encore reçu votre acompte pour la commande ${d.number}.`,
             ...(reason ? [`Motif : ${reason}`] : []),
-            "Vérifiez le virement et renvoyez une preuve si besoin.",
+            'Vérifiez le virement et renvoyez une preuve si besoin.',
           ],
           cta: { label: 'Voir la commande', url: d.url },
         },
@@ -508,10 +484,7 @@ export function orderNewsMail(d: OrderMailData, news: 'payment_reported' | 'deli
   return notice(d.lang, d.to, {
     fr: {
       subject: `Livraison confirmée : ${d.number}`,
-      paragraphs: [
-        `${d.other} a confirmé la réception de la commande ${d.number}.`,
-        `Envoyez votre facture par Peppol avec la référence de commande ${d.number}.`,
-      ],
+      paragraphs: [`${d.other} a confirmé la réception de la commande ${d.number}.`, `Envoyez votre facture par Peppol avec la référence de commande ${d.number}.`],
     },
     nl: {
       subject: `Levering bevestigd: ${d.number}`,
@@ -529,9 +502,7 @@ export function commissionBillMail(
   bill: { number: string; month: string; exVat: number; incVat: number; lines: BillLine[]; creditExVat?: number },
   url: string,
 ): Mail {
-  const rows = bill.lines.map(
-    (l) => `${l.number} · ${l.contractor} · ${l.title} · ${eur(l.baseExVat, lang)} → ${eur(l.commissionExVat, lang)}`,
-  );
+  const rows = bill.lines.map((l) => `${l.number} · ${l.contractor} · ${l.title} · ${eur(l.baseExVat, lang)} → ${eur(l.commissionExVat, lang)}`);
   const intro =
     lang === 'nl'
       ? `Commissie voor ${bill.lines.length} bestelling(en) gegund via ${APP_NAME} in ${bill.month}: ${eur(bill.exVat, 'nl')} excl. btw, of ${eur(bill.incVat, 'nl')} incl. btw.`
@@ -546,6 +517,8 @@ export function commissionBillMail(
   const html = layout(
     [esc(intro), `<ul style="margin:0;padding-left:18px">${rows.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>`, esc(outro)],
     { label: lang === 'nl' ? 'Commissie betalen' : 'Payer la commission', url },
+    undefined,
+    lang,
   );
   return {
     to,

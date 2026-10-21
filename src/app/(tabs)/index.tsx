@@ -10,6 +10,7 @@ import { SupplierHome } from '@/components/supplier-home';
 import { ThemedText } from '@/components/themed-text';
 import { MyRequests, receivedOffers, useMyRequests, type RequestRow } from '@/components/my-requests';
 import { Button, Screen } from '@/components/ui';
+import { SocialLinks } from '@/components/social-links';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
@@ -59,6 +60,8 @@ function ContractorHome() {
       <View style={{ alignSelf: 'flex-start' }}>
         <Button label={t.growth.favourites.open} variant="ghost" onPress={() => router.push('/fournisseurs')} />
       </View>
+
+      <SocialLinks />
     </Screen>
   );
 }

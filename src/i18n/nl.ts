@@ -5,6 +5,9 @@ import { APP_NAME } from '@/constants/brand';
 import type { Dictionary } from './fr';
 
 export const nl: Dictionary = {
+  social: {
+    follow: 'Vergeet ons niet te volgen op sociale media',
+  },
   common: {
     back: '← Terug',
     save: 'Opslaan',

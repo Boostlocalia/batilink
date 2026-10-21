@@ -5,6 +5,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { SupplierBanners } from '@/components/home-banners';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Screen } from '@/components/ui';
+import { SocialLinks } from '@/components/social-links';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
@@ -103,7 +104,9 @@ export function SupplierHome() {
           <Card>
             <ThemedText type="smallBold">{s.month}</ThemedText>
             <ThemedText themeColor="textSecondary">
-              {SUPPLIER_COMMISSION_ACTIVE ? s.monthLine(eur(space.this_month.sales_ex_vat), eur(space.this_month.commission_ex_vat)) : s.monthSales(eur(space.this_month.sales_ex_vat))}
+              {SUPPLIER_COMMISSION_ACTIVE
+                ? s.monthLine(eur(space.this_month.sales_ex_vat), eur(space.this_month.commission_ex_vat))
+                : s.monthSales(eur(space.this_month.sales_ex_vat))}
             </ThemedText>
           </Card>
 
@@ -120,7 +123,11 @@ export function SupplierHome() {
                   <View style={styles.rowText}>
                     <ThemedText type="smallBold">{q.request?.title}</ThemedText>
                     <ThemedText type="small" themeColor="textSecondary">
-                      {[q.request?.company?.name, `${q.request?.postal_code ?? ''} ${q.request?.city ?? ''}`.trim(), q.request?.reply_by ? formatDate(q.request.reply_by, locale) : null]
+                      {[
+                        q.request?.company?.name,
+                        `${q.request?.postal_code ?? ''} ${q.request?.city ?? ''}`.trim(),
+                        q.request?.reply_by ? formatDate(q.request.reply_by, locale) : null,
+                      ]
                         .filter(Boolean)
                         .join(' · ')}
                     </ThemedText>
@@ -193,6 +200,7 @@ export function SupplierHome() {
           </View>
         </>
       )}
+      <SocialLinks />
     </Screen>
   );
 }

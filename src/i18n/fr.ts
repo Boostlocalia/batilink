@@ -3,6 +3,9 @@ import { growthFr } from './growth.fr';
 import { signupFr } from './signup.fr';
 import { APP_NAME } from '@/constants/brand';
 export const fr = {
+  social: {
+    follow: "N'oubliez pas de nous suivre sur les réseaux",
+  },
   common: {
     back: '← Retour',
     save: 'Enregistrer',
