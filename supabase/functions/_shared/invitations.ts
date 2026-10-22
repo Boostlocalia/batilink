@@ -94,7 +94,7 @@ export async function inviteSuppliers(admin: SupabaseClient, request: SentReques
  */
 export async function pickSuppliers(admin: SupabaseClient, request: SentRequest, count: number): Promise<string[]> {
   if (count < 1) return [];
-  // Suppliers of the category within 50 km of the site, nearest first, ranked in the database (public.pick_suppliers).
+  // Nearby suppliers that sell the requested materials, one shop per brand, ranked in the database (public.pick_suppliers).
   const { data, error } = await admin.rpc('pick_suppliers', { p_request_id: request.id, p_count: count });
   if (error) console.error('pick_suppliers', error.message);
   return ((data ?? []) as string[]).filter((id) => typeof id === 'string');
