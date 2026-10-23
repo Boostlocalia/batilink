@@ -1,4 +1,4 @@
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, router, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
@@ -8,10 +8,14 @@ import { CookieBanner } from '@/components/cookie-banner';
 import { NewPassword } from '@/components/new-password';
 import { Colors } from '@/constants/theme';
 import { LanguageProvider } from '@/i18n';
+import { keepReturnTo, returnable, takeReturnTo } from '@/lib/return-to';
 import { SessionProvider, useSession } from '@/lib/session';
 import { sessionEnded } from '@/lib/supabase';
 
 SplashScreen.preventAutoHideAsync();
+
+// The page an e-mail link opened, before the sign-in guard redirects away from it.
+const openedPath = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.pathname : null;
 
 // The web app behaves like a native one: a two-finger pinch zooms in, and the page springs
 // back to its normal size when the fingers are lifted. The browser's own zoom, which stays
@@ -66,6 +70,19 @@ function RootNavigator() {
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
+
+  // Signed out on an e-mail link: keep it, and open it once the account and company are known.
+  useEffect(() => {
+    if (!ready) return;
+    if (!session) {
+      if (returnable(openedPath)) keepReturnTo(openedPath);
+      return;
+    }
+    if (!company) return;
+    takeReturnTo().then((path) => {
+      if (path) router.replace(path as never);
+    });
+  }, [ready, session, company]);
 
   if (!ready) return null;
   if (session && recovering) return <NewPassword />;

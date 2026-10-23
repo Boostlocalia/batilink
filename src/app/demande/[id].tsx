@@ -13,6 +13,8 @@ import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
 import type { OrderStatus } from '@/lib/orders';
 import { compareOffers, differs, linePrice, readFromPdf, type Offer, type RequestItem } from '@/lib/quotes';
+import { keepReturnTo } from '@/lib/return-to';
+import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 import { NODI_FACE } from '@/constants/nodi';
 
@@ -56,6 +58,9 @@ export default function CompareScreen() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [messages, setMessages] = useState<QuoteMessage[]>([]);
   const [failed, setFailed] = useState(false);
+  // The request exists only for another account: the e-mail went to an address not signed in here.
+  const [notMine, setNotMine] = useState(false);
+  const { company } = useSession();
   const [confirming, setConfirming] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [order, setOrder] = useState<{ id: string; number: string; status: OrderStatus } | null>(null);
@@ -80,6 +85,7 @@ export default function CompareScreen() {
       supabase.from('purchase_orders').select('id, number, status').eq('request_id', id).maybeSingle(),
     ]);
     setOrder((po.data as { id: string; number: string; status: OrderStatus } | null) ?? null);
+    setNotMine(req.error?.code === 'PGRST116');
     if (req.error || its.error || qs.error || msgs.error) return setFailed(true);
     setMessages(msgs.data as QuoteMessage[]);
     setFailed(false);
@@ -115,6 +121,11 @@ export default function CompareScreen() {
       supabase.rpc('mark_request_seen', { rid: id }).then(() => undefined);
     }, [load, id]),
   );
+
+  const switchAccount = async () => {
+    await keepReturnTo(`/demande/${id}`);
+    await supabase.auth.signOut({ scope: 'local' });
+  };
 
   const award = async (quoteId: string) => {
     setBusy(true);
@@ -156,7 +167,13 @@ export default function CompareScreen() {
         </Card>
       ) : null}
 
-      {failed ? (
+      {notMine ? (
+        <Card>
+          <ThemedText type="smallBold">{t.request.notMineTitle}</ThemedText>
+          <ThemedText themeColor="textSecondary">{t.request.notMine(company?.name ?? '')}</ThemedText>
+          <Button label={t.request.switchAccount} onPress={switchAccount} />
+        </Card>
+      ) : failed ? (
         <Card>
           <ThemedText themeColor="danger">{t.common.error}</ThemedText>
           <Button label={t.common.retry} variant="ghost" small onPress={load} />
