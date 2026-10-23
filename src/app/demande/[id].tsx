@@ -4,6 +4,7 @@ import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { Image } from 'expo-image';
 
+import { NotMineCard } from '@/components/not-mine-card';
 import { Questions, type Conversation, type QuoteMessage } from '@/components/questions';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Screen } from '@/components/ui';
@@ -13,8 +14,6 @@ import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
 import type { OrderStatus } from '@/lib/orders';
 import { compareOffers, differs, linePrice, readFromPdf, type Offer, type RequestItem } from '@/lib/quotes';
-import { keepReturnTo } from '@/lib/return-to';
-import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 import { NODI_FACE } from '@/constants/nodi';
 
@@ -60,7 +59,6 @@ export default function CompareScreen() {
   const [failed, setFailed] = useState(false);
   // The request exists only for another account: the e-mail went to an address not signed in here.
   const [notMine, setNotMine] = useState(false);
-  const { company } = useSession();
   const [confirming, setConfirming] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [order, setOrder] = useState<{ id: string; number: string; status: OrderStatus } | null>(null);
@@ -122,11 +120,6 @@ export default function CompareScreen() {
     }, [load, id]),
   );
 
-  const switchAccount = async () => {
-    await keepReturnTo(`/demande/${id}`);
-    await supabase.auth.signOut({ scope: 'local' });
-  };
-
   const award = async (quoteId: string) => {
     setBusy(true);
     const { data, error } = await supabase.functions.invoke('award-quote', { body: { quote_id: quoteId } });
@@ -168,11 +161,7 @@ export default function CompareScreen() {
       ) : null}
 
       {notMine ? (
-        <Card>
-          <ThemedText type="smallBold">{t.request.notMineTitle}</ThemedText>
-          <ThemedText themeColor="textSecondary">{t.request.notMine(company?.name ?? '')}</ThemedText>
-          <Button label={t.request.switchAccount} onPress={switchAccount} />
-        </Card>
+        <NotMineCard path={`/demande/${id}`} />
       ) : failed ? (
         <Card>
           <ThemedText themeColor="danger">{t.common.error}</ThemedText>

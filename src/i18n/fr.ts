@@ -117,8 +117,8 @@ export const fr = {
     },
   },
   request: {
-    notMineTitle: 'Cette demande est liée à un autre compte',
-    notMine: (name: string) => `Vous êtes connecté avec le compte ${name || 'actuel'}. Le lien de l’e-mail ouvre une demande d’un autre compte BatiNode : connectez-vous avec l’adresse qui a reçu l’e-mail pour voir les offres.`,
+    notMineTitle: 'Cette page est liée à un autre compte',
+    notMine: (name: string) => `Vous êtes connecté avec le compte ${name || 'actuel'}. Le lien de l’e-mail ouvre une page d’un autre compte BatiNode : connectez-vous avec l’adresse qui a reçu l’e-mail.`,
     switchAccount: 'Se connecter avec un autre compte',
     title: 'Demander un prix fournisseur',
     lead: 'Décrivez ce dont vous avez besoin. Les fournisseurs de votre zone la reçoivent et vous envoient leur prix.',

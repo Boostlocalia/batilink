@@ -119,8 +119,8 @@ export const nl: Dictionary = {
     },
   },
   request: {
-    notMineTitle: 'Deze aanvraag hoort bij een ander account',
-    notMine: (name: string) => `U bent aangemeld met het account ${name || 'van nu'}. De link in de e-mail opent een aanvraag van een ander BatiNode-account: meld u aan met het adres dat de e-mail ontving om de offertes te zien.`,
+    notMineTitle: 'Deze pagina hoort bij een ander account',
+    notMine: (name: string) => `U bent aangemeld met het account ${name || 'van nu'}. De link in de e-mail opent een pagina van een ander BatiNode-account: meld u aan met het adres dat de e-mail ontving.`,
     switchAccount: 'Aanmelden met een ander account',
     title: 'Leveranciersprijs vragen',
     lead: 'Beschrijf wat u nodig heeft. Leveranciers in uw regio ontvangen ze en sturen u hun prijs.',

@@ -10,6 +10,7 @@ import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
 import { formatIban, ORDER_DOCUMENT_COLUMNS, pickAndUpload, type DocumentKind, type OrderDocument, type OrderStatus } from '@/lib/orders';
 import { supabase } from '@/lib/supabase';
+import { NotMineCard } from '@/components/not-mine-card';
 
 type Order = {
   id: string;
@@ -59,6 +60,7 @@ export default function OrderScreen() {
   const [docs, setDocs] = useState<OrderDocument[]>([]);
   const [store, setStore] = useState<Store | null>(null);
   const [failed, setFailed] = useState(false);
+  const [notMine, setNotMine] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ text: string; tone: 'good' | 'danger' } | null>(null);
 
@@ -74,6 +76,7 @@ export default function OrderScreen() {
       supabase.from('order_documents').select(ORDER_DOCUMENT_COLUMNS).eq('order_id', id).order('created_at'),
       supabase.rpc('order_supplier_contact', { p_order: id }),
     ]);
+    setNotMine(o.error?.code === 'PGRST116');
     if (o.error) return setFailed(true);
     setFailed(false);
     setOrder(o.data as unknown as Order);
@@ -113,10 +116,14 @@ export default function OrderScreen() {
   if (failed)
     return (
       <Screen withTabBar={false}>
-        <Card>
-          <ThemedText themeColor="danger">{t.common.error}</ThemedText>
-          <Button label={t.common.retry} variant="ghost" small onPress={load} />
-        </Card>
+        {notMine ? (
+          <NotMineCard path={`/commande/${id}`} />
+        ) : (
+          <Card>
+            <ThemedText themeColor="danger">{t.common.error}</ThemedText>
+            <Button label={t.common.retry} variant="ghost" small onPress={load} />
+          </Card>
+        )}
       </Screen>
     );
   if (!order)
