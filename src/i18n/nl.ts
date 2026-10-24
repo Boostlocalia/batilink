@@ -479,6 +479,7 @@ export const nl: Dictionary = {
     },
   },
   orders: {
+    cancelledChooseAgain: 'Bestelling geannuleerd: u kunt hieronder een andere offerte kiezen.',
     title: (n: string) => `Bestelling ${n}`,
     follow: 'Bestelling volgen',
     status: {

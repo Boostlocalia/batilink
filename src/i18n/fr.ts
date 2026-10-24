@@ -480,6 +480,7 @@ export const fr = {
     },
   },
   orders: {
+    cancelledChooseAgain: 'Commande annulée : vous pouvez choisir une autre offre ci-dessous.',
     title: (n: string) => `Commande ${n}`,
     follow: 'Suivre la commande',
     status: {

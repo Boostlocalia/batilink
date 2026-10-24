@@ -14,6 +14,7 @@ import { depositAnsweredMail, orderConfirmedMail, orderDeclinedMail, orderReadyM
 import { logEvent } from '../_shared/events.ts';
 import { contractorOrderUrl, documentLink, orderIdFromLink } from '../_shared/order-docs.ts';
 import { canDo, normalizeIban, statusAfterConfirm, type OrderStatus } from '../_shared/orders.ts';
+import { reopenRequest } from '../_shared/reopen.ts';
 import { adminClient, corsHeaders, json } from '../_shared/supabase.ts';
 
 type Admin = ReturnType<typeof adminClient>;
@@ -159,6 +160,8 @@ Deno.serve(async (req) => {
     if (!ok) return json({ error: 'wrong_step' }, 409);
     // No sale, no commission.
     await admin.from('commissions').update({ status: 'cancelled' }).eq('order_id', order.id).eq('status', 'pending');
+    // The contractor chooses among the other offers.
+    await reopenRequest(admin, order, true);
     await logEvent(admin, { kind: 'order_declined', company_id: order.supplier_id, request_id: order.request_id, quote_id: order.quote_id, data: { order: order.number, reason } });
     if (mailData) await sendMail(orderDeclinedMail(mailData, reason || null)).catch(console.error);
     return json({ ok: true, status: 'cancelled' });

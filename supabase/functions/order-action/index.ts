@@ -11,6 +11,7 @@ import { depositProofMail, orderNewsMail, sendMail, type Lang } from '../_shared
 import { logEvent } from '../_shared/events.ts';
 import { contractorOrderUrl, issueSupplierLink, storeDocument } from '../_shared/order-docs.ts';
 import { canDo, type OrderStatus } from '../_shared/orders.ts';
+import { reopenRequest } from '../_shared/reopen.ts';
 import { adminClient, corsHeaders, json } from '../_shared/supabase.ts';
 import { checkInvoice, parseUbl } from '../_shared/ubl.ts';
 
@@ -174,6 +175,8 @@ Deno.serve(async (req) => {
       return json({ error: 'wrong_step' }, 409);
     }
     await admin.from('commissions').update({ status: 'cancelled' }).eq('order_id', order.id).eq('status', 'pending');
+    // The contractor may choose another offer, or the same one again.
+    await reopenRequest(admin, order, false);
     await logEvent(admin, { kind: 'order_cancelled', company_id: who.companyId, quote_id: order.quote_id, data: { order: order.number, reason } });
     return json({ ok: true, status: 'cancelled' });
   }

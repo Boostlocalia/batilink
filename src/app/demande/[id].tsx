@@ -80,7 +80,7 @@ export default function CompareScreen() {
         .eq('request_id', id)
         .not('relayed_at', 'is', null)
         .order('created_at'),
-      supabase.from('purchase_orders').select('id, number, status').eq('request_id', id).maybeSingle(),
+      supabase.from('purchase_orders').select('id, number, status').eq('request_id', id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
     setOrder((po.data as { id: string; number: string; status: OrderStatus } | null) ?? null);
     setNotMine(req.error?.code === 'PGRST116');
@@ -184,7 +184,7 @@ export default function CompareScreen() {
                 <View style={{ flex: 1, minWidth: 200, gap: 2 }}>
                   <ThemedText type="subtitle">{t.orders.title(order.number)}</ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
-                    {t.orders.status[order.status]}
+                    {order.status === 'cancelled' && request.status === 'sent' ? t.orders.cancelledChooseAgain : t.orders.status[order.status]}
                   </ThemedText>
                 </View>
                 <Button label={t.orders.follow} variant="signal" onPress={() => router.push(`/commande/${order.id}`)} />

@@ -81,7 +81,8 @@ export const readFromPdf = (o: Offer) => o.status === 'invited' && Boolean(o.off
 
 /** Offers that carry prices: submitted, already decided on, or read from the supplier's PDF. */
 export function pricedOffers(offers: Offer[]): Offer[] {
-  return offers.filter((o) => o.status === 'submitted' || o.status === 'awarded' || o.status === 'not_selected' || readFromPdf(o));
+  // A supplier set aside without ever answering has no prices: it is never compared, nor the best price.
+  return offers.filter((o) => o.status === 'submitted' || o.status === 'awarded' || (o.status === 'not_selected' && Object.keys(o.prices).length > 0) || readFromPdf(o));
 }
 
 export function compareOffers(items: RequestItem[], offers: Offer[]) {
