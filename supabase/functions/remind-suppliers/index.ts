@@ -1,88 +1,141 @@
-// Run hourly by a cron job (see README). Reminds suppliers who have not answered
-// 24 h after the invitation, once, and closes requests past their reply date.
+// Run hourly by a cron job (see README). Completes requests BatiNode was asked to
+// send to 5 suppliers when fewer were found at sending, relaunches those short of answers
+// after 48 h (see relaunch.ts), reminds suppliers who have
+// not answered the next working day between 8:00 and 15:00 (at least 18 h after the invitation), once, and closes requests past their reply date.
 // Only the stored hash of a reply link is known, so a reminder carries a fresh link.
 
-import { invitationMail, sendMail, type Lang } from '../_shared/email.ts';
+import { isCron } from '../_shared/cron.ts';
+import { SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
+import { contractorAddress, invitationMail, sendMail, type Lang } from '../_shared/email.ts';
+import { requestCorrections } from '../_shared/corrections.ts';
+import { checkOffers, recoverEmailedOffers, rereadOffers } from '../_shared/emailed-offer.ts';
+import { relaunchMissing } from '../_shared/relaunch.ts';
+import { isReminderTime } from '../_shared/send-window.ts';
+import { isTestCompany, testMail } from '../_shared/test-mode.ts';
 import { logEvent } from '../_shared/events.ts';
 import { relayAddress } from '../_shared/relay-address.ts';
+import { AUTO_SUPPLIERS, inviteSuppliers, pickSuppliers, type SentRequest } from '../_shared/invitations.ts';
 import { adminClient, appUrl, json } from '../_shared/supabase.ts';
 import { hashToken, newToken, tokenExpiry } from '../_shared/tokens.ts';
 
 Deno.serve(async (req) => {
-  const secret = Deno.env.get('CRON_SECRET');
-  if (!secret || req.headers.get('x-cron-secret') !== secret) return json({ error: 'unauthorized' }, 401);
-
   const admin = adminClient();
+  if (!(await isCron(req, admin))) return json({ error: 'unauthorized' }, 401);
   const today = new Date().toISOString().slice(0, 10);
 
-  const { data: closed } = await admin
-    .from('price_requests')
-    .update({ status: 'closed' })
-    .eq('status', 'sent')
-    .lt('reply_by', today)
-    .select('id');
+  // Before closing: requests short of answers after 48 h go to other suppliers, with 48 h more.
+  const relaunched = await relaunchMissing(admin);
 
-  const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
-  const { data: due } = await admin
-    .from('quotes')
-    .select(
-      'id, reply_key, supplier:companies(email, language, commission_rate), request:price_requests!inner(id, title, postal_code, city, needed_by, reply_by, fulfilment, status, company:companies(name, verified_at))',
-    )
-    .eq('status', 'invited')
-    .is('reminded_at', null)
-    .lt('created_at', dayAgo)
-    .eq('request.status', 'sent');
+  const { data: closed } = await admin.from('price_requests').update({ status: 'closed' }).eq('status', 'sent').lt('reply_by', today).select('id');
+
+  // Requests still open that BatiNode promised to send to 5 suppliers.
+  const { data: open } = await admin
+    .from('price_requests')
+    .select('id, company_id, title, category_id, postal_code, city, needed_by, reply_by, fulfilment, status, quotes(count)')
+    .eq('status', 'sent')
+    .in('supplier_choice', ['batinode', 'mix'])
+    .gte('reply_by', today);
+  let completed = 0;
+  for (const r of open ?? []) {
+    const invited = (r.quotes as unknown as { count: number }[])[0]?.count ?? 0;
+    if (invited >= AUTO_SUPPLIERS) continue;
+    const ids = await pickSuppliers(admin, r as unknown as SentRequest, AUTO_SUPPLIERS - invited);
+    if (ids.length) completed += (await inviteSuppliers(admin, r as unknown as SentRequest, ids)).sent.length;
+  }
+
+  // Quotes sent back as a PDF by e-mail whose file was not saved on arrival.
+  const recovered = await recoverEmailedOffers(admin);
+  // PDFs that gave no price yet, read once more.
+  const reread = await rereadOffers(admin);
+  // Offers whose PDF was never compared with the request (material, sizes).
+  const checked = await checkOffers(admin);
+  const corrections = await requestCorrections(admin);
+
+  // 18 h rather than 24 so that a request sent the day before still gets its reminder the next working day.
+  const dayAgo = new Date(Date.now() - 18 * 3_600_000).toISOString();
+  // Reminders wait for shop hours on a weekday (see send-window.ts).
+  const { data: due } = !isReminderTime(new Date())
+    ? { data: [] }
+    : await admin
+        .from('quotes')
+        .select(
+          'id, reply_key, supplier:companies(email, quote_email, language, commission_rate, requests_stopped_at), request:price_requests!inner(id, company_id, title, note, postal_code, city, needed_by, reply_by, fulfilment, status, company:companies(name, contact_name, verified_at, vat_number, street, postal_code, city))',
+        )
+        .eq('status', 'invited')
+        .is('reminded_at', null)
+        .lt('created_at', dayAgo)
+        .eq('request.status', 'sent');
 
   let reminded = 0;
   for (const q of due ?? []) {
-    const supplier = q.supplier as unknown as { email: string | null; language: Lang; commission_rate: number } | null;
+    const supplier = q.supplier as unknown as {
+      email: string | null;
+      quote_email: string | null;
+      language: Lang;
+      commission_rate: number;
+      requests_stopped_at: string | null;
+    } | null;
     const request = q.request as unknown as {
       id: string;
+      company_id: string;
       title: string;
+      note: string | null;
       postal_code: string;
       city: string | null;
       needed_by: string | null;
       reply_by: string;
       fulfilment: string;
-      company: { name: string; verified_at: string | null } | null;
+      company: {
+        name: string;
+        contact_name: string | null;
+        verified_at: string | null;
+        vat_number: string | null;
+        street: string | null;
+        postal_code: string | null;
+        city: string | null;
+      } | null;
     };
-    if (!supplier?.email) continue;
+    if (!supplier?.email || supplier.requests_stopped_at) continue;
+    // A supplier who already answered by e-mail is not reminded.
+    const { count: wrote } = await admin.from('quote_messages').select('id', { count: 'exact', head: true }).eq('quote_id', q.id).eq('author', 'supplier');
+    if (wrote) continue;
     const token = newToken();
     await admin
       .from('quotes')
       .update({ token_hash: await hashToken(token), token_expires_at: tokenExpiry(), reminded_at: new Date().toISOString() })
       .eq('id', q.id);
-    const { data: items } = await admin
-      .from('request_items')
-      .select('label, quantity, unit')
-      .eq('request_id', request.id)
-      .order('position');
-    await sendMail(
-      invitationMail(
-        {
-          lang: supplier.language,
-          to: supplier.email,
-          contractor: request.company?.name ?? '',
-          contractorVerified: Boolean(request.company?.verified_at),
-          title: request.title,
-          postalCode: request.postal_code,
-          city: request.city,
-          items: items ?? [],
-          neededBy: request.needed_by,
-          replyBy: request.reply_by,
-          delivery: request.fulfilment === 'delivery',
-          url: `${appUrl()}/offre/${token}`,
-          commissionRate: Number(supplier.commission_rate),
-          replyTo: relayAddress('supplier', q.reply_key, Deno.env.get('RELAY_EMAIL_DOMAIN') ?? undefined),
-        },
-        true,
-      ),
-    )
+    const { data: items } = await admin.from('request_items').select('label, quantity, unit').eq('request_id', request.id).order('position');
+    const mail = invitationMail(
+      {
+        lang: supplier.language,
+        to: supplier.quote_email ?? supplier.email,
+        contractor: request.company?.name ?? '',
+        contractorVerified: Boolean(request.company?.verified_at),
+        contractorVat: request.company?.vat_number ?? null,
+        contractorAddress: contractorAddress(request.company),
+        contactName: request.company?.contact_name ?? null,
+        note: request.note,
+        title: request.title,
+        postalCode: request.postal_code,
+        city: request.city,
+        items: items ?? [],
+        neededBy: request.needed_by,
+        replyBy: request.reply_by,
+        delivery: request.fulfilment === 'delivery',
+        url: `${appUrl()}/offre/${token}`,
+        unsubscribeUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/supplier-quote?token=${token}&unsubscribe=1`,
+        commissionRate: SUPPLIER_COMMISSION_ACTIVE ? Number(supplier.commission_rate) : null,
+        replyTo: relayAddress('supplier', q.reply_key, Deno.env.get('RELAY_EMAIL_DOMAIN') ?? undefined),
+      },
+      true,
+    );
+    await sendMail((await isTestCompany(admin, request.company_id)) ? testMail(mail) : mail)
       .then(() => reminded++)
       .catch(console.error);
   }
 
+  if (completed) await logEvent(admin, { kind: 'request_completed', data: { count: completed } });
   if (closed?.length) await logEvent(admin, { kind: 'requests_closed', data: { count: closed.length } });
   if (reminded) await logEvent(admin, { kind: 'supplier_reminded', data: { count: reminded } });
-  return json({ closed: closed?.length ?? 0, reminded });
+  return json({ completed, relaunched, closed: closed?.length ?? 0, reminded, recovered, reread, checked, corrections });
 });

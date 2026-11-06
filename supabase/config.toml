@@ -5,11 +5,32 @@ schemas = ["public"]
 
 [auth]
 site_url = "http://localhost:8081"
-additional_redirect_urls = ["batilink://"]
+additional_redirect_urls = ["batinode://", "batilink://"]
+# Same as the hosted project and src/lib/password.ts.
+minimum_password_length = 10
+password_requirements = "letters_digits"
 
 [auth.email]
 enable_signup = true
 otp_length = 6
+
+# Sign-in e-mails in the user's language (user metadata "language", kept in sync with profiles.language). Paste the same subject and file into
+# Supabase → Authentication → Email Templates for the hosted project.
+[auth.email.template.confirmation]
+subject = "{{ if eq (printf \"%v\" .Data.language) \"nl\" }}Bevestig uw e-mailadres{{ else }}Confirmez votre adresse{{ end }} · Batinode"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "{{ if eq (printf \"%v\" .Data.language) \"nl\" }}Uw nieuwe wachtwoord{{ else }}Votre nouveau mot de passe{{ end }} · Batinode"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.magic_link]
+subject = "{{ if eq (printf \"%v\" .Data.language) \"nl\" }}Uw aanmeldlink{{ else }}Votre lien de connexion{{ end }} · Batinode"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "{{ if eq (printf \"%v\" .Data.language) \"nl\" }}Bevestig uw nieuwe adres{{ else }}Confirmez votre nouvelle adresse{{ end }} · Batinode"
+content_path = "./supabase/templates/email_change.html"
 
 # Suppliers open their reply link without an account.
 [functions.supplier-quote]
@@ -41,4 +62,8 @@ verify_jwt = false
 
 # Cron job (shared secret) and the payment link in the supplier e-mail (token).
 [functions.bill-commissions]
+verify_jwt = false
+
+# Daily cron job, authenticated by x-cron-secret.
+[functions.lifecycle]
 verify_jwt = false

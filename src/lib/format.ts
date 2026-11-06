@@ -37,3 +37,9 @@ export function normalizeVat(input: string): string {
 
 export const isBelgianVat = (vat: string) => /^BE[01]\d{9}$/.test(normalizeVat(vat));
 export const isBelgianPostalCode = (code: string) => /^[1-9]\d{3}$/.test(code.trim());
+
+/** Suppliers have 48 hours to answer a price request: the deadline's date (YYYY-MM-DD). */
+export const REPLY_HOURS = 48;
+export function replyDeadline(sentAt: Date): string {
+  return new Date(sentAt.getTime() + REPLY_HOURS * 3_600_000).toISOString().slice(0, 10);
+}

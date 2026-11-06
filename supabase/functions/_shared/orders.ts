@@ -3,13 +3,7 @@
 
 export const BELGIAN_VAT = 0.21;
 
-export type OrderStatus =
-  | 'awaiting_supplier'
-  | 'awaiting_deposit'
-  | 'deposit_proof_sent'
-  | 'in_progress'
-  | 'delivered'
-  | 'cancelled';
+export type OrderStatus = 'awaiting_supplier' | 'awaiting_deposit' | 'deposit_proof_sent' | 'in_progress' | 'delivered' | 'cancelled';
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 export const toCents = (euros: number) => Math.round(euros * 100);
@@ -43,6 +37,7 @@ export type OrderAction =
   | 'deposit_proof'
   | 'deposit_received'
   | 'deposit_rejected'
+  | 'supplier_ready'
   | 'delivered'
   | 'payment_proof'
   | 'contractor_cancel';
@@ -53,6 +48,8 @@ const ALLOWED: Record<OrderAction, OrderStatus[]> = {
   deposit_proof: ['awaiting_deposit', 'deposit_proof_sent'],
   deposit_received: ['deposit_proof_sent', 'awaiting_deposit'],
   deposit_rejected: ['deposit_proof_sent'],
+  // Goods that were not in stock arrived: any time after the supplier confirmed, before delivery.
+  supplier_ready: ['awaiting_deposit', 'deposit_proof_sent', 'in_progress'],
   delivered: ['in_progress'],
   payment_proof: ['in_progress', 'delivered'],
   contractor_cancel: ['awaiting_supplier'],

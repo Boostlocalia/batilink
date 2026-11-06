@@ -1,7 +1,10 @@
+import * as DocumentPicker from "expo-document-picker";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 
+import { Logo } from "@/components/logo";
+import { LegalLinks } from "@/components/legal-links";
 import { Assistant } from "@/components/assistant";
 import { ThemedText } from "@/components/themed-text";
 import { Button, Card, Chip, Field, Screen, Segmented } from "@/components/ui";
@@ -17,7 +20,6 @@ import {
   toBelgianDate,
 } from "@/lib/format";
 import { anonHeaders, functionsUrl } from "@/lib/supabase";
-import { APP_NAME } from "@/constants/brand";
 
 type Payload = {
   quote: {
@@ -27,6 +29,7 @@ type Payload = {
     valid_until: string | null;
     comment: string | null;
     commission_accepted: boolean;
+    has_file: boolean;
     prices: Record<string, number>;
   };
   request: {
@@ -35,13 +38,27 @@ type Payload = {
     city: string | null;
     needed_by: string | null;
     reply_by: string;
+    sent_at: string | null;
     fulfilment: "delivery" | "pickup";
     note: string | null;
     status: string;
-    company: { name: string; verified_at: string | null } | null;
+    company: {
+      name: string;
+      verified_at: string | null;
+      vat_number: string | null;
+      street: string | null;
+      postal_code: string | null;
+      city: string | null;
+    } | null;
   };
   items: { id: string; label: string; quantity: number; unit: string }[];
-  supplier: { name: string; language: Language; commission_rate: number };
+  /** commission_rate is null while suppliers answer for free. */
+  supplier: {
+    name: string;
+    language: Language;
+    commission_rate: number | null;
+    requests_stopped: boolean;
+  };
   messages: {
     author: "supplier" | "contractor";
     text: string | null;
@@ -51,13 +68,17 @@ type Payload = {
 
 /** Public page opened from the supplier e-mail. No account needed. */
 export default function SupplierQuoteScreen() {
-  const { token } = useLocalSearchParams<{ token: string }>();
+  const { token, stop } = useLocalSearchParams<{
+    token: string;
+    stop?: string;
+  }>();
   const { t, locale, language, setLanguage } = useI18n();
   const theme = useTheme();
   const [data, setData] = useState<Payload | null>(null);
   const [state, setState] = useState<
-    "loading" | "ready" | "invalid" | "error" | "sent" | "declined"
+    "loading" | "ready" | "invalid" | "error" | "sent" | "declined" | "stopped"
   >("loading");
+  const [confirmStop, setConfirmStop] = useState(stop === "1");
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [deliveryFee, setDeliveryFee] = useState("0");
   const [leadTime, setLeadTime] = useState("");
@@ -68,6 +89,17 @@ export default function SupplierQuoteScreen() {
   const [busy, setBusy] = useState(false);
   const [question, setQuestion] = useState("");
   const [asked, setAsked] = useState(false);
+  const [pdf, setPdf] = useState<{
+    busy: boolean;
+    attached: boolean;
+    note: string | null;
+    error: string | null;
+  }>({
+    busy: false,
+    attached: false,
+    note: null,
+    error: null,
+  });
 
   useEffect(() => {
     fetch(`${functionsUrl}/supplier-quote?token=${encodeURIComponent(token)}`, {
@@ -92,6 +124,7 @@ export default function SupplierQuoteScreen() {
           setValidUntil(toBelgianDate(body.quote.valid_until));
         setComment(body.quote.comment ?? "");
         setAcceptCommission(body.quote.commission_accepted);
+        setPdf((s) => ({ ...s, attached: body.quote.has_file }));
         setState("ready");
       })
       .catch(() => setState("error"));
@@ -141,7 +174,9 @@ export default function SupplierQuoteScreen() {
       return setError(t.supplier.invalidTerms);
     const valid = validUntil.trim() ? parseBelgianDate(validUntil) : null;
     if (validUntil.trim() && !valid) return setError(t.request.errors.date);
-    if (!acceptCommission) return setError(t.supplier.commissionRequired);
+    const commissionOn = data.supplier.commission_rate !== null;
+    if (commissionOn && !acceptCommission)
+      return setError(t.supplier.commissionRequired);
     if (
       await post({
         prices: parsed,
@@ -149,7 +184,7 @@ export default function SupplierQuoteScreen() {
         lead_time_days: days,
         valid_until: valid,
         comment,
-        accept_commission: true,
+        accept_commission: commissionOn,
       })
     ) {
       setState("sent");
@@ -175,8 +210,94 @@ export default function SupplierQuoteScreen() {
     }
   };
 
+  /** Sends the supplier's own PDF quote; Nodi's reading pre-fills the form for them to check. */
+  const attachPdf = async () => {
+    if (!data) return;
+    const picked = await DocumentPicker.getDocumentAsync({
+      type: "application/pdf",
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    const asset = picked.canceled ? null : picked.assets[0];
+    if (!asset) return;
+    setPdf((s) => ({ ...s, busy: true, error: null, note: null }));
+    try {
+      const form = new FormData();
+      form.append("token", token);
+      if (Platform.OS === "web" && asset.file)
+        form.append("file", asset.file, asset.name);
+      // React Native's FormData takes a { uri, name, type } file.
+      else
+        form.append("file", {
+          uri: asset.uri,
+          name: asset.name,
+          type: "application/pdf",
+        } as unknown as Blob);
+      const res = await fetch(`${functionsUrl}/supplier-quote`, {
+        method: "POST",
+        headers: anonHeaders,
+        body: form,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const key = json.error as keyof typeof t.supplier.pdfErrors;
+        if (json.error === "closed")
+          return setPdf((s) => ({
+            ...s,
+            busy: false,
+            error: t.supplier.closed,
+          }));
+        return setPdf((s) => ({
+          ...s,
+          busy: false,
+          error: t.supplier.pdfErrors[key] ?? t.common.error,
+        }));
+      }
+      const reading = json.reading as {
+        items: { item_id: string; unit_price: number | null }[];
+        delivery_fee: number | null;
+        lead_time_days: number | null;
+        valid_until: string | null;
+        note: string;
+      } | null;
+      let found = 0;
+      if (reading) {
+        const read = reading.items.filter((i) => i.unit_price !== null);
+        found = read.length;
+        setPrices((p) => ({
+          ...p,
+          ...Object.fromEntries(
+            read.map((i) => [i.item_id, String(i.unit_price)]),
+          ),
+        }));
+        if (reading.delivery_fee !== null)
+          setDeliveryFee(String(reading.delivery_fee));
+        if (reading.lead_time_days !== null)
+          setLeadTime(String(reading.lead_time_days));
+        if (reading.valid_until)
+          setValidUntil(toBelgianDate(reading.valid_until));
+      }
+      const summary =
+        reading && found
+          ? t.supplier.pdfFilled(found, data.items.length)
+          : t.supplier.pdfNotRead;
+      setPdf({
+        busy: false,
+        attached: true,
+        error: null,
+        note: [summary, reading?.note].filter(Boolean).join(" "),
+      });
+    } catch {
+      setPdf((s) => ({ ...s, busy: false, error: t.common.error }));
+    }
+  };
+
   const decline = async () => {
     if (await post({ decline: true })) setState("declined");
+  };
+
+  const stopRequests = async () => {
+    if (await post({ stop_requests: true })) setState("stopped");
   };
 
   const total =
@@ -188,9 +309,7 @@ export default function SupplierQuoteScreen() {
 
   const header = (
     <View style={styles.header}>
-      <ThemedText type="subtitle" themeColor="signal">
-        {APP_NAME}
-      </ThemedText>
+      <Logo size={24} />
       <Segmented<Language>
         value={language}
         onChange={setLanguage}
@@ -209,6 +328,7 @@ export default function SupplierQuoteScreen() {
       error: t.common.error,
       sent: t.supplier.thanks,
       declined: t.supplier.declinedThanks,
+      stopped: t.supplier.stopped,
       ready: "",
     }[state];
     return (
@@ -217,7 +337,7 @@ export default function SupplierQuoteScreen() {
         <Card>
           <ThemedText
             themeColor={
-              state === "sent" || state === "declined"
+              state === "sent" || state === "declined" || state === "stopped"
                 ? "good"
                 : state === "loading"
                   ? "textSecondary"
@@ -231,7 +351,49 @@ export default function SupplierQuoteScreen() {
     );
   }
 
+  if (confirmStop && !data.supplier.requests_stopped) {
+    return (
+      <Screen withTabBar={false}>
+        {header}
+        <Card>
+          <ThemedText type="subtitle">{t.supplier.stopTitle}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {t.supplier.stopLead}
+          </ThemedText>
+          {error ? <ThemedText themeColor="danger">{error}</ThemedText> : null}
+          <Button
+            label={t.supplier.stopConfirm}
+            variant="signal"
+            busy={busy}
+            onPress={stopRequests}
+          />
+          <Button
+            label={t.supplier.stopCancel}
+            variant="ghost"
+            small
+            onPress={() => setConfirmStop(false)}
+          />
+        </Card>
+      </Screen>
+    );
+  }
+
   const { request, items } = data;
+  const client = request.company;
+  const clientLine = client
+    ? [
+        client.name,
+        client.vat_number,
+        [
+          client.street,
+          [client.postal_code, client.city].filter(Boolean).join(" "),
+        ]
+          .filter(Boolean)
+          .join(", "),
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
   const open =
     request.status === "sent" &&
     ["invited", "submitted"].includes(data.quote.status);
@@ -247,9 +409,15 @@ export default function SupplierQuoteScreen() {
           </ThemedText>
           <ThemedText type="title">{request.title}</ThemedText>
           <ThemedText themeColor="textSecondary">
-            {t.supplier.from(request.company?.name ?? "")} ·{" "}
-            {request.postal_code} {request.city ?? ""}
+            {t.supplier.site(
+              `${request.postal_code} ${request.city ?? ""}`.trim(),
+            )}
           </ThemedText>
+          {clientLine ? (
+            <ThemedText type="small">
+              {t.supplier.client}: {clientLine}
+            </ThemedText>
+          ) : null}
           <View style={styles.chips}>
             <Chip
               label={
@@ -260,6 +428,13 @@ export default function SupplierQuoteScreen() {
             />
             {request.needed_by ? (
               <Chip label={formatDate(request.needed_by, locale)} />
+            ) : null}
+            {request.sent_at ? (
+              <Chip
+                label={t.supplier.sentOn(
+                  formatDate(request.sent_at.slice(0, 10), locale),
+                )}
+              />
             ) : null}
             <Chip
               label={t.supplier.replyBy(formatDate(request.reply_by, locale))}
@@ -272,7 +447,46 @@ export default function SupplierQuoteScreen() {
           <ThemedText type="small" themeColor="good">
             {t.supplier.noAccount}
           </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {t.supplier.about}
+          </ThemedText>
         </View>
+
+        {open ? (
+          <Card>
+            <ThemedText type="smallBold">{t.supplier.pdfTitle}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {t.supplier.pdfLead}
+            </ThemedText>
+            <Button
+              label={
+                pdf.busy
+                  ? t.supplier.pdfReading
+                  : pdf.attached
+                    ? t.supplier.pdfReplace
+                    : t.supplier.pdfPick
+              }
+              variant={pdf.attached ? "ghost" : "signal"}
+              busy={pdf.busy}
+              onPress={attachPdf}
+            />
+            {pdf.attached && !pdf.note ? (
+              <ThemedText type="small" themeColor="signal">
+                {t.supplier.pdfAttached}
+              </ThemedText>
+            ) : null}
+            {pdf.note ? (
+              <ThemedText type="small" themeColor="signal">
+                {pdf.note}
+              </ThemedText>
+            ) : null}
+            {pdf.error ? (
+              <ThemedText type="small" themeColor="danger">
+                {pdf.error}
+              </ThemedText>
+            ) : null}
+          </Card>
+        ) : null}
 
         <Card>
           {items.map((item, index) => (
@@ -339,7 +553,7 @@ export default function SupplierQuoteScreen() {
               {formatEuro(total, locale)}
             </ThemedText>
           </View>
-          {open ? (
+          {open && data.supplier.commission_rate !== null ? (
             <Pressable
               accessibilityRole="checkbox"
               accessibilityState={{
@@ -452,6 +666,7 @@ export default function SupplierQuoteScreen() {
             ) : null}
           </Card>
         ) : null}
+        <LegalLinks />
       </Screen>
       <Assistant audience="supplier" token={token} />
     </View>

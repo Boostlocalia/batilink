@@ -3,6 +3,7 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 type Event = {
   kind:
     | 'request_sent'
+    | 'request_completed'
     | 'quote_submitted'
     | 'quote_declined'
     | 'quote_awarded'
@@ -13,6 +14,7 @@ type Event = {
     | 'inbound_rejected'
     | 'agreement_checked'
     | 'order_confirmed'
+    | 'order_ready'
     | 'order_declined'
     | 'order_cancelled'
     | 'deposit_proof_sent'
@@ -25,7 +27,22 @@ type Event = {
     | 'payment_succeeded'
     | 'payment_failed'
     | 'subscription_changed'
-    | 'commission_billed';
+    | 'founder_joined'
+    | 'founder_upgraded'
+    | 'founder_ended'
+    | 'commission_billed'
+    | 'supplier_requested'
+    | 'supplier_unsubscribed'
+    | 'contact_requested'
+    | 'contact_accepted'
+    | 'network_deal'
+    | 'news_published'
+    | 'quota_alert'
+    | 'request_relaunched'
+    | 'offer_via_support'
+    | 'correction_requested'
+    | 'correction_received'
+    | 'account_deleted';
   company_id?: string | null;
   request_id?: string | null;
   quote_id?: string | null;
