@@ -28,6 +28,12 @@ TNC construct srl a un **accès Premium à vie** offert (plan `full`, sans Strip
 | Assistant Nodi (Claude) | La fonction `assistant` refuse ; la bulle est masquée. |
 | Pixel Meta et bandeau cookies | Désactivés dans l'app. |
 
+## État du déploiement (6 novembre 2026)
+
+- Base : mode privé actif, 5 tâches en pause, aucun compte bloqué, inscriptions refusées (testé).
+- Fonction `assistant` déployée avec le garde-fou. `subscription`, `lifecycle`, `bill-commissions` et `news-daily` tournent encore dans leur ancienne version : sans danger, car les tâches sont en pause et Stripe est en mode test. À redéployer avant de passer Stripe en réel.
+- Le compte Modern X Renov est administrateur : ses demandes de prix sont en mode test (envoyées à support@batinode.be). Les vraies demandes se font avec TNC construct.
+
 ## Réglages à faire dans tes comptes (une fois)
 
 1. **Meta (Facebook) Ads** : business.facebook.com → Gestionnaire de publicités → compte « BatiNode » → coche toutes les campagnes → interrupteur sur « Désactivé ». Le compte est en solde impayé (« UNSETTLED ») : règle le solde dans Paramètres de paiement pour qu'il ne s'alourdisse pas, puis retire la carte si tu veux être sûr qu'aucune campagne ne reparte.
