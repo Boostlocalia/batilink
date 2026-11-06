@@ -1,12 +1,12 @@
 # Mode privé (BatiNode réservé à son propriétaire)
 
-Depuis le 6 novembre 2026, BatiNode tourne en **mode privé** : Henrique s'en sert seul pour ses demandes de prix de matériaux (Modern X Renov), et tout ce qui coûte de l'argent ou consomme un quota payant est en pause. Rien n'est supprimé : tout se rallume en quelques minutes.
+Depuis le 6 novembre 2026, BatiNode tourne en **mode privé** : Henrique s'en sert seul pour ses demandes de prix de matériaux, avec les comptes Modern X Renov et TNC construct srl, et tout ce qui coûte de l'argent ou consomme un quota payant est en pause. Rien n'est supprimé : tout se rallume en quelques minutes.
 
 ## Ce qui reste actif
 
 | Fonction | Pourquoi |
 | --- | --- |
-| Connexion du compte `henrique.peneda@gmail.com` (plan Premium, sans Stripe) | Usage du propriétaire |
+| Connexion des comptes `henrique.peneda@gmail.com` (Modern X Renov) et `contact@t-n-c.be` (TNC construct srl) | Usage du propriétaire |
 | Demandes de prix aux fournisseurs, comparateur, bons de commande | Le cœur de l'outil |
 | Pages des fournisseurs (`/offre/…`, `/bon/…`) et leurs questions relayées | Les fournisseurs répondent sans compte |
 | Relances des fournisseurs (tâche `remind-suppliers`, toutes les heures) | Elles concernent tes propres demandes |
@@ -55,7 +55,7 @@ select public.private_mode_allow('collegue@exemple.be');
 ## Remettre le mode privé
 
 ```sql
-select public.private_mode_on(array['henrique.peneda@gmail.com']);
+select public.private_mode_on(array['henrique.peneda@gmail.com', 'contact@t-n-c.be']);
 ```
 
 Ces fonctions ne sont appelables que depuis l'éditeur SQL de Supabase (ou la clé de service) : ni un visiteur ni un compte connecté ne peut changer le mode.
