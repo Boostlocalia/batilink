@@ -12,6 +12,8 @@ Depuis le 6 novembre 2026, BatiNode tourne en **mode privé** : Henrique s'en se
 | Relances des fournisseurs (tâche `remind-suppliers`, toutes les heures) | Elles concernent tes propres demandes |
 | Recontrôle nocturne TVA / BCE (`verify-companies`) | Services publics gratuits ; garde ton entreprise « vérifiée » |
 
+TNC construct srl a un **accès Premium à vie** offert (plan `full`, sans Stripe ni date de fin) : il reste valable après la réouverture au public, et `private_mode_off()` ne le touche pas.
+
 ## Ce qui est en pause
 
 | Élément | Comment c'est coupé |
