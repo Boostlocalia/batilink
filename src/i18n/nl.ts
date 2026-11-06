@@ -41,7 +41,7 @@ export const nl: Dictionary = {
     signUpLead: 'Maak uw account aan in één minuut. Daarna voegt u uw bedrijf toe.',
     signInTab: 'Aanmelden',
     signUpTab: 'Account aanmaken',
-    privateMode: 'BatiNode is voorlopig privé: registreren is niet mogelijk.',
+    privateMode: 'BatiNode is in onderhoud: registreren is voorlopig niet mogelijk. Leden kunnen zich aanmelden.',
     email: 'E-mailadres',
     password: 'Wachtwoord',
     newPassword: 'Kies een wachtwoord',

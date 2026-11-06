@@ -5,7 +5,7 @@ import { Animated, Platform, Pressable, StyleSheet, useWindowDimensions, View } 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { bannerUrl, type Banner } from '@/lib/banners';
-import { NODI } from '@/constants/nodi';
+import { NODI_FACE } from '@/constants/nodi';
 
 /** Neon accents that light up each slide in turn, on top of the lime signal colour. */
 export const ACCENTS = { lime: '#d4ff3a', cyan: '#2ee6ff', magenta: '#ff3dc8', orange: '#ff8a1f', violet: '#9d6bff' } as const;
@@ -126,13 +126,13 @@ export function HeroCarousel({ slides, height = 240 }: { slides: Slide[]; height
   );
 }
 
-/** Nodi with his megaphone. */
+/** Nodi's face, framed for a small round avatar. */
 function NodiFace({ accent }: { accent: string }) {
   return (
     <View style={[styles.face, { borderColor: accent }]}>
       <Image
-        source={NODI}
-        contentFit="contain"
+        source={NODI_FACE}
+        contentFit="cover"
         style={StyleSheet.absoluteFill}
         accessibilityLabel="Nodi"
       />

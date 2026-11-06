@@ -34,6 +34,9 @@ TNC construct srl a un **accès Premium à vie** offert (plan `full`, sans Strip
 - Fonction `assistant` déployée avec le garde-fou. `subscription`, `lifecycle`, `bill-commissions` et `news-daily` tournent encore dans leur ancienne version : sans danger, car les tâches sont en pause et Stripe est en mode test. À redéployer avant de passer Stripe en réel.
 - Le compte Modern X Renov est administrateur : ses demandes de prix sont en mode test (envoyées à support@batinode.be). Les vraies demandes se font avec TNC construct.
 
+- Site vitrine batinode.be : page « en maintenance » (FR et NL) avec un bouton « Accès membres » vers l'app. Les pages complètes sont dans l'historique du dépôt `Boostlocalia/batinode-site` (commit « Maintenance page… ») : pour rouvrir, `git revert` de ce commit sur `main`.
+- App : la connexion affiche « BatiNode est en maintenance : les inscriptions sont fermées pour le moment ».
+
 ## Réglages à faire dans tes comptes (une fois)
 
 1. **Meta (Facebook) Ads** : business.facebook.com → Gestionnaire de publicités → compte « BatiNode » → coche toutes les campagnes → interrupteur sur « Désactivé ». Le compte est en solde impayé (« UNSETTLED ») : règle le solde dans Paramètres de paiement pour qu'il ne s'alourdisse pas, puis retire la carte si tu veux être sûr qu'aucune campagne ne reparte.
