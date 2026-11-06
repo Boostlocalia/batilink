@@ -1,5 +1,7 @@
 import { Platform } from 'react-native';
 
+import { PRIVATE_MODE } from '@/lib/private-mode';
+
 // Meta pixel for the web app, loaded only after the visitor accepts it in the cookie banner.
 // It never runs on the suppliers' e-mail links (/offre, /bon) nor while a sign-in link still
 // carries its token in the address, and it sends no personal data (no advanced matching).
@@ -55,7 +57,8 @@ let loaded = false;
 
 /** Loads the pixel if the visitor accepted and the page is safe to report. Returns whether it runs. */
 export function startPixel(path: string): boolean {
-  if (!web || loaded) return loaded;
+  if (!web || PRIVATE_MODE) return false;
+  if (loaded) return loaded;
   if (readConsent() !== 'yes' || privatePath(path) || secretInUrl()) return false;
   loaded = true;
   const w = window as PixelWindow;

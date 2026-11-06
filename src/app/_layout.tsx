@@ -8,6 +8,7 @@ import { CookieBanner } from '@/components/cookie-banner';
 import { NewPassword } from '@/components/new-password';
 import { Colors } from '@/constants/theme';
 import { LanguageProvider } from '@/i18n';
+import { PRIVATE_MODE } from '@/lib/private-mode';
 import { keepReturnTo, returnable, takeReturnTo } from '@/lib/return-to';
 import { SessionProvider, useSession } from '@/lib/session';
 import { sessionEnded } from '@/lib/supabase';
@@ -89,7 +90,7 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!!session && (!!company || browsing)} redirectTo={session ? '/entreprise' : sessionEnded() ? '/connexion' : '/bienvenue'}>
+      <Stack.Protected guard={!!session && (!!company || browsing)} redirectTo={session ? '/entreprise' : sessionEnded() || PRIVATE_MODE ? '/connexion' : '/bienvenue'}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="demande/[id]" options={INNER} />
         <Stack.Screen name="annonce/nouvelle" options={{ ...INNER, presentation: 'modal' }} />
@@ -140,7 +141,7 @@ export default function RootLayout() {
       <LanguageProvider>
         <SessionProvider>
           <RootNavigator />
-          {Platform.OS === 'web' ? <CookieBanner /> : null}
+          {Platform.OS === 'web' && !PRIVATE_MODE ? <CookieBanner /> : null}
         </SessionProvider>
       </LanguageProvider>
     </ThemeProvider>

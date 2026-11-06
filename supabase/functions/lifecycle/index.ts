@@ -3,6 +3,7 @@
 // Each e-mail goes once per company (lifecycle_messages), so reruns are safe.
 
 import { isCron } from '../_shared/cron.ts';
+import { paused, privateMode } from '../_shared/private-mode.ts';
 import { sendMail, type Lang } from '../_shared/email.ts';
 import {
   activationMail,
@@ -242,6 +243,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   const admin = adminClient();
   if (!(await isCron(req, admin))) return json({ error: 'unauthorized' }, 401);
+  if (await privateMode(admin)) return paused();
   const now = new Date();
   const trials = await endTrials(admin, now);
   const activated = await activation(admin, now);

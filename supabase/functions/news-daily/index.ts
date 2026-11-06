@@ -11,6 +11,7 @@ import { betaZodOutputFormat } from 'npm:@anthropic-ai/sdk@0.135.0/helpers/beta/
 import { z } from 'npm:zod@4.6.7';
 
 import { isCron } from '../_shared/cron.ts';
+import { paused, privateMode } from '../_shared/private-mode.ts';
 import { sendMail } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
 import { adminClient, json } from '../_shared/supabase.ts';
@@ -69,6 +70,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   const admin = adminClient();
   if (!(await isCron(req, admin))) return json({ error: 'unauthorized' }, 401);
+  if (await privateMode(admin)) return paused();
   if (!Deno.env.get('ANTHROPIC_API_KEY')) return json({ error: 'assistant_unavailable' }, 503);
 
   const today = new Date().toISOString().slice(0, 10);
