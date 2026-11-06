@@ -6,6 +6,7 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Logo } from "@/components/logo";
 import { LegalLinks } from "@/components/legal-links";
 import { Assistant } from "@/components/assistant";
+import { PRIVATE_MODE } from "@/lib/private-mode";
 import { ThemedText } from "@/components/themed-text";
 import { Button, Card, Chip, Field, Screen, Segmented } from "@/components/ui";
 import { Spacing } from "@/constants/theme";
@@ -668,7 +669,7 @@ export default function SupplierQuoteScreen() {
         ) : null}
         <LegalLinks />
       </Screen>
-      <Assistant audience="supplier" token={token} />
+      {PRIVATE_MODE ? null : <Assistant audience="supplier" token={token} />}
     </View>
   );
 }

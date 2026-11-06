@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import AppTabs from '@/components/app-tabs';
 import { Assistant } from '@/components/assistant';
+import { PRIVATE_MODE } from '@/lib/private-mode';
 import { useSession } from '@/lib/session';
 
 /** Screens a contractor can still open once the trial is over, to choose a plan or sign out. */
@@ -18,7 +19,7 @@ export default function TabLayout() {
     <View style={{ flex: 1 }}>
       <AppTabs />
       {/* Nodi speaks to contractors and architects; suppliers have their own space. */}
-      {company?.kind !== 'supplier' ? <Assistant audience={company?.kind === 'architect' ? 'architect' : 'contractor'} /> : null}
+      {company?.kind !== 'supplier' && !PRIVATE_MODE ? <Assistant audience={company?.kind === 'architect' ? 'architect' : 'contractor'} /> : null}
     </View>
   );
 }

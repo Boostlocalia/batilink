@@ -10,6 +10,7 @@
 // page for the bill (Stripe pages expire, the e-mail link does not).
 
 import { isCron } from '../_shared/cron.ts';
+import { paused, privateMode } from '../_shared/private-mode.ts';
 import { commissionBillMail, sendMail, type BillLine, type Lang } from '../_shared/email.ts';
 import { logEvent } from '../_shared/events.ts';
 import { orderAmounts, toCents } from '../_shared/orders.ts';
@@ -70,6 +71,7 @@ Deno.serve(async (req) => {
   if (req.method === 'GET') return payLink(admin, new URL(req.url).searchParams.get('pay'));
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   if (!(await isCron(req, admin))) return json({ error: 'unauthorized' }, 401);
+  if (await privateMode(admin)) return paused();
 
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));

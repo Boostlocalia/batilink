@@ -39,6 +39,7 @@ export const fr = {
     signUpLead: 'Créez votre compte en une minute. Vous ajouterez ensuite votre entreprise.',
     signInTab: 'Se connecter',
     signUpTab: 'Créer un compte',
+    privateMode: 'BatiNode est en maintenance : les inscriptions sont fermées pour le moment. Les membres peuvent se connecter.',
     email: 'Adresse e-mail',
     password: 'Mot de passe',
     newPassword: 'Choisissez un mot de passe',
