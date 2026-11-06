@@ -46,7 +46,8 @@ TNC construct srl a un **accès Premium à vie** offert (plan `full`, sans Strip
    ```
    Les tâches mises en pause repartent, les comptes bloqués sont débloqués, les inscriptions sont acceptées.
 2. Dans `.github/workflows/deploy-web.yml` (et `netlify.toml` si Netlify sert le site), passe `EXPO_PUBLIC_PRIVATE_MODE` à `off`, puis pousse sur `signup-conversion` : le site se reconstruit avec l'inscription, l'abonnement, Nodi et le bandeau cookies.
-3. Refais le chemin inverse dans tes comptes : Supabase « Allow new users to sign up », webhook Stripe réactivé et produits désarchivés, campagnes Meta, plan Brevo et crédit Claude selon le volume attendu.
+3. Redéploie toutes les fonctions (GitHub → Actions → « Deploy Supabase functions » → Run workflow, après avoir ajouté le secret `SUPABASE_ACCESS_TOKEN`). Pendant la pause, `assistant` a été déployée avec une version courte de ses connaissances : le redéploiement remet la version complète du dépôt.
+4. Refais le chemin inverse dans tes comptes : Supabase « Allow new users to sign up », webhook Stripe réactivé et produits désarchivés, campagnes Meta, plan Brevo et crédit Claude selon le volume attendu.
 
 ## Ajouter un collègue pendant le mode privé
 
