@@ -7,14 +7,14 @@ const key = '0123456789abcdef0123456789abcdef';
 
 describe('relay addresses', () => {
   it('round-trips both sides', () => {
-    expect(relayAddress('supplier', key)).toBe(`s-${key}@reply.batilink.be`);
-    expect(parseRelayAddress(['Info <x@y.be>', `S-${key.toUpperCase()}@Reply.BatiLink.be`])).toEqual({ author: 'supplier', replyKey: key });
+    expect(relayAddress('supplier', key)).toBe(`s-${key}@reply.batinode.be`);
+    expect(parseRelayAddress(['Info <x@y.be>', `S-${key.toUpperCase()}@Reply.Batinode.be`])).toEqual({ author: 'supplier', replyKey: key });
     expect(parseRelayAddress([relayAddress('contractor', key)])).toEqual({ author: 'contractor', replyKey: key });
   });
 
   it('ignores other domains and malformed keys', () => {
     expect(parseRelayAddress([`s-${key}@evil.be`])).toBeNull();
-    expect(parseRelayAddress(['s-123@reply.batilink.be'])).toBeNull();
+    expect(parseRelayAddress(['s-123@reply.batinode.be'])).toBeNull();
   });
 });
 
@@ -32,9 +32,9 @@ describe('sender check', () => {
 
 describe('quoted history', () => {
   it('keeps only the new text', () => {
-    const fr = 'Quelle classe de résistance ?\n\nLe lun. 19 oct. 2026 à 09:12, BatiLink <s-x@reply.batilink.be> a écrit :\n> Bonjour';
+    const fr = 'Quelle classe de résistance ?\n\nLe lun. 19 oct. 2026 à 09:12, Batinode <s-x@reply.batinode.be> a écrit :\n> Bonjour';
     expect(stripQuoted(fr)).toBe('Quelle classe de résistance ?');
-    expect(stripQuoted('Welke dikte?\r\n\r\nOp ma 19 okt. 2026 schreef BatiLink:\r\n> Goedendag')).toBe('Welke dikte?');
+    expect(stripQuoted('Welke dikte?\r\n\r\nOp ma 19 okt. 2026 schreef Batinode:\r\n> Goedendag')).toBe('Welke dikte?');
   });
 });
 
@@ -45,6 +45,8 @@ describe('relay e-mails', () => {
       to: 'offres@negoce.be',
       contractor: 'Bati SRL',
       contractorVerified: false,
+      contractorVat: null,
+      contractorAddress: null,
       title: 'Chape',
       postalCode: '1000',
       city: null,
@@ -56,8 +58,8 @@ describe('relay e-mails', () => {
       commissionRate: 0.05,
       replyTo: relayAddress('supplier', key),
     });
-    expect(mail.replyTo).toBe(`s-${key}@reply.batilink.be`);
-    expect(mail.text).toContain('Répondez simplement à cet e-mail');
+    expect(mail.replyTo).toBe(`s-${key}@reply.batinode.be`);
+    expect(mail.text).toContain('répondre à cet e-mail avec votre prix ou votre offre en PDF');
   });
 
   it('relays a question with the reply address of the other side, escaped', () => {
@@ -65,12 +67,16 @@ describe('relay e-mails', () => {
     expect(mail.subject).toBe('Vraag van Negoce <SA>: Chape');
     expect(mail.html).toContain('Negoce &lt;SA&gt;');
     expect(mail.html).toContain('Welke klasse?');
-    expect(mail.replyTo).toBe(`c-${key}@reply.batilink.be`);
+    expect(mail.replyTo).toBe(`c-${key}@reply.batinode.be`);
   });
 
   it('relays an answer back to the supplier', () => {
-    const mail = answerToSupplierMail('fr', 's@negoce.be', 'Bati SRL', 'Chape', 'C25/30, livraison le matin.', relayAddress('supplier', key));
-    expect(mail.subject).toBe('Réponse de Bati SRL : Chape');
+    const mail = answerToSupplierMail('fr', 's@negoce.be', 'Bati SRL', 'Chape', 'C25/30, livraison le matin.', relayAddress('supplier', key), [
+      { label: 'Béton C25/30', quantity: 8, unit: 'm3' },
+    ]);
+    expect(mail.subject).toBe('Re: Demande de prix – Chape');
+    expect(mail.fromName).toBe('Bati SRL (via BatiNode)');
     expect(mail.text).toContain('C25/30, livraison le matin.');
+    expect(mail.text).toContain('Pour rappel, ma demande :\n8 m³ · Béton C25/30');
   });
 });

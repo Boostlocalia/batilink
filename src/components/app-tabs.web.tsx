@@ -3,15 +3,19 @@ import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type Pres
 
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useI18n, type Language } from '@/i18n';
+import { PRIVATE_MODE } from '@/lib/private-mode';
 import { useSession } from '@/lib/session';
+import { supabase } from '@/lib/supabase';
 
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
-import { APP_NAME } from '@/constants/brand';
+import { Logo } from '@/components/logo';
 
 export default function AppTabs() {
   const { t } = useI18n();
-  const contractor = useSession().company?.kind !== 'architect';
+  const kind = useSession().company?.kind;
+  // Someone still without a company is shown the contractor app.
+  const contractor = kind === 'contractor' || !kind;
   return (
     <Tabs>
       <TabList asChild>
@@ -19,15 +23,17 @@ export default function AppTabs() {
           <TabTrigger name="index" href="/" asChild>
             <TabButton>{t.tabs.home}</TabButton>
           </TabTrigger>
-          <TabTrigger name="reseau" href="/reseau" asChild>
-            <TabButton>{t.tabs.network}</TabButton>
-          </TabTrigger>
+          {kind !== 'supplier' ? (
+            <TabTrigger name="reseau" href="/reseau" asChild>
+              <TabButton>{t.tabs.network}</TabButton>
+            </TabTrigger>
+          ) : null}
           {contractor ? (
             <TabTrigger name="nouvelle" href="/nouvelle" asChild>
               <TabButton>{t.tabs.newRequest}</TabButton>
             </TabTrigger>
           ) : null}
-          {contractor ? (
+          {contractor && !PRIVATE_MODE ? (
             <TabTrigger name="abonnement" href="/abonnement" asChild>
               <TabButton>{t.tabs.plans}</TabButton>
             </TabTrigger>
@@ -54,6 +60,20 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
   );
 }
 
+/** Always in the top bar, so nobody has to look for it in Réglages. */
+function SignOut() {
+  const { t } = useI18n();
+  const { session } = useSession();
+  if (!session) return null;
+  return (
+    <Pressable accessibilityRole="button" onPress={() => supabase.auth.signOut({ scope: 'local' })} style={styles.signOut}>
+      <ThemedText type="smallBold" themeColor="textSecondary">
+        {t.settings.signOut}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
 function LanguageSwitch() {
   const { language, setLanguage } = useI18n();
   return (
@@ -76,10 +96,11 @@ export function CustomTabList(props: TabListProps) {
     return (
       <ThemedView type="backgroundElement" {...props} style={styles.tabListContainer}>
         <View style={styles.innerContainer}>
-          <ThemedText type="subtitle" themeColor="signal" style={styles.brandText}>
-            {APP_NAME}
-          </ThemedText>
+          <View style={styles.brandText}>
+            <Logo />
+          </View>
           <LanguageSwitch />
+          <SignOut />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: '100%' }} contentContainerStyle={styles.scrollTabs}>
           {props.children}
@@ -90,11 +111,12 @@ export function CustomTabList(props: TabListProps) {
   return (
     <ThemedView type="backgroundElement" {...props} style={styles.tabListContainer}>
       <View style={styles.innerContainer}>
-        <ThemedText type="subtitle" themeColor="signal" style={styles.brandText}>
-          {APP_NAME}
-        </ThemedText>
+        <View style={styles.brandText}>
+          <Logo />
+        </View>
         {props.children}
         <LanguageSwitch />
+        <SignOut />
       </View>
     </ThemedView>
   );
@@ -126,6 +148,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
     borderRadius: Spacing.three,
+  },
+  signOut: {
+    marginLeft: Spacing.two,
   },
   languages: {
     flexDirection: 'row',

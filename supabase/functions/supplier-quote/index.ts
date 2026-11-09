@@ -2,26 +2,38 @@
 // GET  ?token=…  returns the request to price.
 // POST { token, prices, delivery_fee, lead_time_days, valid_until, comment, accept_commission }
 // submits the offer, { token, decline: true } declines it, and
-// { token, question } asks the contractor something (relayed like a reply e-mail).
+// { token, question } asks the contractor something (relayed like a reply e-mail),
+// and { token, stop_requests: true } unsubscribes the supplier from request e-mails.
+// POST ?token=…&unsubscribe=1 is the one-click unsubscribe sent by mail clients.
+// POST multipart { token, file } stores the supplier's own quote (PDF) with the offer
+// and returns the prices Nodi read in it, for the supplier to check before submitting.
 
-import { offerTotalExVat } from '../_shared/commission.ts';
+import { offerTotalExVat, SUPPLIER_COMMISSION_ACTIVE } from '../_shared/commission.ts';
 import { newQuoteMail, sendMail, type Lang } from '../_shared/email.ts';
+import { followUpMaterials } from '../_shared/corrections.ts';
 import { logEvent } from '../_shared/events.ts';
 import { adminClient, appUrl, corsHeaders, json } from '../_shared/supabase.ts';
+import { readOfferPdf } from '../_shared/offer-pdf.ts';
+import { sniffType } from '../_shared/order-docs.ts';
 import { MAX_BODY, relayMessage } from '../_shared/relay.ts';
+import { itemDetails, shareOfferPdf } from '../_shared/emailed-offer.ts';
+import type { OfferReading } from '../_shared/offer-pdf.ts';
 import { hashToken } from '../_shared/tokens.ts';
 
 type Admin = ReturnType<typeof adminClient>;
 
+const QUOTE_COLUMNS = 'id, request_id, supplier_id, status, token_expires_at, delivery_fee, lead_time_days, valid_until, comment, commission_accepted_at, offer_file_path';
+
+/** The e-mailed link, or a short link the supplier opened from its space. */
 async function findQuote(admin: Admin, token: string | null) {
   if (!token || token.length < 20) return null;
-  const { data } = await admin
-    .from('quotes')
-    .select('id, request_id, supplier_id, status, token_expires_at, delivery_fee, lead_time_days, valid_until, comment, commission_accepted_at')
-    .eq('token_hash', await hashToken(token))
-    .maybeSingle();
-  if (!data || new Date(data.token_expires_at) < new Date()) return null;
-  return data;
+  const hash = await hashToken(token);
+  const { data } = await admin.from('quotes').select(QUOTE_COLUMNS).eq('token_hash', hash).maybeSingle();
+  if (data) return new Date(data.token_expires_at) < new Date() ? null : data;
+  const { data: link } = await admin.from('quote_links').select('quote_id, expires_at').eq('token_hash', hash).maybeSingle();
+  if (!link || new Date(link.expires_at) < new Date()) return null;
+  const { data: quote } = await admin.from('quotes').select(QUOTE_COLUMNS).eq('id', link.quote_id).maybeSingle();
+  return quote;
 }
 
 Deno.serve(async (req) => {
@@ -34,18 +46,13 @@ Deno.serve(async (req) => {
     const [{ data: request }, { data: items }, { data: supplier }, { data: prices }, { data: messages }] = await Promise.all([
       admin
         .from('price_requests')
-        .select('title, postal_code, city, needed_by, reply_by, fulfilment, note, status, company:companies(name, verified_at)')
+        .select('title, postal_code, city, needed_by, reply_by, sent_at, fulfilment, note, status, company:companies(name, verified_at, vat_number, street, postal_code, city)')
         .eq('id', quote.request_id)
         .single(),
       admin.from('request_items').select('id, label, quantity, unit').eq('request_id', quote.request_id).order('position'),
-      admin.from('companies').select('name, language, commission_rate').eq('id', quote.supplier_id).single(),
+      admin.from('companies').select('name, language, commission_rate, requests_stopped_at').eq('id', quote.supplier_id).single(),
       admin.from('quote_items').select('item_id, unit_price').eq('quote_id', quote.id),
-      admin
-        .from('quote_messages')
-        .select('author, body, relayed_body, created_at')
-        .eq('quote_id', quote.id)
-        .not('relayed_at', 'is', null)
-        .order('created_at'),
+      admin.from('quote_messages').select('author, body, relayed_body, created_at').eq('quote_id', quote.id).not('relayed_at', 'is', null).order('created_at'),
     ]);
     return json({
       quote: {
@@ -55,11 +62,18 @@ Deno.serve(async (req) => {
         valid_until: quote.valid_until,
         comment: quote.comment,
         commission_accepted: Boolean(quote.commission_accepted_at),
+        has_file: Boolean(quote.offer_file_path),
         prices: Object.fromEntries((prices ?? []).map((p) => [p.item_id, Number(p.unit_price)])),
       },
       request,
       items,
-      supplier: supplier && { ...supplier, commission_rate: Number(supplier.commission_rate) },
+      supplier: supplier && {
+        name: supplier.name,
+        language: supplier.language,
+        // null while suppliers answer for free.
+        commission_rate: SUPPLIER_COMMISSION_ACTIVE ? Number(supplier.commission_rate) : null,
+        requests_stopped: Boolean(supplier.requests_stopped_at),
+      },
       // The supplier sees their own words, and the contractor's answers as relayed to them.
       messages: (messages ?? []).map((m) => ({
         author: m.author,
@@ -70,15 +84,31 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+
+  // One-click unsubscribe from the mail client (List-Unsubscribe-Post, RFC 8058).
+  const query = new URL(req.url).searchParams;
+  if (query.get('unsubscribe') === '1') {
+    const target = await findQuote(admin, query.get('token'));
+    if (!target) return json({ error: 'invalid_link' }, 404);
+    await admin.from('companies').update({ requests_stopped_at: new Date().toISOString() }).eq('id', target.supplier_id).is('requests_stopped_at', null);
+    await logEvent(admin, { kind: 'supplier_unsubscribed', company_id: target.supplier_id, quote_id: target.id, data: { via: 'one_click' } });
+    return json({ ok: true });
+  }
+
+  if ((req.headers.get('content-type') ?? '').startsWith('multipart/form-data')) return attachPdf(admin, req);
+
   const body = await req.json();
   const quote = await findQuote(admin, body.token);
   if (!quote) return json({ error: 'invalid_link' }, 404);
 
-  const { data: request } = await admin
-    .from('price_requests')
-    .select('id, title, status, company_id')
-    .eq('id', quote.request_id)
-    .single();
+  // Works on any link, even once the request is closed.
+  if (body.stop_requests === true) {
+    await admin.from('companies').update({ requests_stopped_at: new Date().toISOString() }).eq('id', quote.supplier_id).is('requests_stopped_at', null);
+    await logEvent(admin, { kind: 'supplier_unsubscribed', company_id: quote.supplier_id, quote_id: quote.id });
+    return json({ ok: true });
+  }
+
+  const { data: request } = await admin.from('price_requests').select('id, title, status, company_id').eq('id', quote.request_id).single();
   if (!request || request.status !== 'sent' || !['invited', 'submitted'].includes(quote.status)) {
     return json({ error: 'closed' }, 409);
   }
@@ -86,7 +116,7 @@ Deno.serve(async (req) => {
   if (typeof body.question === 'string') {
     if (!body.question.trim() || body.question.length > MAX_BODY) return json({ error: 'invalid_body' }, 400);
     const result = await relayMessage(admin, { quoteId: quote.id, author: 'supplier', channel: 'app', body: body.question });
-    return json(result);
+    return json(result, result.status === 'limited' ? 429 : 200);
   }
 
   if (body.decline === true) {
@@ -96,13 +126,16 @@ Deno.serve(async (req) => {
   }
 
   // Offers are made on the platform's terms: a commission is due if this one is awarded.
-  if (!quote.commission_accepted_at && body.accept_commission !== true) {
+  if (SUPPLIER_COMMISSION_ACTIVE && !quote.commission_accepted_at && body.accept_commission !== true) {
     return json({ error: 'commission_not_accepted' }, 400);
   }
 
   const { data: items } = await admin.from('request_items').select('id, quantity').eq('request_id', request.id);
   const prices = (body.prices ?? {}) as Record<string, unknown>;
-  const rows = (items ?? []).map((i) => ({ quote_id: quote.id, item_id: i.id, unit_price: Number(prices[i.id]) }));
+  // What Nodi read in their PDF (own lines, packages) stays with the prices they typed.
+  const { data: stored } = await admin.from('quotes').select('offer_reading').eq('id', quote.id).single();
+  const read = new Map(((stored?.offer_reading as OfferReading | null)?.items ?? []).map((i) => [i.item_id, itemDetails(i)]));
+  const rows = (items ?? []).map((i) => ({ ...read.get(i.id), quote_id: quote.id, item_id: i.id, unit_price: Number(prices[i.id]) }));
   if (!rows.length || rows.some((r) => !Number.isFinite(r.unit_price) || r.unit_price < 0)) {
     return json({ error: 'missing_prices' }, 400);
   }
@@ -130,8 +163,10 @@ Deno.serve(async (req) => {
       valid_until: typeof body.valid_until === 'string' && body.valid_until ? body.valid_until : null,
       comment: typeof body.comment === 'string' ? body.comment.slice(0, 2000) : null,
       submitted_at: new Date().toISOString(),
+      // Nodi already compared their PDF with the request when it was attached.
+      ...(read.size ? { checked_at: new Date().toISOString() } : {}),
       total_ex_vat: totalExVat,
-      commission_accepted_at: quote.commission_accepted_at ?? new Date().toISOString(),
+      commission_accepted_at: quote.commission_accepted_at ?? (SUPPLIER_COMMISSION_ACTIVE ? new Date().toISOString() : null),
     })
     .eq('id', quote.id);
   await logEvent(admin, {
@@ -142,16 +177,60 @@ Deno.serve(async (req) => {
     data: { total_ex_vat: totalExVat, lead_time_days: leadTime, update: !firstSubmission },
   });
 
-  if (firstSubmission) {
+  // A product other than the one asked: the supplier is asked to correct it, and the client
+  // told of the offer in the same e-mail. Read details only: typed prices alone say nothing.
+  const followed = read.size ? await followUpMaterials(admin, quote.id) : null;
+  if (firstSubmission && followed !== 'asked') {
     const [{ data: contractor }, { data: supplier }] = await Promise.all([
       admin.from('companies').select('email, language').eq('id', request.company_id).single(),
       admin.from('companies').select('name').eq('id', quote.supplier_id).single(),
     ]);
     if (contractor?.email) {
-      await sendMail(
-        newQuoteMail(contractor.language as Lang, contractor.email, supplier?.name ?? '', request.title, `${appUrl()}/demande/${request.id}`),
-      ).catch(console.error);
+      await sendMail(newQuoteMail(contractor.language as Lang, contractor.email, supplier?.name ?? '', request.title, `${appUrl()}/demande/${request.id}`)).catch(console.error);
     }
   }
   return json({ ok: true });
 });
+
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
+const MAX_PDF_READS = 5;
+
+/** Stores the supplier's PDF quote on the offer and reads its prices. */
+async function attachPdf(admin: Admin, req: Request): Promise<Response> {
+  const form = await req.formData().catch(() => null);
+  const file = form?.get('file');
+  const quote = await findQuote(admin, typeof form?.get('token') === 'string' ? (form!.get('token') as string) : null);
+  if (!quote) return json({ error: 'invalid_link' }, 404);
+  if (!(file instanceof File)) return json({ error: 'file_type' }, 400);
+  if (file.size > MAX_PDF_BYTES) return json({ error: 'too_large' }, 413);
+
+  const { data: request } = await admin.from('price_requests').select('id, status').eq('id', quote.request_id).single();
+  if (!request || request.status !== 'sent' || !['invited', 'submitted'].includes(quote.status)) return json({ error: 'closed' }, 409);
+  // Each reading costs an AI call: a few per offer are enough.
+  const { data: counted } = await admin.from('quotes').select('offer_reads').eq('id', quote.id).single();
+  if ((counted?.offer_reads ?? 0) >= MAX_PDF_READS) return json({ error: 'too_many' }, 429);
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (sniffType(bytes) !== 'application/pdf') return json({ error: 'file_type' }, 400);
+
+  const path = `${quote.id}/${crypto.randomUUID()}.pdf`;
+  const { error: uploadError } = await admin.storage.from('quote-files').upload(path, bytes, { contentType: 'application/pdf' });
+  if (uploadError) return json({ error: 'save_failed' }, 500);
+  await admin
+    .from('quotes')
+    .update({ offer_file_path: path, offer_reads: (counted?.offer_reads ?? 0) + 1 })
+    .eq('id', quote.id);
+
+  const { data: items } = await admin.from('request_items').select('id, label, quantity, unit').eq('request_id', request.id).order('position');
+  const reading = await readOfferPdf(
+    bytes,
+    (items ?? []).map((i) => ({ id: i.id, label: i.label, quantity: Number(i.quantity), unit: i.unit })),
+    new Date().toISOString().slice(0, 10),
+  );
+  // Kept until the supplier sends the form: the comparison shows their own lines and packages.
+  await admin.from('quotes').update({ offer_reading: reading }).eq('id', quote.id);
+  // The same PDF may also price this supplier's other open requests.
+  const sharing = shareOfferPdf(admin, quote.id, bytes).catch((e) => console.error('share offer pdf', e));
+  (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime?.waitUntil(sharing);
+  return json({ attached: true, reading });
+}

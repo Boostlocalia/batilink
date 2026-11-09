@@ -156,9 +156,9 @@ alter table public.agreements
 create unique index agreements_response_idx on public.agreements (response_id) where status <> 'cancelled';
 
 -- The author proposes an agreement to a company that answered their post.
-drop policy "clients propose agreements" on public.agreements;
-create policy "authors propose agreements to who answered" on public.agreements
-  for insert to authenticated with check (
+alter policy "clients propose agreements" on public.agreements rename to "authors propose agreements to who answered";
+alter policy "authors propose agreements to who answered" on public.agreements
+  with check (
     client_id = public.my_company_id()
     and status = 'proposed'
     and exists (

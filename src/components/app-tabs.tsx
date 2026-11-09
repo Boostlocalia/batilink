@@ -1,13 +1,16 @@
 import { NativeTabs } from 'expo-router/native-tabs';
 import { Colors } from '@/constants/theme';
 import { useI18n } from '@/i18n';
+import { PRIVATE_MODE } from '@/lib/private-mode';
 import { useSession } from '@/lib/session';
 
 export default function AppTabs() {
   const colors = Colors.dark;
   const { t } = useI18n();
   // Architects work in the network only; price requests and plans are for contractors.
-  const contractor = useSession().company?.kind !== 'architect';
+  const kind = useSession().company?.kind;
+  // Someone still without a company is shown the contractor app.
+  const contractor = kind === 'contractor' || !kind;
 
   return (
     <NativeTabs
@@ -18,7 +21,7 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Label>{t.tabs.home}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="house" md="home" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="reseau">
+      <NativeTabs.Trigger name="reseau" hidden={kind === 'supplier'}>
         <NativeTabs.Trigger.Label>{t.tabs.network}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="person.2" md="groups" />
       </NativeTabs.Trigger>
@@ -26,7 +29,7 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Label>{t.tabs.newRequest}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="plus.rectangle.on.rectangle" md="add_box" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="abonnement" hidden={!contractor}>
+      <NativeTabs.Trigger name="abonnement" hidden={!contractor || PRIVATE_MODE}>
         <NativeTabs.Trigger.Label>{t.tabs.plans}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="creditcard" md="credit_card" />
       </NativeTabs.Trigger>

@@ -1,38 +1,58 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Agreements } from '@/components/agreements';
+import { CompleteProfileCard } from '@/components/complete-profile-card';
+import { ArchitectBanners, NetworkBanners } from '@/components/home-banners';
+import { CompanyAvatar } from '@/components/company-avatar';
+import { Conversations } from '@/components/conversations';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip, Option, Screen, Segmented } from '@/components/ui';
+import { UpgradeCard } from '@/components/upgrade-card';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { formatDate, formatEuro } from '@/lib/format';
 import { loadTrades, OPPORTUNITY_COLUMNS, type Opportunity, type Trade } from '@/lib/network';
+import { useNetworkLeft } from '@/lib/network-quota';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 
-type View_ = 'posts' | 'mine' | 'agreements';
+type View_ = 'posts' | 'mine' | 'messages' | 'agreements';
 
 export default function NetworkScreen() {
   const { t, language, locale } = useI18n();
   const { company, canUseNetwork } = useSession();
   const theme = useTheme();
   const architect = company?.kind === 'architect';
-  const [view, setView] = useState<View_>(architect ? 'mine' : 'posts');
+  const left = useNetworkLeft();
+  const { vue } = useLocalSearchParams<{ vue?: string }>();
+  const [view, setView] = useState<View_>(vue === 'messages' ? 'messages' : architect ? 'mine' : 'posts');
+  // The home shortcut opens the messages directly, even when the tab was already open.
+  const [seenVue, setSeenVue] = useState(vue);
+  if (vue !== seenVue) {
+    setSeenVue(vue);
+    if (vue === 'messages') setView('messages');
+  }
   const [trades, setTrades] = useState<Trade[]>([]);
   const [tradeFilter, setTradeFilter] = useState<number | null>(null);
   const [posts, setPosts] = useState<Opportunity[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [unread, setUnread] = useState(0);
 
   const load = useCallback(async () => {
     setFailed(false);
     if (!trades.length) setTrades(await loadTrades());
-    if (view === 'agreements') return;
+    if (view === 'agreements' || view === 'messages') return;
     let query = supabase.from('opportunities').select(OPPORTUNITY_COLUMNS).order('created_at', { ascending: false }).limit(50);
-    if (view === 'mine') query = query.eq('company_id', company!.id);
-    else query = query.eq('status', 'open').neq('company_id', company!.id);
+    if (view === 'mine') {
+      if (!company) return setPosts([]);
+      query = query.eq('company_id', company.id);
+    } else {
+      query = query.eq('status', 'open');
+      if (company) query = query.neq('company_id', company.id);
+    }
     if (tradeFilter !== null) query = query.contains('trade_ids', [tradeFilter]);
     const { data, error } = await query;
     if (error) return setFailed(true);
@@ -57,6 +77,8 @@ export default function NetworkScreen() {
         <ThemedText themeColor="textSecondary">{t.network.lead}</ThemedText>
       </View>
 
+      {architect ? <ArchitectBanners onBrowse={() => setView('mine')} /> : <NetworkBanners />}
+
       <Segmented<View_>
         value={view}
         onChange={(v) => {
@@ -67,12 +89,17 @@ export default function NetworkScreen() {
           // Architects only post: the list of other posts is for contractors.
           ...(architect ? [] : [{ value: 'posts' as const, label: t.network.tabs.posts }]),
           { value: 'mine', label: t.network.tabs.mine },
+          { value: 'messages', label: unread ? t.chat.tabUnread(unread) : t.chat.tab },
           { value: 'agreements', label: t.network.tabs.agreements },
         ]}
       />
 
-      {view !== 'agreements' ? (
-        canUseNetwork ? (
+      {left !== null ? <ThemedText type="small" themeColor="textSecondary">{t.growth.plans.networkLeft(left)}</ThemedText> : null}
+      {view === 'messages' ? <Conversations onUnread={setUnread} /> : null}
+      {view !== 'agreements' && view !== 'messages' ? (
+        left === 0 ? (
+          <UpgradeCard reason="network" />
+        ) : canUseNetwork ? (
           <View style={{ alignSelf: 'flex-start' }}>
             <Button
               label={architect ? t.network.publishProject : t.network.publish}
@@ -80,6 +107,8 @@ export default function NetworkScreen() {
               onPress={() => router.push('/annonce/nouvelle')}
             />
           </View>
+        ) : !company ? (
+          <CompleteProfileCard text={t.signup.later.network} />
         ) : (
           <Card style={{ backgroundColor: theme.warnBackground, borderColor: theme.warnBackground }}>
             <ThemedText type="small" themeColor="warn">
@@ -100,7 +129,7 @@ export default function NetworkScreen() {
 
       {view === 'agreements' ? (
         <Agreements />
-      ) : failed ? (
+      ) : view === 'messages' ? null : failed ? (
         <Card>
           <ThemedText themeColor="danger">{t.common.error}</ThemedText>
           <Button label={t.common.retry} variant="ghost" small onPress={load} />
@@ -141,6 +170,7 @@ export default function NetworkScreen() {
                 </ThemedText>
                 {view === 'posts' && p.company ? (
                   <View style={styles.wrap}>
+                    <CompanyAvatar name={p.company.name} url={p.company.logo_url} size={28} />
                     <ThemedText type="smallBold">{p.company.name}</ThemedText>
                     {p.company.verification_status === 'verified' ? <Chip label={t.verification.status.verified} tone="good" /> : null}
                   </View>

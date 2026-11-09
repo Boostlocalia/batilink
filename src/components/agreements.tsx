@@ -1,18 +1,18 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chip } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatEuro } from '@/lib/format';
 import { AGREEMENT_COLUMNS, splitFinding, type Agreement } from '@/lib/network';
+import { projectCommission } from '@/lib/project-commission';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 
-const TONE = { proposed: 'warn', awaiting_retention_ack: 'warn', confirmed: 'good', blocked: 'neutral', cancelled: 'neutral' } as const;
+const TONE = { proposed: 'warn', confirmed: 'good', blocked: 'neutral', cancelled: 'neutral' } as const;
 
 /** The company's agreements, with the step each side has to take. */
 export function Agreements() {
@@ -57,17 +57,13 @@ export function Agreements() {
 
 function AgreementCard({ agreement: a, onChange }: { agreement: Agreement; onChange: () => void }) {
   const { t, locale } = useI18n();
-  const theme = useTheme();
   const { company } = useSession();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
-  const [ack, setAck] = useState(false);
   const [contacts, setContacts] = useState<{ company_id: string; name: string; email: string | null }[] | null>(null);
 
   const isClient = a.client_id === company?.id;
   const other = isClient ? a.subcontractor?.name : a.client?.name;
-  const pct = (n: number) => `${Number(n).toLocaleString(locale)} %`;
-  const debts = Number(a.retention_social_pct) > 0 || Number(a.retention_tax_pct) > 0;
 
   const act = async (body: object) => {
     setBusy(true);
@@ -130,40 +126,9 @@ function AgreementCard({ agreement: a, onChange }: { agreement: Agreement; onCha
         </View>
       ) : null}
 
-      {a.status === 'awaiting_retention_ack' ? (
-        <View style={{ gap: Spacing.two }}>
-          <ThemedText type="small">{t.agreements.retentionLead(pct(a.retention_social_pct), pct(a.retention_tax_pct))}</ThemedText>
-          {isClient ? (
-            <>
-              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: ack }} onPress={() => setAck((v) => !v)} style={styles.row}>
-                <View style={[styles.box, { borderColor: ack ? theme.brand : theme.line, backgroundColor: ack ? theme.brand : 'transparent' }]}>
-                  {ack ? (
-                    <ThemedText type="smallBold" themeColor="onBrand">
-                      ✓
-                    </ThemedText>
-                  ) : null}
-                </View>
-                <ThemedText type="small" style={{ flex: 1 }}>
-                  {t.agreements.retentionAck}
-                </ThemedText>
-              </Pressable>
-              <View style={{ alignSelf: 'flex-start' }}>
-                <Button
-                  label={busy ? t.agreements.checking : t.agreements.confirmRetention}
-                  variant="signal"
-                  busy={busy}
-                  disabled={!ack}
-                  onPress={() => act({ acknowledge_retention: true })}
-                />
-              </View>
-            </>
-          ) : null}
-        </View>
-      ) : null}
-
-      {a.status === 'confirmed' && a.kind === 'referral' && debts ? (
-        <ThemedText type="small" themeColor="warn">
-          {t.agreements.referralDebts(pct(a.retention_social_pct), pct(a.retention_tax_pct))}
+      {a.kind === 'referral' && a.amount_ex_vat ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {t.agreements.projectCommission(formatEuro(Number(a.amount_ex_vat), locale), formatEuro(projectCommission(Number(a.amount_ex_vat)), locale))}
         </ThemedText>
       ) : null}
 
@@ -182,7 +147,7 @@ function AgreementCard({ agreement: a, onChange }: { agreement: Agreement; onCha
         )
       ) : null}
 
-      {isClient && ['proposed', 'awaiting_retention_ack', 'blocked'].includes(a.status) ? (
+      {isClient && ['proposed', 'blocked'].includes(a.status) ? (
         <View style={{ alignSelf: 'flex-start' }}>
           <Button label={t.agreements.cancel} variant="ghost" small onPress={cancel} />
         </View>

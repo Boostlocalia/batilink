@@ -1,0 +1,27 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://bkmzstdviytslegbxsax.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbXpzdGR2aXl0c2xlZ2J4c2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzMjU1NTYsImV4cCI6MjEwNzkwMTU1Nn0.ktDieGxIQz9w5zCcGlAYO_AwRHln_mkJHx9U9aAGEcI",
+        "EXPO_PUBLIC_APP_URL": "https://app.batinode.be"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://bkmzstdviytslegbxsax.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbXpzdGR2aXl0c2xlZ2J4c2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzMjU1NTYsImV4cCI6MjEwNzkwMTU1Nn0.ktDieGxIQz9w5zCcGlAYO_AwRHln_mkJHx9U9aAGEcI",
+        "EXPO_PUBLIC_APP_URL": "https://app.batinode.be"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

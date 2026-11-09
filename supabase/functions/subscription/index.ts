@@ -1,22 +1,34 @@
 // Plans, paid on Stripe's pages (card, Bancontact via card wallet, SEPA direct debit).
-// POST { plan: 'pro' | 'full' }  returns a Stripe Checkout page to subscribe.
+// POST { plan: 'pro' | 'full', interval?: 'month' | 'year' }  returns a Stripe Checkout page to subscribe.
 // POST { action: 'portal' }      returns the Stripe page to change plan, update the
 //                                 payment method, download invoices or cancel.
 // The plan itself changes only when Stripe confirms it (stripe-webhook).
 
-import { stripeClient } from '../_shared/stripe.ts';
+import { paused, privateMode } from '../_shared/private-mode.ts';
+import { CHECKOUT_BRANDING, stripeClient } from '../_shared/stripe.ts';
 import { adminClient, appUrl, callerCompanyId, corsHeaders, json } from '../_shared/supabase.ts';
+
+const SELLER_VAT = 'BE 1015.519.625';
+const INVOICE_FR = {
+  custom_fields: [{ name: 'TVA BatiNode', value: SELLER_VAT }],
+  footer: `BatiNode est un service de Modern X Renov SRL, Ruisbroeksesteenweg 9, 1600 Sint-Pieters-Leeuw, Belgique. N° d'entreprise et TVA ${SELLER_VAT}. Questions : support@batinode.be`,
+};
+const INVOICE_NL = {
+  custom_fields: [{ name: 'Btw BatiNode', value: SELLER_VAT }],
+  footer: `BatiNode is een dienst van Modern X Renov BV, Ruisbroeksesteenweg 9, 1600 Sint-Pieters-Leeuw, België. Ondernemings- en btw-nummer ${SELLER_VAT}. Vragen: support@batinode.be`,
+};
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  const admin = adminClient();
+  if (await privateMode(admin)) return paused();
   const stripe = stripeClient();
   if (!stripe) return json({ error: 'payments_unavailable' }, 503);
-  const admin = adminClient();
   const companyId = await callerCompanyId(req, admin);
   if (!companyId) return json({ error: 'unauthorized' }, 401);
 
-  const [{ data: company }, { data: sub }] = await Promise.all([
+  let [{ data: company }, { data: sub }] = await Promise.all([
     admin.from('companies').select('id, kind, name, email, language, vat_number, stripe_customer_id').eq('id', companyId).single(),
     admin.from('subscriptions').select('plan, status, provider_subscription_id').eq('company_id', companyId).maybeSingle(),
   ]);
@@ -24,6 +36,21 @@ Deno.serve(async (req) => {
   const back = `${appUrl()}/abonnement`;
 
   let customer = company.stripe_customer_id as string | null;
+  if (customer) {
+    // Ids made in Stripe's test mode do not exist once the live keys are in place:
+    // start again with a new customer, and drop the test subscription with it.
+    const found = await stripe.customers.retrieve(customer).catch((e) => (e?.code === 'resource_missing' ? null : Promise.reject(e)));
+    if (!found || found.deleted) {
+      customer = null;
+      if (sub?.provider_subscription_id) {
+        await admin
+          .from('subscriptions')
+          .update({ plan: 'free', status: 'canceled', provider_subscription_id: null, provider_customer_id: null, current_period_end: null, updated_at: new Date().toISOString() })
+          .eq('company_id', company.id);
+        sub = null;
+      }
+    }
+  }
   if (!customer) {
     const created = await stripe.customers.create(
       {
@@ -39,7 +66,10 @@ Deno.serve(async (req) => {
     await admin.from('companies').update({ stripe_customer_id: customer }).eq('id', company.id);
   }
 
-  const body = (await req.json().catch(() => ({}))) as { plan?: string; action?: string };
+  // BatiNode's own identity on every invoice: Belgian invoices must carry the seller's VAT number.
+  await stripe.customers.update(customer, { invoice_settings: company.language === 'nl' ? INVOICE_NL : INVOICE_FR }).catch((e) => console.error('invoice settings', e?.message));
+
+  const body = (await req.json().catch(() => ({}))) as { plan?: string; action?: string; interval?: string };
   const subscribed = Boolean(sub?.provider_subscription_id) && sub?.status !== 'canceled';
 
   // Changing or cancelling an existing plan happens on Stripe's customer portal.
@@ -48,18 +78,26 @@ Deno.serve(async (req) => {
     return json({ url: portal.url });
   }
 
-  const price = body.plan === 'pro' ? Deno.env.get('STRIPE_PRICE_PRO') : body.plan === 'full' ? Deno.env.get('STRIPE_PRICE_FULL') : undefined;
+  const yearly = body.interval === 'year';
+  const prices: Record<string, string | undefined> = {
+    pro: Deno.env.get(yearly ? 'STRIPE_PRICE_PRO_YEAR' : 'STRIPE_PRICE_PRO'),
+    full: Deno.env.get(yearly ? 'STRIPE_PRICE_FULL_YEAR' : 'STRIPE_PRICE_FULL'),
+  };
+  const price = body.plan ? prices[body.plan] : undefined;
   if (!price) return json({ error: 'invalid_plan' }, 400);
+  // Belgian VAT: either a fixed Stripe tax rate (21 %), kept on the subscription when the plan
+  // changes, or Stripe Tax, which also handles reverse charge for EU VAT numbers abroad.
+  const taxRate = Deno.env.get('STRIPE_TAX_RATE');
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer,
     locale: company.language === 'nl' ? 'nl' : 'fr',
     line_items: [{ price, quantity: 1 }],
-    subscription_data: { metadata: { company_id: company.id } },
-    // Belgian VAT on the plan; the VAT number is checked by Stripe for reverse charge abroad.
-    automatic_tax: { enabled: Deno.env.get('STRIPE_AUTOMATIC_TAX') === 'on' },
+    subscription_data: { metadata: { company_id: company.id }, ...(taxRate ? { default_tax_rates: [taxRate] } : {}) },
+    automatic_tax: { enabled: !taxRate && Deno.env.get('STRIPE_AUTOMATIC_TAX') === 'on' },
     customer_update: { address: 'auto', name: 'auto' },
     billing_address_collection: 'required',
+    branding_settings: CHECKOUT_BRANDING,
     success_url: `${back}?paiement=ok`,
     cancel_url: back,
   });

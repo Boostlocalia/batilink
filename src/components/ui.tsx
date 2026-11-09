@@ -16,10 +16,11 @@ import { BottomTabInset, MaxContentWidth, Radius, Spacing, type ThemeColor } fro
 import { useTheme } from '@/hooks/use-theme';
 
 /** Scrollable page with the content column centred and capped on wide screens. */
-export function Screen({ children, withTabBar = true }: { children: ReactNode; withTabBar?: boolean }) {
+export function Screen({ children, withTabBar = true, backdrop }: { children: ReactNode; withTabBar?: boolean; backdrop?: ReactNode }) {
   const theme = useTheme();
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.flex, { backgroundColor: theme.background }]}>
+      {backdrop}
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.scroll, { paddingBottom: (withTabBar ? BottomTabInset : 0) + Spacing.five }]}>
@@ -76,17 +77,18 @@ export function Button({ label, onPress, variant = 'primary', disabled, busy, sm
   );
 }
 
-export function Chip({ label, tone = 'neutral' }: { label: string; tone?: 'neutral' | 'good' | 'warn' | 'brand' }) {
+export function Chip({ label, tone = 'neutral' }: { label: string; tone?: 'neutral' | 'good' | 'warn' | 'brand' | 'signal' }) {
   const theme = useTheme();
   const colors = {
     neutral: [theme.backgroundSelected, 'textSecondary'],
     good: [theme.goodBackground, 'good'],
     warn: [theme.warnBackground, 'warn'],
     brand: [theme.brand, 'onBrand'],
+    signal: [theme.background, 'signal'],
   } as const;
   const [bg, fg] = colors[tone];
   return (
-    <View style={[styles.chip, { backgroundColor: bg }]}>
+    <View style={[styles.chip, { backgroundColor: bg }, tone === 'signal' && { borderWidth: 1, borderColor: theme.signal }]}>
       <ThemedText type="smallBold" themeColor={fg} style={styles.chipText}>
         {label}
       </ThemedText>
@@ -107,6 +109,36 @@ export function Option({ label, selected, onPress }: { label: string; selected: 
         {label}
       </ThemedText>
     </Pressable>
+  );
+}
+
+/** A box to tick, for consents and yes/no answers. */
+export function Check({ label, checked, onChange, error }: { label: string; checked: boolean; onChange: (checked: boolean) => void; error?: string | null }) {
+  const theme = useTheme();
+  return (
+    <View style={styles.field}>
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked }}
+        onPress={() => onChange(!checked)}
+        style={styles.check}>
+        <View style={[styles.checkBox, { borderColor: error ? theme.danger : checked ? theme.signal : theme.line, backgroundColor: checked ? theme.signal : 'transparent' }]}>
+          {checked ? (
+            <ThemedText type="smallBold" themeColor="onSignal" style={styles.checkMark}>
+              ✓
+            </ThemedText>
+          ) : null}
+        </View>
+        <ThemedText type="small" style={styles.flex}>
+          {label}
+        </ThemedText>
+      </Pressable>
+      {error ? (
+        <ThemedText type="small" themeColor="danger">
+          {error}
+        </ThemedText>
+      ) : null}
+    </View>
   );
 }
 
@@ -144,14 +176,17 @@ export function Segmented<T extends string>({
   value,
   options,
   onChange,
+  signal = false,
 }: {
   value: T;
   options: { value: T; label: string }[];
   onChange: (value: T) => void;
+  /** Black with the lime signal colour on the selected option, for choices that must stand out. */
+  signal?: boolean;
 }) {
   const theme = useTheme();
   return (
-    <View style={[styles.segmented, { backgroundColor: theme.backgroundSelected }]}>
+    <View style={[styles.segmented, signal ? { backgroundColor: theme.background, borderWidth: 1, borderColor: theme.signal } : { backgroundColor: theme.backgroundSelected }]}>
       {options.map((o) => {
         const selected = o.value === value;
         return (
@@ -160,8 +195,8 @@ export function Segmented<T extends string>({
             accessibilityRole="button"
             accessibilityState={{ selected }}
             onPress={() => onChange(o.value)}
-            style={[styles.segment, selected && { backgroundColor: theme.backgroundElement }]}>
-            <ThemedText type="smallBold" themeColor={selected ? 'text' : 'textSecondary'}>
+            style={[styles.segment, selected && { backgroundColor: signal ? theme.signal : theme.backgroundElement }]}>
+            <ThemedText type="smallBold" themeColor={selected ? (signal ? 'onSignal' : 'text') : signal ? 'text' : 'textSecondary'}>
               {o.label}
             </ThemedText>
           </Pressable>
@@ -201,6 +236,9 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 12, lineHeight: 18 },
   field: { gap: Spacing.one, flexGrow: 1, minWidth: 180 },
   input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
+  check: { flexDirection: 'row', gap: Spacing.two, alignItems: 'flex-start' },
+  checkBox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  checkMark: { fontSize: 14, lineHeight: 18 },
   segmented: { flexDirection: 'row', borderRadius: 999, padding: 3, gap: 2, alignSelf: 'flex-start' },
   segment: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },

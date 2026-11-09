@@ -1,8 +1,15 @@
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { LogoCard } from '@/components/logo-card';
+import { DeleteAccountCard } from '@/components/delete-account-card';
+import { LegalLinks } from '@/components/legal-links';
+import { ReferralCard } from '@/components/referral-card';
 import { VerificationCard } from '@/components/verification-card';
+import { router } from 'expo-router';
 import { Button, Card, Screen, Segmented } from '@/components/ui';
+import { SettingsBanner } from '@/components/home-banners';
 import { Spacing } from '@/constants/theme';
 import { useI18n, type Language } from '@/i18n';
 import { useSession } from '@/lib/session';
@@ -11,6 +18,38 @@ import { supabase } from '@/lib/supabase';
 export default function SettingsScreen() {
   const { t, language, setLanguage } = useI18n();
   const { session, company } = useSession();
+
+  const [news, setNews] = useState<boolean | null>(null);
+  const [listed, setListed] = useState<boolean | null>(null);
+  const [platformAdmin, setPlatformAdmin] = useState(false);
+  useEffect(() => {
+    if (!session) return;
+    supabase.rpc('is_platform_admin').then(({ data }) => setPlatformAdmin(data === true));
+  }, [session]);
+  useEffect(() => {
+    if (company?.kind !== 'contractor') return;
+    supabase
+      .from('companies')
+      .select('news_emails, directory_visible')
+      .eq('id', company.id)
+      .single()
+      .then(({ data }) => {
+        setNews(data?.news_emails ?? true);
+        setListed(data?.directory_visible ?? true);
+      });
+  }, [company?.id, company?.kind]);
+
+  const changeNews = (next: 'on' | 'off') => {
+    if (!company) return;
+    setNews(next === 'on');
+    supabase.from('companies').update({ news_emails: next === 'on' }).eq('id', company.id).then(() => {});
+  };
+
+  const changeListed = (next: 'on' | 'off') => {
+    if (!company) return;
+    setListed(next === 'on');
+    supabase.from('companies').update({ directory_visible: next === 'on' }).eq('id', company.id).then(() => {});
+  };
 
   const changeLanguage = (next: Language) => {
     setLanguage(next);
@@ -24,6 +63,8 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <ThemedText type="title">{t.settings.title}</ThemedText>
+      {company ? <SettingsBanner /> : null}
+      <LogoCard />
       <Card>
         <ThemedText type="smallBold">{t.settings.language}</ThemedText>
         <Segmented<Language>
@@ -49,8 +90,62 @@ export default function SettingsScreen() {
           </View>
         </Card>
       ) : null}
+      {company?.kind === 'contractor' && news !== null ? (
+        <Card>
+          <ThemedText type="smallBold">{t.settings.news}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {t.settings.newsLead}
+          </ThemedText>
+          <Segmented<'on' | 'off'>
+            value={news ? 'on' : 'off'}
+            onChange={changeNews}
+            options={[
+              { value: 'on', label: t.settings.on },
+              { value: 'off', label: t.settings.off },
+            ]}
+          />
+        </Card>
+      ) : null}
+      {company?.kind === 'contractor' && listed !== null ? (
+        <Card>
+          <ThemedText type="smallBold">{t.settings.directory}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {t.settings.directoryLead}
+          </ThemedText>
+          <Segmented<'on' | 'off'>
+            value={listed ? 'on' : 'off'}
+            onChange={changeListed}
+            options={[
+              { value: 'on', label: t.settings.on },
+              { value: 'off', label: t.settings.off },
+            ]}
+          />
+        </Card>
+      ) : null}
       <VerificationCard />
-      <Button label={t.settings.signOut} variant="ghost" onPress={() => supabase.auth.signOut()} />
+      <ReferralCard />
+      {company ? (
+        <View style={{ alignSelf: 'flex-start' }}>
+          <Button label={t.files.open} variant="ghost" onPress={() => router.push('/fichiers')} />
+        </View>
+      ) : null}
+      {company?.kind === 'contractor' ? (
+        <View style={{ alignSelf: 'flex-start' }}>
+          <Button label={t.growth.favourites.open} variant="ghost" onPress={() => router.push('/fournisseurs')} />
+        </View>
+      ) : company?.kind === 'supplier' ? (
+        <View style={{ alignSelf: 'flex-start' }}>
+          <Button label={t.growth.supplierSpace.zones} variant="ghost" onPress={() => router.push('/zones')} />
+        </View>
+      ) : null}
+      {platformAdmin && session ? (
+        <View style={{ alignSelf: 'flex-start' }}>
+          <Button label="Admin BatiNode" variant="signal" onPress={() => router.push('/admin')} />
+        </View>
+      ) : null}
+      <Button label={t.settings.signOut} variant="ghost" onPress={() => supabase.auth.signOut({ scope: 'local' })} />
+      {session ? <DeleteAccountCard /> : null}
+      <LegalLinks />
     </Screen>
   );
 }

@@ -20,11 +20,14 @@ async function verify(stripe: Stripe, req: Request): Promise<Stripe.Event | null
   }
 }
 
+type PriceInfo = { plan: 'pro' | 'full'; interval: 'month' | 'year' };
 const PLAN_BY_PRICE = () =>
   ({
-    [Deno.env.get('STRIPE_PRICE_PRO') ?? '-']: 'pro',
-    [Deno.env.get('STRIPE_PRICE_FULL') ?? '-']: 'full',
-  }) as Record<string, 'pro' | 'full'>;
+    [Deno.env.get('STRIPE_PRICE_PRO') ?? '-']: { plan: 'pro', interval: 'month' },
+    [Deno.env.get('STRIPE_PRICE_FULL') ?? '-']: { plan: 'full', interval: 'month' },
+    [Deno.env.get('STRIPE_PRICE_PRO_YEAR') ?? '-y']: { plan: 'pro', interval: 'year' },
+    [Deno.env.get('STRIPE_PRICE_FULL_YEAR') ?? '-y']: { plan: 'full', interval: 'year' },
+  }) as Record<string, PriceInfo>;
 
 /** A commission bill was paid. */
 async function paymentSucceeded(admin: Admin, session: Stripe.Checkout.Session) {
@@ -40,6 +43,7 @@ async function paymentSucceeded(admin: Admin, session: Stripe.Checkout.Session) 
   const now = new Date().toISOString();
   await admin.from('commission_bills').update({ status: 'paid', paid_at: now }).eq('id', payment.commission_bill_id);
   await admin.from('commissions').update({ status: 'paid', paid_at: now }).eq('bill_id', payment.commission_bill_id);
+  await admin.from('project_commissions').update({ status: 'paid', paid_at: now }).eq('bill_id', payment.commission_bill_id);
   await logEvent(admin, { kind: 'payment_succeeded', company_id: payment.company_id, data: { purpose: 'commission', cents: payment.amount_cents } });
 }
 
@@ -54,18 +58,54 @@ async function paymentFailed(admin: Admin, session: Stripe.Checkout.Session, sta
   if (data && status === 'failed') await logEvent(admin, { kind: 'payment_failed', company_id: data.company_id, data: { bill: data.commission_bill_id } });
 }
 
-async function subscriptionChanged(admin: Admin, sub: Stripe.Subscription) {
+/**
+ * Founding members: the first live paid plan takes a place. Moving up once from Starter
+ * to Premium keeps the price guarantee; cancelling, moving down or a second change ends it.
+ */
+async function updateFounder(admin: Admin, companyId: string, plan: 'pro' | 'full' | undefined, status: string) {
+  const { data: row } = await admin
+    .from('subscriptions')
+    .select('founder_number, founder_plan, founder_plan_changed_at, founder_ended_at')
+    .eq('company_id', companyId)
+    .maybeSingle();
+  if (!row) return;
+  if (row.founder_number === null) {
+    if (status !== 'active' || !plan) return;
+    const { data: number } = await admin.rpc('claim_founder', { p_company: companyId, p_plan: plan });
+    if (number) await logEvent(admin, { kind: 'founder_joined', company_id: companyId, data: { number, plan } });
+    return;
+  }
+  if (row.founder_ended_at) return;
+  if (status !== 'canceled' && (!plan || plan === row.founder_plan)) return;
+  const upgrade = status !== 'canceled' && row.founder_plan === 'pro' && plan === 'full' && !row.founder_plan_changed_at;
+  const now = new Date().toISOString();
+  await admin
+    .from('subscriptions')
+    .update(upgrade ? { founder_plan: 'full', founder_plan_changed_at: now } : { founder_ended_at: now })
+    .eq('company_id', companyId);
+  await logEvent(admin, {
+    kind: upgrade ? 'founder_upgraded' : 'founder_ended',
+    company_id: companyId,
+    data: { number: row.founder_number, status, plan: plan ?? null },
+  });
+}
+
+async function subscriptionChanged(admin: Admin, sub: Stripe.Subscription, livemode: boolean) {
   const companyId = sub.metadata?.company_id;
   if (!companyId) return;
   const price = sub.items.data[0]?.price.id ?? '';
-  const plan = PLAN_BY_PRICE()[price];
+  const info = PLAN_BY_PRICE()[price];
+  const plan = info?.plan;
   const active = ['active', 'trialing'].includes(sub.status);
   const periodEnd = sub.items.data[0]?.current_period_end;
+  const status = sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due' : active ? 'active' : 'canceled';
   await admin
     .from('subscriptions')
     .update({
       plan: active && plan ? plan : 'free',
-      status: sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due' : active ? 'active' : 'canceled',
+      // A paid plan replaces the free trial.
+      ...(active && plan ? { trial_ends_at: null, billing_interval: info.interval } : {}),
+      status,
       provider_customer_id: typeof sub.customer === 'string' ? sub.customer : sub.customer.id,
       provider_subscription_id: sub.id,
       current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
@@ -73,6 +113,8 @@ async function subscriptionChanged(admin: Admin, sub: Stripe.Subscription) {
     })
     .eq('company_id', companyId);
   await logEvent(admin, { kind: 'subscription_changed', company_id: companyId, data: { plan: plan ?? null, status: sub.status } });
+  // Test payments never take a founding place.
+  if (livemode) await updateFounder(admin, companyId, plan, status);
 }
 
 Deno.serve(async (req) => {
@@ -100,7 +142,7 @@ Deno.serve(async (req) => {
     case 'customer.subscription.created':
     case 'customer.subscription.updated':
     case 'customer.subscription.deleted':
-      await subscriptionChanged(admin, event.data.object);
+      await subscriptionChanged(admin, event.data.object, event.livemode);
       break;
   }
   return json({ received: true });

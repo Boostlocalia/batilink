@@ -25,5 +25,5 @@ Deno.serve(async (req) => {
   if (!['sent', 'awarded'].includes(request.status)) return json({ error: 'closed' }, 409);
 
   const result = await relayMessage(admin, { quoteId: quote.id, author: 'contractor', channel: 'app', body });
-  return json(result, result.status === 'not_found' ? 404 : 200);
+  return json(result, result.status === 'not_found' ? 404 : result.status === 'limited' ? 429 : 200);
 });

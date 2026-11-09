@@ -1,4 +1,4 @@
-import { APP_NAME } from './brand.ts';
+import { APP_NAME, EMAIL_LOGO_LIGHT_URL, EMAIL_LOGO_URL, SOCIAL_ICON_URL, SOCIAL_LINKS } from './brand.ts';
 
 // Transactional e-mails, sent through Brevo's HTTP API in the recipient's language.
 
@@ -11,11 +11,15 @@ export type Mail = {
   text: string;
   /** Relay address replies should go to, so the platform can pass them on. */
   replyTo?: string;
+  /** Sender name shown to the recipient; BatiNode when not set. */
+  fromName?: string;
+  /** One-click unsubscribe endpoint (List-Unsubscribe), for mails the recipient did not sign up for. */
+  unsubscribeUrl?: string;
 };
 
 export async function sendMail(mail: Mail): Promise<void> {
   const apiKey = Deno.env.get('BREVO_API_KEY');
-  const from = Deno.env.get('EMAIL_FROM') ?? 'demandes@batilink.be';
+  const from = Deno.env.get('EMAIL_FROM') ?? 'support@batinode.be';
   if (!apiKey) {
     // Local development: log instead of sending.
     console.log(`[mail] to=${mail.to} reply-to=${mail.replyTo ?? '-'} subject=${mail.subject}\n${mail.text}`);
@@ -25,40 +29,50 @@ export async function sendMail(mail: Mail): Promise<void> {
     method: 'POST',
     headers: { 'api-key': apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
-      sender: { email: from, name: APP_NAME },
+      sender: { email: from, name: mail.fromName ?? APP_NAME },
       to: [{ email: mail.to }],
       subject: mail.subject,
       htmlContent: mail.html,
       textContent: mail.text,
-      ...(mail.replyTo ? { replyTo: { email: mail.replyTo, name: APP_NAME } } : {}),
+      ...(mail.replyTo ? { replyTo: { email: mail.replyTo, name: mail.fromName ?? APP_NAME } } : {}),
+      ...(mail.unsubscribeUrl ? { headers: { 'List-Unsubscribe': `<${mail.unsubscribeUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } } : {}),
     }),
   });
   if (!res.ok) throw new Error(`Brevo ${res.status}: ${await res.text()}`);
 }
 
-const esc = (s: string) =>
-  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
-function layout(paragraphs: string[], cta?: { label: string; url: string }, footer?: string): string {
+const FOLLOW_US: Record<Lang, string> = { fr: "N'oubliez pas de nous suivre sur les réseaux", nl: 'Vergeet ons niet te volgen op sociale media' };
+
+function layout(paragraphs: string[], cta?: { label: string; url: string }, footer?: string, lang: Lang = 'fr'): string {
   const body = paragraphs.map((p) => `<p style="margin:0 0 14px">${p}</p>`).join('');
   const button = cta
     ? `<p style="margin:22px 0"><a href="${esc(cta.url)}" style="background:#d4ff3a;color:#09090b;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">${esc(cta.label)}</a></p>`
     : '';
   const foot = footer ? `<p style="margin:24px 0 0;color:#9b9ba6;font-size:12px">${footer}</p>` : '';
+  const social = `<p style="margin:24px 0 8px;color:#9b9ba6;font-size:12px">${esc(FOLLOW_US[lang])}</p><p style="margin:0">${SOCIAL_LINKS.map((n) => {
+    const icon = `<img src="${SOCIAL_ICON_URL(n.key)}" width="22" height="22" alt="${n.label}" style="border:0;width:22px;height:22px;margin-right:14px">`;
+    return n.url ? `<a href="${esc(n.url)}" style="text-decoration:none">${icon}</a>` : icon;
+  }).join('')}</p>`;
   return `<div style="font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#f4f4f6;background:#09090b;padding:28px;border-radius:14px;max-width:560px">
-<p style="margin:0 0 20px;font-weight:800;font-size:18px;color:#d4ff3a">${APP_NAME}</p>${body}${button}${foot}</div>`;
+<p style="margin:0 0 20px"><img src="${EMAIL_LOGO_URL}" width="200" height="47" alt="${APP_NAME}" style="display:block;border:0;width:200px;height:47px;color:#d4ff3a;font-weight:800;font-size:18px"></p>${body}${button}${foot}${social}</div>`;
 }
 
-const dateFmt = (iso: string, lang: Lang) =>
-  new Intl.DateTimeFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { day: 'numeric', month: 'long' }).format(
-    new Date(`${iso}T12:00:00Z`),
-  );
+const dateFmt = (iso: string, lang: Lang) => new Intl.DateTimeFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { day: 'numeric', month: 'long' }).format(new Date(`${iso}T12:00:00Z`));
 
 export type InvitationData = {
   lang: Lang;
   to: string;
   contractor: string;
   contractorVerified: boolean;
+  /** The client's company details, so the supplier recognises a real customer. */
+  contractorVat: string | null;
+  contractorAddress: string | null;
+  /** The person who signs the request, from the company profile. */
+  contactName?: string | null;
+  /** The contractor's note on the request, if any. */
+  note?: string | null;
   title: string;
   postalCode: string;
   city: string | null;
@@ -67,16 +81,16 @@ export type InvitationData = {
   replyBy: string;
   delivery: boolean;
   url: string;
-  /** Commission due if the offer is awarded, e.g. 0.05. */
-  commissionRate: number;
+  /** Commission due if the offer is awarded, e.g. 0.05; null while suppliers answer for free. */
+  commissionRate: number | null;
   /** Supplier's relay address: replying to the e-mail asks the contractor a question. */
   replyTo?: string;
+  /** One-click unsubscribe endpoint, shown to mail clients in the List-Unsubscribe header. */
+  unsubscribeUrl?: string;
 };
 
-const pct = (rate: number, lang: Lang) =>
-  new Intl.NumberFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { style: 'percent', maximumFractionDigits: 2 }).format(rate);
-const eur = (n: number, lang: Lang) =>
-  new Intl.NumberFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { style: 'currency', currency: 'EUR' }).format(n);
+const pct = (rate: number, lang: Lang) => new Intl.NumberFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { style: 'percent', maximumFractionDigits: 2 }).format(rate);
+export const eur = (n: number, lang: Lang) => new Intl.NumberFormat(lang === 'fr' ? 'fr-BE' : 'nl-BE', { style: 'currency', currency: 'EUR' }).format(n);
 
 const UNITS: Record<Lang, Record<string, string>> = {
   fr: { piece: 'pièce(s)', bag: 'sac(s)', t: 't', kg: 'kg', m: 'm', m2: 'm²', m3: 'm³', l: 'l', pallet: 'palette(s)' },
@@ -91,61 +105,115 @@ function itemLines(d: InvitationData): { html: string; text: string } {
   };
 }
 
+/** Hours a supplier has to answer a price request, from the moment it is sent. */
+export const REPLY_HOURS = 48;
+
+/** "Rue X 1, 1000 Bruxelles" from a company's address fields, or null. */
+export function contractorAddress(c: { street: string | null; postal_code: string | null; city: string | null } | null | undefined): string | null {
+  if (!c) return null;
+  const town = [c.postal_code, c.city].filter(Boolean).join(' ');
+  return [c.street, town].filter(Boolean).join(', ') || null;
+}
+
+/** A plain, white e-mail as a person writes it: no logo, no button. */
+function plainLayout(paragraphs: string[], footer: string): string {
+  const body = paragraphs.map((p) => `<p style="margin:0 0 12px">${p}</p>`).join('');
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#222">${body}<p style="margin:28px 0 0;color:#888;font-size:12px">${footer}</p></div>`;
+}
+
+/**
+ * The price request a supplier receives. It reads like the contractor's own e-mail
+ * to their merchant, sent in their name "via BatiNode": suppliers took the branded
+ * version for advertising. Replying with a price or a PDF is enough.
+ */
 export function invitationMail(d: InvitationData, reminder = false): Mail {
   const place = `${d.postalCode}${d.city ? ` ${d.city}` : ''}`;
   const items = itemLines(d);
-  if (d.lang === 'nl') {
-    const who = `${d.contractor}${d.contractorVerified ? ' (geverifieerd bedrijf)' : ''}`;
-    const when = d.neededBy ? `${d.delivery ? 'levering op de werf' : 'afhaling'} op ${dateFmt(d.neededBy, 'nl')}` : d.delivery ? 'levering op de werf' : 'afhaling';
-    const intro = `${esc(who)} vraagt u een prijs voor ${d.items.length} product(en) in ${esc(place)}, ${when}. Antwoord gewenst voor ${dateFmt(d.replyBy, 'nl')}.`;
-    const subject = `${reminder ? 'Herinnering: ' : ''}Nieuwe prijsaanvraag: ${d.title} (${place})`;
-    const ask = 'Een vraag over de aanvraag? Beantwoord gewoon deze e-mail: we sturen uw vraag door naar de aannemer en bezorgen u zijn antwoord.';
-    const footer = `Antwoorden is gratis en zonder account. Wordt uw offerte gekozen, dan factureert ${APP_NAME} een commissie van ${pct(d.commissionRate, 'nl')} excl. btw op het bedrag van de offerte. U krijgt deze e-mail omdat uw handel deze categorie en regio bedient op ${APP_NAME}.`;
-    return {
-      to: d.to,
-      subject,
-      html: layout(['Goedendag,', intro, items.html], { label: 'Mijn prijs doorgeven', url: d.url }, `${ask}<br><br>${footer}`),
-      text: `Goedendag,\n\n${who} vraagt u een prijs voor:\n${items.text}\n\nAntwoorden: ${d.url}\n\n${ask}\n\n${footer}`,
-      replyTo: d.replyTo,
-    };
-  }
-  const who = `${d.contractor}${d.contractorVerified ? ' (entreprise vérifiée)' : ''}`;
-  const when = d.neededBy ? `${d.delivery ? 'livraison sur chantier' : 'enlèvement'} le ${dateFmt(d.neededBy, 'fr')}` : d.delivery ? 'livraison sur chantier' : 'enlèvement';
-  const intro = `${esc(who)} vous demande un prix pour ${d.items.length} produit(s) à ${esc(place)}, ${when}. Réponse souhaitée avant le ${dateFmt(d.replyBy, 'fr')}.`;
-  const subject = `${reminder ? 'Rappel : ' : ''}Nouvelle demande de prix : ${d.title} (${place})`;
-  const ask = "Une question sur la demande ? Répondez simplement à cet e-mail : nous transmettons votre question à l'entrepreneur et vous renvoyons sa réponse.";
-  const footer = `Répondre est gratuit et ne demande pas de compte. Si votre offre est retenue, ${APP_NAME} facture une commission de ${pct(d.commissionRate, 'fr')} HTVA sur le montant de l'offre. Vous recevez cet e-mail parce que votre négoce couvre cette catégorie et cette zone sur ${APP_NAME}.`;
-  return {
-    to: d.to,
-    subject,
-    html: layout(['Bonjour,', intro, items.html], { label: 'Remettre mon prix', url: d.url }, `${esc(ask)}<br><br>${footer}`),
-    text: `Bonjour,\n\n${who} vous demande un prix pour :\n${items.text}\n\nRépondre : ${d.url}\n\n${ask}\n\n${footer}`,
-    replyTo: d.replyTo,
-  };
+  const stopUrl = `${d.url}?stop=1`;
+  const fromName = `${d.contractor} (via ${APP_NAME})`;
+  const town = d.city ?? d.postalCode;
+  const nl = d.lang === 'nl';
+  const subject = nl ? `${reminder ? 'Herinnering: ' : ''}Prijsaanvraag – ${d.title} – ${town}` : `${reminder ? 'Rappel : ' : ''}Demande de prix – ${d.title} – ${town}`;
+  const signature = [d.contactName, d.contractor, d.contractorVat ? `${nl ? 'btw' : 'TVA'} ${d.contractorVat}` : null, d.contractorAddress].filter(Boolean) as string[];
+  const lines = nl
+    ? {
+        hello: 'Goedendag,',
+        reminder: 'Kleine herinnering voor mijn aanvraag hieronder.',
+        ask: 'Kunt u mij uw beste prijs geven voor:',
+        site: `Werf in ${place}, ${d.delivery ? 'levering op de werf' : 'afhaling'}.`,
+        note: d.note ? `Opmerking: ${d.note}` : null,
+        when: `Een antwoord tegen ${dateFmt(d.replyBy, 'nl')} zou mij goed uitkomen.`,
+        reply: 'U kunt gewoon op deze e-mail antwoorden met uw prijs of uw offerte in pdf.',
+        thanks: 'Alvast bedankt,',
+        tagline: `${APP_NAME}, de oplossing voor bouwondernemers`,
+        footer: `Aanvraag verstuurd via ${APP_NAME} namens ${esc(d.contractor)}. Liever online invullen? <a href="${esc(d.url)}" style="color:#888">Offerte invullen</a>. ${
+          d.commissionRate ? `Wordt uw offerte gekozen, dan factureert ${APP_NAME} een commissie van ${pct(d.commissionRate, 'nl')} excl. btw. ` : ''
+        }Geen aanvragen meer ontvangen via ${APP_NAME}? <a href="${esc(stopUrl)}" style="color:#888">Afmelden</a>.`,
+        footerText: `Aanvraag verstuurd via ${APP_NAME} namens ${d.contractor}.\nOnline invullen: ${d.url}\n${
+          d.commissionRate ? `Wordt uw offerte gekozen, dan factureert ${APP_NAME} een commissie van ${pct(d.commissionRate, 'nl')} excl. btw.\n` : ''
+        }Afmelden: ${stopUrl}`,
+      }
+    : {
+        hello: 'Bonjour,',
+        reminder: 'Petit rappel pour ma demande ci-dessous.',
+        ask: 'Pourriez-vous me faire votre meilleur prix pour :',
+        site: `Chantier à ${place}, ${d.delivery ? 'livraison sur chantier' : 'enlèvement'}.`,
+        note: d.note ? `Remarque : ${d.note}` : null,
+        when: `Une réponse pour le ${dateFmt(d.replyBy, 'fr')} m'arrangerait.`,
+        reply: 'Vous pouvez simplement répondre à cet e-mail avec votre prix ou votre offre en PDF.',
+        thanks: "Merci d'avance,",
+        tagline: `${APP_NAME}, la solution des entrepreneurs du bâtiment`,
+        footer: `Demande envoyée via ${APP_NAME} pour le compte de ${esc(d.contractor)}. Vous préférez remplir l'offre en ligne ? <a href="${esc(d.url)}" style="color:#888">Remplir l'offre</a>. ${
+          d.commissionRate ? `Si votre offre est retenue, ${APP_NAME} facture une commission de ${pct(d.commissionRate, 'fr')} HTVA. ` : ''
+        }Ne plus recevoir de demandes via ${APP_NAME} : <a href="${esc(stopUrl)}" style="color:#888">se désinscrire</a>.`,
+        footerText: `Demande envoyée via ${APP_NAME} pour le compte de ${d.contractor}.\nRemplir l'offre en ligne : ${d.url}\n${
+          d.commissionRate ? `Si votre offre est retenue, ${APP_NAME} facture une commission de ${pct(d.commissionRate, 'fr')} HTVA.\n` : ''
+        }Se désinscrire : ${stopUrl}`,
+      };
+  const html = plainLayout(
+    [
+      lines.hello,
+      ...(reminder ? [lines.reminder] : []),
+      lines.ask,
+      items.html,
+      esc(lines.site),
+      ...(lines.note ? [esc(lines.note)] : []),
+      esc(lines.when),
+      esc(lines.reply),
+      `${esc(lines.thanks)}<br>${signature.map(esc).join('<br>')}`,
+      `<img src="${EMAIL_LOGO_LIGHT_URL}" width="100" height="24" alt="${APP_NAME}" style="display:block;border:0;width:100px;height:24px;margin-top:8px"><span style="color:#888;font-size:12px">${esc(lines.tagline)}</span>`,
+    ],
+    lines.footer,
+  );
+  const text = [
+    lines.hello,
+    ...(reminder ? [lines.reminder] : []),
+    `${lines.ask}\n${items.text}`,
+    lines.site,
+    ...(lines.note ? [lines.note] : []),
+    lines.when,
+    lines.reply,
+    `${lines.thanks}\n${signature.join('\n')}`,
+    lines.tagline,
+    `--\n${lines.footerText}`,
+  ].join('\n\n');
+  return { to: d.to, subject, html, text, fromName, replyTo: d.replyTo, unsubscribeUrl: d.unsubscribeUrl };
 }
 
-export type CommissionLine = { base: number; rate: number; amount: number };
-
-/** Offer awarded: the supplier confirms the purchase order (and its deposit) from the link. */
-export function awardedMail(
-  lang: Lang,
-  to: string,
-  contractor: string,
-  title: string,
-  commission: CommissionLine,
-  order: { number: string; url: string },
-): Mail {
+export function awardedMail(lang: Lang, to: string, contractor: string, title: string, commission: CommissionLine | null, order: { number: string; url: string }): Mail {
   if (lang === 'nl') {
     const p = [
       `Goed nieuws: ${esc(contractor)} heeft uw offerte voor « ${esc(title)} » gekozen. Bestelbon: <b>${esc(order.number)}</b>.`,
       'Bevestig de bestelling via de knop hieronder. U kunt er een voorschot vragen: de aannemer betaalt u rechtstreeks en stuurt het betalingsbewijs voordat u de bestelling start.',
       `Vermeld het nummer ${esc(order.number)} als bestelreferentie op uw (Peppol-)factuur.`,
-      `Commissie ${APP_NAME}: ${pct(commission.rate, 'nl')} van het gefactureerde bedrag excl. btw (offerte: ${eur(commission.base, 'nl')}, of ${eur(commission.amount, 'nl')}), gefactureerd aan het einde van de maand.`,
-    ];
+      commission
+        ? `Commissie ${APP_NAME}: ${pct(commission.rate, 'nl')} van het gefactureerde bedrag excl. btw (offerte: ${eur(commission.base, 'nl')}, of ${eur(commission.amount, 'nl')}), gefactureerd aan het einde van de maand.`
+        : null,
+    ].filter((l): l is string => l !== null);
     return {
       to,
       subject: `Uw offerte is gekozen: ${title} (${order.number})`,
-      html: layout(p, { label: 'Bestelling bevestigen', url: order.url }),
+      html: layout(p, { label: 'Bestelling bevestigen', url: order.url }, undefined, 'nl'),
       text: `${p.join('\n\n').replace(/<\/?b>/g, '')}\n\n${order.url}`,
     };
   }
@@ -153,8 +221,10 @@ export function awardedMail(
     `Bonne nouvelle : ${esc(contractor)} a retenu votre offre pour « ${esc(title)} ». Bon de commande : <b>${esc(order.number)}</b>.`,
     "Confirmez la commande avec le bouton ci-dessous. Vous pouvez y demander un acompte : l'entrepreneur vous le paie directement et envoie la preuve de paiement avant que vous lanciez la commande.",
     `Indiquez le numéro ${esc(order.number)} comme référence de commande sur votre facture (Peppol).`,
-    `Commission ${APP_NAME} : ${pct(commission.rate, 'fr')} du montant facturé HTVA (offre : ${eur(commission.base, 'fr')}, soit ${eur(commission.amount, 'fr')}), facturée en fin de mois.`,
-  ];
+    commission
+      ? `Commission ${APP_NAME} : ${pct(commission.rate, 'fr')} du montant facturé HTVA (offre : ${eur(commission.base, 'fr')}, soit ${eur(commission.amount, 'fr')}), facturée en fin de mois.`
+      : null,
+  ].filter((l): l is string => l !== null);
   return {
     to,
     subject: `Votre offre est retenue : ${title} (${order.number})`,
@@ -166,7 +236,7 @@ export function awardedMail(
 export function notSelectedMail(lang: Lang, to: string, contractor: string, title: string): Mail {
   if (lang === 'nl') {
     const p = [`${esc(contractor)} heeft voor « ${esc(title)} » een andere offerte gekozen.`, 'Bedankt voor uw antwoord. U ontvangt binnenkort nieuwe aanvragen uit uw regio.'];
-    return { to, subject: `Aanvraag afgesloten: ${title}`, html: layout(p), text: p.join('\n\n') };
+    return { to, subject: `Aanvraag afgesloten: ${title}`, html: layout(p, undefined, undefined, 'nl'), text: p.join('\n\n') };
   }
   const p = [`${esc(contractor)} a retenu une autre offre pour « ${esc(title)} ».`, 'Merci pour votre réponse. Vous recevrez bientôt de nouvelles demandes de votre zone.'];
   return { to, subject: `Demande clôturée : ${title}`, html: layout(p), text: p.join('\n\n') };
@@ -175,7 +245,7 @@ export function notSelectedMail(lang: Lang, to: string, contractor: string, titl
 export function newQuoteMail(lang: Lang, to: string, supplier: string, title: string, url: string): Mail {
   if (lang === 'nl') {
     const p = [`${esc(supplier)} heeft een offerte ingediend voor « ${esc(title)} ».`];
-    return { to, subject: `Nieuwe offerte: ${title}`, html: layout(p, { label: 'Offertes vergelijken', url }), text: `${p[0]}\n\n${url}` };
+    return { to, subject: `Nieuwe offerte: ${title}`, html: layout(p, { label: 'Offertes vergelijken', url }, undefined, 'nl'), text: `${p[0]}\n\n${url}` };
   }
   const p = [`${esc(supplier)} a remis une offre pour « ${esc(title)} ».`];
   return { to, subject: `Nouvelle offre : ${title}`, html: layout(p, { label: 'Comparer les offres', url }), text: `${p[0]}\n\n${url}` };
@@ -188,22 +258,14 @@ const paragraphs = (text: string) =>
     .filter(Boolean);
 
 /** A supplier's question (or news), relayed to the contractor. Replying answers the supplier. */
-export function questionToContractorMail(
-  lang: Lang,
-  to: string,
-  supplier: string,
-  title: string,
-  relayed: string,
-  url: string,
-  replyTo: string,
-): Mail {
+export function questionToContractorMail(lang: Lang, to: string, supplier: string, title: string, relayed: string, url: string, replyTo: string): Mail {
   if (lang === 'nl') {
     const intro = `${esc(supplier)} heeft een vraag over uw prijsaanvraag « ${esc(title)} »:`;
     const hint = 'Beantwoord gewoon deze e-mail, of antwoord in de app. Wij bezorgen uw antwoord aan de leverancier.';
     return {
       to,
       subject: `Vraag van ${supplier}: ${title}`,
-      html: layout([intro, ...paragraphs(relayed), esc(hint)], { label: 'Antwoorden in de app', url }),
+      html: layout([intro, ...paragraphs(relayed), esc(hint)], { label: 'Antwoorden in de app', url }, undefined, 'nl'),
       text: `${intro}\n\n${relayed}\n\n${hint}\n${url}`,
       replyTo,
     };
@@ -223,25 +285,66 @@ export function questionToContractorMail(
  * The contractor's answer, relayed to the supplier. Replying asks a follow-up question.
  * No price link: only its hash is stored, and the invitation's link still works.
  */
-export function answerToSupplierMail(lang: Lang, to: string, contractor: string, title: string, relayed: string, replyTo: string): Mail {
-  if (lang === 'nl') {
-    const intro = `${esc(contractor)} antwoordt op uw vraag over « ${esc(title)} »:`;
-    const hint = 'Nog een vraag? Beantwoord deze e-mail. Uw prijs geeft u door via de link in de oorspronkelijke aanvraag.';
-    return { to, subject: `Antwoord van ${contractor}: ${title}`, html: layout([intro, ...paragraphs(relayed), esc(hint)]), text: `${intro}\n\n${relayed}\n\n${hint}`, replyTo };
-  }
-  const intro = `${esc(contractor)} répond à votre question sur « ${esc(title)} » :`;
-  const hint = 'Une autre question ? Répondez à cet e-mail. Votre prix se remet par le lien de la demande initiale.';
-  return { to, subject: `Réponse de ${contractor} : ${title}`, html: layout([intro, ...paragraphs(relayed), esc(hint)]), text: `${intro}\n\n${relayed}\n\n${hint}`, replyTo };
+/** The contractor's answer to a supplier's question: a plain reply in the contractor's name, like the request itself. */
+export function answerToSupplierMail(
+  lang: Lang,
+  to: string,
+  contractor: string,
+  title: string,
+  relayed: string,
+  replyTo: string,
+  items: { label: string; quantity: number; unit: string }[] = [],
+): Mail {
+  const nl = lang === 'nl';
+  // A reminder of what was asked, so the supplier need not look for the first e-mail.
+  const asked = items.map((i) => `${i.quantity} ${UNITS[lang][i.unit] ?? i.unit} · ${i.label}`);
+  const l = nl
+    ? {
+        subject: `Re: Prijsaanvraag – ${title}`,
+        hello: 'Goedendag,',
+        reply: 'U kunt gewoon op deze e-mail antwoorden met uw prijs of uw offerte in pdf.',
+        thanks: 'Met vriendelijke groeten,',
+        asked: 'Ter herinnering, mijn aanvraag:',
+        tagline: `${APP_NAME}, de oplossing voor bouwondernemers`,
+        footer: `Bericht doorgestuurd via ${APP_NAME} namens ${contractor}.`,
+      }
+    : {
+        subject: `Re: Demande de prix – ${title}`,
+        hello: 'Bonjour,',
+        reply: 'Vous pouvez simplement répondre à cet e-mail avec votre prix ou votre offre en PDF.',
+        thanks: 'Bien à vous,',
+        asked: 'Pour rappel, ma demande :',
+        tagline: `${APP_NAME}, la solution des entrepreneurs du bâtiment`,
+        footer: `Message transmis via ${APP_NAME} pour le compte de ${contractor}.`,
+      };
+  const html = plainLayout(
+    [
+      l.hello,
+      ...paragraphs(relayed),
+      ...(asked.length ? [`${esc(l.asked)}<br>${asked.map(esc).join('<br>')}`] : []),
+      esc(l.reply),
+      `${esc(l.thanks)}<br>${esc(contractor)}`,
+      `<img src="${EMAIL_LOGO_LIGHT_URL}" width="100" height="24" alt="${APP_NAME}" style="display:block;border:0;width:100px;height:24px;margin-top:8px"><span style="color:#888;font-size:12px">${esc(l.tagline)}</span>`,
+    ],
+    esc(l.footer),
+  );
+  const text = [l.hello, relayed, ...(asked.length ? [`${l.asked}\n${asked.join('\n')}`] : []), l.reply, `${l.thanks}\n${contractor}`, l.tagline, `--\n${l.footer}`].join('\n\n');
+  return { to, subject: l.subject, html, text, fromName: `${contractor} (via ${APP_NAME})`, replyTo };
 }
 
 // Orders -----------------------------------------------------------------------
 
-type Localized = { subject: string; paragraphs: string[]; cta?: { label: string; url: string } };
+export type Localized = { subject: string; paragraphs: string[]; cta?: { label: string; url: string } };
 
 /** A short bilingual notice; paragraphs are plain text (escaped here). */
-function notice(lang: Lang, to: string, content: Record<Lang, Localized>): Mail {
+export function notice(lang: Lang, to: string, content: Record<Lang, Localized>): Mail {
   const c = content[lang];
-  const html = layout(c.paragraphs.map(esc), c.cta);
+  const html = layout(
+    c.paragraphs.map((p) => esc(p).replace(/\n/g, '<br>')),
+    c.cta,
+    undefined,
+    lang,
+  );
   const text = [...c.paragraphs, ...(c.cta ? [c.cta.url] : [])].join('\n\n');
   return { to, subject: c.subject, html, text };
 }
@@ -256,8 +359,35 @@ export type OrderMailData = {
   url: string;
 };
 
+/** Where the client finds the goods: the store the supplier named, its phone and a route link. */
+export type StoreInfo = { address: string | null; phone: string | null; pickup: boolean };
+
+/** Google Maps search for the store (works on every phone, no key needed). */
+export function mapsUrl(name: string, address: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name}, ${address}`)}`;
+}
+
+function storeLines(d: OrderMailData, store: StoreInfo | undefined, lang: Lang): string[] {
+  if (!store?.address) return store?.phone ? [lang === 'fr' ? `Téléphone : ${store.phone}` : `Telefoon: ${store.phone}`] : [];
+  const lines =
+    lang === 'fr'
+      ? [`Adresse du magasin ${d.other} :\n${store.address}`, ...(store.phone ? [`Téléphone : ${store.phone}`] : []), `Itinéraire : ${mapsUrl(d.other, store.address)}`]
+      : [`Adres van de winkel ${d.other}:\n${store.address}`, ...(store.phone ? [`Telefoon: ${store.phone}`] : []), `Route: ${mapsUrl(d.other, store.address)}`];
+  return lines;
+}
+
 /** To the contractor: the supplier confirmed, with or without a deposit to pay first. */
-export function orderConfirmedMail(d: OrderMailData, deposit: { amount: number; iban: string | null } | null): Mail {
+export function orderConfirmedMail(d: OrderMailData, deposit: { amount: number; iban: string | null } | null, store?: StoreInfo & { inStock: boolean }): Mail {
+  const stock = (lang: Lang) =>
+    !store
+      ? []
+      : store.inStock
+        ? [lang === 'fr' ? 'Tout le matériel est en stock.' : 'Al het materiaal is op voorraad.']
+        : [
+            lang === 'fr'
+              ? `Une partie du matériel doit encore être commandée : ${d.other} vous prévient par e-mail dès qu'il est en stock.`
+              : `Een deel van het materiaal moet nog besteld worden: ${d.other} verwittigt u per e-mail zodra het op voorraad is.`,
+          ];
   const fr: Localized = deposit
     ? {
         subject: `Acompte demandé : ${d.title} (${d.number})`,
@@ -266,12 +396,14 @@ export function orderConfirmedMail(d: OrderMailData, deposit: { amount: number; 
           deposit.iban
             ? `Payez-le directement au fournisseur, par virement au compte ${deposit.iban} avec la communication ${d.number}, puis déposez la preuve du virement (capture d'écran ou PDF) dans l'application. Nous la transmettons au fournisseur.`
             : "Payez-le directement au fournisseur, puis déposez la preuve du virement (capture d'écran ou PDF) dans l'application. Nous la transmettons au fournisseur.",
+          ...stock('fr'),
+          ...storeLines(d, store, 'fr'),
         ],
         cta: { label: 'Envoyer la preuve', url: d.url },
       }
     : {
         subject: `Commande confirmée : ${d.title} (${d.number})`,
-        paragraphs: [`${d.other} a confirmé la commande ${d.number} et la prépare.`],
+        paragraphs: [`${d.other} a confirmé la commande ${d.number} et la prépare.`, ...stock('fr'), ...storeLines(d, store, 'fr')],
         cta: { label: 'Suivre la commande', url: d.url },
       };
   const nl: Localized = deposit
@@ -282,15 +414,43 @@ export function orderConfirmedMail(d: OrderMailData, deposit: { amount: number; 
           deposit.iban
             ? `Betaal het rechtstreeks aan de leverancier, via overschrijving naar ${deposit.iban} met mededeling ${d.number}, en laad daarna het betalingsbewijs op in de app (schermafbeelding of pdf). Wij bezorgen het aan de leverancier.`
             : 'Betaal het rechtstreeks aan de leverancier en laad daarna het betalingsbewijs op in de app (schermafbeelding of pdf). Wij bezorgen het aan de leverancier.',
+          ...stock('nl'),
+          ...storeLines(d, store, 'nl'),
         ],
         cta: { label: 'Bewijs opladen', url: d.url },
       }
     : {
         subject: `Bestelling bevestigd: ${d.title} (${d.number})`,
-        paragraphs: [`${d.other} heeft bestelling ${d.number} bevestigd en bereidt ze voor.`],
+        paragraphs: [`${d.other} heeft bestelling ${d.number} bevestigd en bereidt ze voor.`, ...stock('nl'), ...storeLines(d, store, 'nl')],
         cta: { label: 'Bestelling volgen', url: d.url },
       };
   return notice(d.lang, d.to, { fr, nl });
+}
+
+/** To the contractor: goods that were not in stock have arrived at the supplier. */
+export function orderReadyMail(d: OrderMailData, store: StoreInfo, note: string | null): Mail {
+  return notice(d.lang, d.to, {
+    fr: {
+      subject: `Matériel en stock : ${d.title} (${d.number})`,
+      paragraphs: [
+        `${d.other} a reçu le matériel de votre commande ${d.number} : tout est en stock.`,
+        store.pickup ? 'Vous pouvez passer le chercher au magasin.' : 'Le fournisseur organise maintenant la livraison.',
+        ...(note ? [`Message du fournisseur : ${note}`] : []),
+        ...storeLines(d, store, 'fr'),
+      ],
+      cta: { label: 'Voir la commande', url: d.url },
+    },
+    nl: {
+      subject: `Materiaal op voorraad: ${d.title} (${d.number})`,
+      paragraphs: [
+        `${d.other} heeft het materiaal van uw bestelling ${d.number} ontvangen: alles is op voorraad.`,
+        store.pickup ? 'U kunt het in de winkel ophalen.' : 'De leverancier regelt nu de levering.',
+        ...(note ? [`Bericht van de leverancier: ${note}`] : []),
+        ...storeLines(d, store, 'nl'),
+      ],
+      cta: { label: 'Bestelling bekijken', url: d.url },
+    },
+  });
 }
 
 /** To the supplier: the contractor sent proof of the deposit. */
@@ -329,7 +489,7 @@ export function depositAnsweredMail(d: OrderMailData, received: boolean, reason?
           paragraphs: [
             `${d.other} n'a pas encore reçu votre acompte pour la commande ${d.number}.`,
             ...(reason ? [`Motif : ${reason}`] : []),
-            "Vérifiez le virement et renvoyez une preuve si besoin.",
+            'Vérifiez le virement et renvoyez une preuve si besoin.',
           ],
           cta: { label: 'Voir la commande', url: d.url },
         },
@@ -386,10 +546,7 @@ export function orderNewsMail(d: OrderMailData, news: 'payment_reported' | 'deli
   return notice(d.lang, d.to, {
     fr: {
       subject: `Livraison confirmée : ${d.number}`,
-      paragraphs: [
-        `${d.other} a confirmé la réception de la commande ${d.number}.`,
-        `Envoyez votre facture par Peppol avec la référence de commande ${d.number}.`,
-      ],
+      paragraphs: [`${d.other} a confirmé la réception de la commande ${d.number}.`, `Envoyez votre facture par Peppol avec la référence de commande ${d.number}.`],
     },
     nl: {
       subject: `Levering bevestigd: ${d.number}`,
@@ -404,16 +561,17 @@ export type BillLine = { number: string; title: string; contractor: string; base
 export function commissionBillMail(
   lang: Lang,
   to: string,
-  bill: { number: string; month: string; exVat: number; incVat: number; lines: BillLine[] },
+  bill: { number: string; month: string; exVat: number; incVat: number; lines: BillLine[]; creditExVat?: number },
   url: string,
 ): Mail {
-  const rows = bill.lines.map(
-    (l) => `${l.number} · ${l.contractor} · ${l.title} · ${eur(l.baseExVat, lang)} → ${eur(l.commissionExVat, lang)}`,
-  );
+  const rows = bill.lines.map((l) => `${l.number} · ${l.contractor} · ${l.title} · ${eur(l.baseExVat, lang)} → ${eur(l.commissionExVat, lang)}`);
   const intro =
     lang === 'nl'
       ? `Commissie voor ${bill.lines.length} bestelling(en) gegund via ${APP_NAME} in ${bill.month}: ${eur(bill.exVat, 'nl')} excl. btw, of ${eur(bill.incVat, 'nl')} incl. btw.`
       : `Commission sur ${bill.lines.length} commande(s) passée(s) via ${APP_NAME} en ${bill.month} : ${eur(bill.exVat, 'fr')} HTVA, soit ${eur(bill.incVat, 'fr')} TVAC.`;
+  if (bill.creditExVat) {
+    rows.push(lang === 'nl' ? `Peterschapskrediet: −${eur(bill.creditExVat, 'nl')}` : `Crédit de parrainage : −${eur(bill.creditExVat, 'fr')}`);
+  }
   const outro =
     lang === 'nl'
       ? 'De factuur ontvangt u via Peppol met dezelfde referentie. U kunt veilig online betalen (Bancontact, kaart of overschrijving).'
@@ -421,6 +579,8 @@ export function commissionBillMail(
   const html = layout(
     [esc(intro), `<ul style="margin:0;padding-left:18px">${rows.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>`, esc(outro)],
     { label: lang === 'nl' ? 'Commissie betalen' : 'Payer la commission', url },
+    undefined,
+    lang,
   );
   return {
     to,
