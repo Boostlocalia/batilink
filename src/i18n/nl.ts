@@ -41,6 +41,7 @@ export const nl: Dictionary = {
     signUpLead: 'Maak uw account aan in één minuut. Daarna voegt u uw bedrijf toe.',
     signInTab: 'Aanmelden',
     signUpTab: 'Account aanmaken',
+    privateMode: 'BatiNode is in onderhoud: registreren is voorlopig niet mogelijk. Leden kunnen zich aanmelden.',
     email: 'E-mailadres',
     password: 'Wachtwoord',
     newPassword: 'Kies een wachtwoord',
@@ -204,6 +205,7 @@ export const nl: Dictionary = {
   compare: {
     lead: (submitted: number, invited: number) => `${submitted} van ${invited} offertes ontvangen.`,
     none: 'Nog geen offertes. Leveranciers zonder antwoord krijgen na 24 u automatisch een herinnering.',
+    requested: (n: number) => `Gevraagd materiaal (${n} ${n > 1 ? 'lijnen' : 'lijn'})`,
     delivery: 'Levering',
     leadTime: 'Levertijd',
     validUntil: 'Geldig tot',

@@ -4,6 +4,7 @@
 //                                 payment method, download invoices or cancel.
 // The plan itself changes only when Stripe confirms it (stripe-webhook).
 
+import { paused, privateMode } from '../_shared/private-mode.ts';
 import { CHECKOUT_BRANDING, stripeClient } from '../_shared/stripe.ts';
 import { adminClient, appUrl, callerCompanyId, corsHeaders, json } from '../_shared/supabase.ts';
 
@@ -20,9 +21,10 @@ const INVOICE_NL = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  const admin = adminClient();
+  if (await privateMode(admin)) return paused();
   const stripe = stripeClient();
   if (!stripe) return json({ error: 'payments_unavailable' }, 503);
-  const admin = adminClient();
   const companyId = await callerCompanyId(req, admin);
   if (!companyId) return json({ error: 'unauthorized' }, 401);
 

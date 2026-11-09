@@ -14,6 +14,7 @@ import { GlowBackdrop } from "@/components/glow-backdrop";
 import { NodiGreeting } from "@/components/nodi-greeting";
 import { LegalLinks } from "@/components/legal-links";
 import { strongPassword } from "@/lib/password";
+import { PRIVATE_MODE } from "@/lib/private-mode";
 
 type Mode = "signin" | "signup";
 
@@ -27,7 +28,7 @@ export default function SignInScreen() {
   const a = t.auth;
   const { mode: initial } = useLocalSearchParams<{ mode?: string }>();
   const [mode, setMode] = useState<Mode>(
-    initial === "inscription" ? "signup" : "signin",
+    initial === "inscription" && !PRIVATE_MODE ? "signup" : "signin",
   );
   const [email, setEmail] = useState("");
   const [expired] = useState(takeSessionExpired);
@@ -55,6 +56,8 @@ export default function SignInScreen() {
     if (e.code === "email_not_confirmed") return a.notConfirmed;
     if (e.code === "user_already_exists") return a.alreadyUsed;
     if (e.code === "weak_password") return a.shortPassword;
+    // Private mode: the server refuses any new account.
+    if (e.code === "unexpected_failure" || e.status === 500) return PRIVATE_MODE ? a.privateMode : t.common.error;
     if (e.status === 429) return a.tooMany;
     return t.common.error;
   };
@@ -182,15 +185,21 @@ export default function SignInScreen() {
               {mode === "signin" ? a.lead : a.signUpLead}
             </ThemedText>
           </View>
-          <Segmented<Mode>
-            signal
-            value={mode}
-            onChange={switchMode}
-            options={[
-              { value: "signin", label: a.signInTab },
-              { value: "signup", label: a.signUpTab },
-            ]}
-          />
+          {PRIVATE_MODE ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              {a.privateMode}
+            </ThemedText>
+          ) : (
+            <Segmented<Mode>
+              signal
+              value={mode}
+              onChange={switchMode}
+              options={[
+                { value: "signin", label: a.signInTab },
+                { value: "signup", label: a.signUpTab },
+              ]}
+            />
+          )}
           {notice ? <ThemedText themeColor="good">{notice}</ThemedText> : null}
           <Card>
             <Field

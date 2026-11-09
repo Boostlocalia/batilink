@@ -39,6 +39,7 @@ export const fr = {
     signUpLead: 'Créez votre compte en une minute. Vous ajouterez ensuite votre entreprise.',
     signInTab: 'Se connecter',
     signUpTab: 'Créer un compte',
+    privateMode: 'BatiNode est en maintenance : les inscriptions sont fermées pour le moment. Les membres peuvent se connecter.',
     email: 'Adresse e-mail',
     password: 'Mot de passe',
     newPassword: 'Choisissez un mot de passe',
@@ -203,6 +204,7 @@ export const fr = {
   compare: {
     lead: (submitted: number, invited: number) => `${submitted} offre${submitted > 1 ? 's' : ''} reçue${submitted > 1 ? 's' : ''} sur ${invited}.`,
     none: 'Aucune offre pour le moment. Les fournisseurs sans réponse sont relancés automatiquement après 24 h.',
+    requested: (n: number) => `Matériel demandé (${n} ligne${n > 1 ? 's' : ''})`,
     delivery: 'Livraison',
     leadTime: 'Délai',
     validUntil: "Valable jusqu'au",

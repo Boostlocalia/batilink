@@ -6,6 +6,7 @@ import Anthropic from 'npm:@anthropic-ai/sdk@0.135.0';
 
 import { assistantSystemPrompt, audienceNote, type Audience } from '../_shared/assistant-prompt.ts';
 import { overLimit } from '../_shared/limits.ts';
+import { paused, privateMode } from '../_shared/private-mode.ts';
 import { adminClient, callerCompanyId, corsHeaders, json } from '../_shared/supabase.ts';
 import { hashToken } from '../_shared/tokens.ts';
 
@@ -21,6 +22,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   const admin = adminClient();
+  if (await privateMode(admin)) return paused();
   const body = (await req.json()) as { messages?: Turn[]; token?: string; language?: string };
 
   // Who is asking: a signed-in company, or a supplier holding a valid link.

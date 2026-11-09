@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type Pres
 
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useI18n, type Language } from '@/i18n';
+import { PRIVATE_MODE } from '@/lib/private-mode';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 
@@ -32,7 +33,7 @@ export default function AppTabs() {
               <TabButton>{t.tabs.newRequest}</TabButton>
             </TabTrigger>
           ) : null}
-          {contractor ? (
+          {contractor && !PRIVATE_MODE ? (
             <TabTrigger name="abonnement" href="/abonnement" asChild>
               <TabButton>{t.tabs.plans}</TabButton>
             </TabTrigger>

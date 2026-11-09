@@ -1,6 +1,7 @@
 import { NativeTabs } from 'expo-router/native-tabs';
 import { Colors } from '@/constants/theme';
 import { useI18n } from '@/i18n';
+import { PRIVATE_MODE } from '@/lib/private-mode';
 import { useSession } from '@/lib/session';
 
 export default function AppTabs() {
@@ -28,7 +29,7 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Label>{t.tabs.newRequest}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="plus.rectangle.on.rectangle" md="add_box" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="abonnement" hidden={!contractor}>
+      <NativeTabs.Trigger name="abonnement" hidden={!contractor || PRIVATE_MODE}>
         <NativeTabs.Trigger.Label>{t.tabs.plans}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="creditcard" md="credit_card" />
       </NativeTabs.Trigger>
