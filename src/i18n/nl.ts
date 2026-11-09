@@ -205,6 +205,7 @@ export const nl: Dictionary = {
   compare: {
     lead: (submitted: number, invited: number) => `${submitted} van ${invited} offertes ontvangen.`,
     none: 'Nog geen offertes. Leveranciers zonder antwoord krijgen na 24 u automatisch een herinnering.',
+    requested: (n: number) => `Gevraagd materiaal (${n} ${n > 1 ? 'lijnen' : 'lijn'})`,
     delivery: 'Levering',
     leadTime: 'Levertijd',
     validUntil: 'Geldig tot',
