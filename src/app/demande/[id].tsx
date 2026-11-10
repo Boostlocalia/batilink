@@ -192,28 +192,27 @@ export default function CompareScreen() {
             </Card>
           ) : null}
 
+          {/* What was asked stays visible, before and after offers come in. */}
+          {items.length ? (
+            <Card>
+              <ThemedText type="subtitle">{t.compare.requested(items.length)}</ThemedText>
+              {items.map((item, i) => (
+                <View key={item.id} style={[styles.requestedRow, i > 0 && rowBorder]}>
+                  <ThemedText type="small" style={{ flex: 1 }}>
+                    {item.label}
+                  </ThemedText>
+                  <ThemedText type="smallBold">
+                    {item.quantity} {t.units[item.unit as keyof typeof t.units] ?? item.unit}
+                  </ThemedText>
+                </View>
+              ))}
+            </Card>
+          ) : null}
+
           {priced.length === 0 ? (
-            <>
-              <Card>
-                <ThemedText themeColor="textSecondary">{t.compare.none}</ThemedText>
-              </Card>
-              {/* Until an offer comes in, the request still shows what was asked. */}
-              {items.length ? (
-                <Card>
-                  <ThemedText type="subtitle">{t.compare.requested(items.length)}</ThemedText>
-                  {items.map((item, i) => (
-                    <View key={item.id} style={[styles.requestedRow, i > 0 && rowBorder]}>
-                      <ThemedText type="small" style={{ flex: 1 }}>
-                        {item.label}
-                      </ThemedText>
-                      <ThemedText type="smallBold">
-                        {item.quantity} {t.units[item.unit as keyof typeof t.units] ?? item.unit}
-                      </ThemedText>
-                    </View>
-                  ))}
-                </Card>
-              ) : null}
-            </>
+            <Card>
+              <ThemedText themeColor="textSecondary">{t.compare.none}</ThemedText>
+            </Card>
           ) : (
             <Card style={{ paddingHorizontal: 0 }}>
               <ScrollView horizontal showsHorizontalScrollIndicator>
